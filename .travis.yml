@@ -1,0 +1,13 @@
+cache: pip
+language: python
+sudo: false
+python:
+    - '3.6'
+install:
+    - make install-dev
+    - pip install codecov
+script:
+    - make lint
+    - make test-coverage
+after_success:
+    - codecov
