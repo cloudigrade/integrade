@@ -5,8 +5,20 @@ python:
     - '3.6'
 install:
     - make install-dev
-    - pip install codecov
+    - pip install codecov httpie
+    - wget -O oc.tar.gz https://github.com/openshift/origin/releases/download/v3.7.2/openshift-origin-client-tools-v3.7.2-282e43f-linux-64bit.tar.gz
+    - tar -zxvf oc.tar.gz
+    - cp openshift-origin-client-tools-v3.7.2-282e43f-linux-64bit/oc .
+before_script:
+    - ./oc login $OPENSHIFT_URL --token=$OPENSHIFT_TOKEN
+    - REVISION=$(./oc rollout latest dc/postgresql -o revision)
+    - ./oc rollout status dc/postgresql --revision=$REVISION
+    - REVISION=$(./oc rollout latest dc/cloudigrade -o revision)
+    - ./oc rollout status dc/cloudigrade --revision=$REVISION
+    - ./oc rsh -c cloudigrade $(./oc get pods -o jsonpath='{.items[*].metadata.name}' -l name=cloudigrade) scl enable rh-postgresql96 rh-python36 -- python manage.py createsuperuser --no-input --username $CLOUDIGRADE_USER --email="$CLOUDIGRADE_USER@example.com"
+    - export CLOUDIGRADE_TOKEN=$(./oc rsh -c cloudigrade $(./oc get pods -o jsonpath='{.items[*].metadata.name}' -l name=cloudigrade) scl enable rh-postgresql96 rh-python36 -- python manage.py drf_create_token $CLOUDIGRADE_USER | awk '{print $3}')
 script:
+    - AUTH=Authorization:"Token $CLOUDIGRADE_TOKEN" && http GET ${CLOUDIGRADE_BASE_URL}/api/v1/ "${AUTH}"
     - make lint
     - make test-coverage
 after_success:
