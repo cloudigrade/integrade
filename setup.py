@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# coding=utf-8
 """A setuptools-based script for installing integrade."""
 import os
 
@@ -41,6 +40,7 @@ setup(
     },
     install_requires=[
         'pytest',
+        'requests',
     ],
     license='GPLv3',
     long_description=long_description,
