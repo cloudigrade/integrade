@@ -14,6 +14,8 @@ from integrade import config, exceptions
 import requests
 from requests.exceptions import HTTPError
 
+AUTHORIZATION_HEADER = 'Authorization'
+
 
 def raise_error_for_status(response):
     """Generate an error message and raise HTTPError for bad return codes.
@@ -37,6 +39,9 @@ def raise_error_for_status(response):
             response_message = 'text_error_message : {}'.format(
                 pformat(response.text))
 
+        error_headers = response.request.headers.copy()
+        if error_headers.get(AUTHORIZATION_HEADER) is not None:
+            error_headers[AUTHORIZATION_HEADER] = '*' * 8
         error_msgs += '\n\n'.join(
             [
                 'request path : {}'.format(pformat(
@@ -44,7 +49,7 @@ def raise_error_for_status(response):
                 'request body : {}'.format(pformat(
                     response.request.body)),
                 'request headers : {}'.format(pformat(
-                    response.request.headers)),
+                    error_headers)),
                 'response code : {}'.format(response.status_code),
                 '{error_message}'.format(error_message=response_message)
             ]
@@ -158,8 +163,8 @@ class Client(object):
             self.token = cfg.get('superuser_token')
             if not self.token:
                 raise exceptions.TokenNotFound(
-                        'No token was found to authenticate with the server'
-                        )
+                    'No token was found to authenticate with the server'
+                )
 
     def logout(self, **kwargs):
         """Start sending unauthorized requests by removing our auth token."""
@@ -168,7 +173,7 @@ class Client(object):
     def default_headers(self):
         """Build the headers for our request to the server."""
         if self.token:
-            return {'Authorization': 'Token {}'.format(self.token)}
+            return {AUTHORIZATION_HEADER: 'Token {}'.format(self.token)}
         return {}
 
     def delete(self, endpoint, **kwargs):

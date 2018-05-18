@@ -30,7 +30,7 @@ def mock_request():
     mock_request = mock.Mock(
         body='{"Test Body"}',
         path_url='/example/path/',
-        headers='{"Test Header"}',
+        headers={'Authorization': 'authorizationkey'},
         text='Some text',
     )
     return mock_request
@@ -60,6 +60,7 @@ def bad_response_valid_json():
 def bad_response_invalid_json():
     """Return a mock response with a 404 status code but with bad json."""
     mock_response = mock.Mock(status_code=404, text='<No JSON!>')
+    mock_response.request = mock_request()
     mock_response.json = Mock()
     mock_response.json.side_effect = JSONDecodeError(
         msg='no json',
@@ -197,6 +198,7 @@ def test_response_handler_raises_no_json(
             with pytest.raises(requests.exceptions.HTTPError) as exc_info:
                 client.response_handler(bad_response)
             assert 'No JSON!' in str(exc_info.value)
+            assert "'Authorization': '********'" in str(exc_info.value)
         else:
             # no error should be raised with the echo handler
             client.response_handler(bad_response)
