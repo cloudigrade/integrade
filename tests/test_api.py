@@ -6,12 +6,12 @@ from unittest import mock
 from unittest.mock import Mock, patch
 from urllib.parse import urljoin
 
-from integrade import api, config, exceptions
-from integrade.utils import uuid4
-
 import pytest
 
 import requests
+
+from integrade import api, config, exceptions
+from integrade.utils import uuid4
 
 
 VALID_CONFIG = {

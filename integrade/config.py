@@ -34,11 +34,6 @@ def get_config():
                 ' your environment.'
             )
         _CONFIG['superuser_token'] = os.environ.get('CLOUDIGRADE_TOKEN', None)
-        if not _CONFIG['superuser_token']:
-            raise exceptions.TokenNotFound(
-                'Make sure you have $CLOUDIGRADE_TOKEN set in in'
-                ' your environment.'
-            )
         if os.environ.get('USE_HTTPS', 'false').lower() == 'true':
             _CONFIG['scheme'] = 'https'
         else:

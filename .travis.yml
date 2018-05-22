@@ -1,3 +1,6 @@
+addons:
+  chrome: stable
+  firefox: latest
 cache: pip
 language: python
 sudo: false
@@ -5,29 +8,12 @@ python:
   - '3.6'
 
 stages:
-  - name: test-cloudigrade
-    if: (type IN (push)) AND (branch = master)
   - test-integrade
+  - setup-cloudigrade
+  - test-cloudigrade
 
 jobs:
   include:
-    - stage: test-cloudigrade
-      install:
-        - make install-dev
-        - wget -O oc.tar.gz https://github.com/openshift/origin/releases/download/v3.7.2/openshift-origin-client-tools-v3.7.2-282e43f-linux-64bit.tar.gz
-        - tar -zxvf oc.tar.gz
-        - cp openshift-origin-client-tools-v3.7.2-282e43f-linux-64bit/oc .
-      before_script:
-        - ./oc login $OPENSHIFT_URL --token=$OPENSHIFT_TOKEN
-        - REVISION=$(./oc rollout latest dc/postgresql -o revision)
-        - ./oc rollout status dc/postgresql --revision=$REVISION
-        - REVISION=$(./oc rollout latest dc/cloudigrade -o revision)
-        - ./oc rollout status dc/cloudigrade --revision=$REVISION
-        - ./oc rsh -c cloudigrade $(./oc get pods -o jsonpath='{.items[*].metadata.name}' -l name=cloudigrade) scl enable rh-postgresql96 rh-python36 -- python manage.py createsuperuser --no-input --username $CLOUDIGRADE_USER --email="$CLOUDIGRADE_USER@example.com"
-        - export CLOUDIGRADE_TOKEN=$(./oc rsh -c cloudigrade $(./oc get pods -o jsonpath='{.items[*].metadata.name}' -l name=cloudigrade) scl enable rh-postgresql96 rh-python36 -- python manage.py drf_create_token $CLOUDIGRADE_USER | awk '{print $3}')
-      script:
-        - py.test -vvv integrade/tests/
-
     - stage: test-integrade
       install:
         - make install-dev
@@ -37,3 +23,56 @@ jobs:
         - make test-coverage
       after_success:
         - codecov
+
+    - stage: setup-cloudigrade
+      install:
+        - ./scripts/setup_oc.sh
+        - export PATH="${HOME}/oc:${PATH}"
+        - oc version
+      script:
+        - oc login $OPENSHIFT_URL --token=$OPENSHIFT_TOKEN
+        - oc rollout status dc/postgresql
+        - REVISION=$(oc rollout latest dc/postgresql -o revision)
+        - oc rollout status dc/postgresql --revision=$REVISION
+        - oc rollout status dc/cloudigrade
+        - REVISION=$(oc rollout latest dc/cloudigrade -o revision)
+        - oc rollout status dc/cloudigrade --revision=$REVISION
+        - oc rsh -c cloudigrade $(oc get pods -o jsonpath='{.items[*].metadata.name}' -l name=cloudigrade) scl enable rh-postgresql96 rh-python36 -- python manage.py createsuperuser --no-input --username $CLOUDIGRADE_USER --email="$CLOUDIGRADE_USER@example.com"
+
+    - stage: test-cloudigrade
+      env:
+        - NAME=api
+      install:
+        - ./scripts/setup_oc.sh
+        - export PATH="${HOME}/oc:${PATH}"
+        - oc version
+        - make install-dev
+      before_script:
+        - oc login $OPENSHIFT_URL --token=$OPENSHIFT_TOKEN
+        - export CLOUDIGRADE_TOKEN=$(oc rsh -c cloudigrade $(oc get pods -o jsonpath='{.items[*].metadata.name}' -l name=cloudigrade) scl enable rh-postgresql96 rh-python36 -- python manage.py drf_create_token $CLOUDIGRADE_USER | awk '{print $3}')
+      script:
+        - py.test -vvv integrade/tests/api
+
+    - stage: test-cloudigrade
+      env:
+        - NAME=ui-chrome
+      before_install:
+        - ./scripts/setup_chromedriver.sh
+        - export PATH="${HOME}/chromedriver:${PATH}"
+        - chromedriver --version
+      install:
+        - make install-dev
+      script:
+      - xvfb-run py.test -vvv --driver Chrome integrade/tests/ui
+
+    - stage: test-cloudigrade
+      env:
+        - NAME=ui-firefox
+      before_install:
+        - ./scripts/setup_geckodriver.sh
+        - export PATH="${HOME}/geckodriver:${PATH}"
+        - geckodriver --version
+      install:
+        - make install-dev
+      script:
+      - xvfb-run py.test -vvv --driver Firefox integrade/tests/ui

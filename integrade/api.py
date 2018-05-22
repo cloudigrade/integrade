@@ -9,10 +9,10 @@ from json import JSONDecodeError
 from pprint import pformat
 from urllib.parse import urljoin, urlunparse
 
-from integrade import config, exceptions
-
 import requests
 from requests.exceptions import HTTPError
+
+from integrade import config, exceptions
 
 AUTHORIZATION_HEADER = 'Authorization'
 
@@ -163,7 +163,9 @@ class Client(object):
             self.token = cfg.get('superuser_token')
             if not self.token:
                 raise exceptions.TokenNotFound(
-                    'No token was found to authenticate with the server'
+                    'No token was found to authenticate with the server. Make '
+                    'sure you have $CLOUDIGRADE_TOKEN set in in your '
+                    'environment.'
                 )
 
     def logout(self, **kwargs):

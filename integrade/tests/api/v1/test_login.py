@@ -8,10 +8,10 @@
 :testtype: functional
 :upstream: yes
 """
+import pytest
+
 from integrade import api
 from integrade.utils import uuid4
-
-import pytest
 
 
 @pytest.mark.skip

@@ -40,6 +40,7 @@ setup(
     },
     install_requires=[
         'pytest',
+        'pytest-selenium',
         'requests',
     ],
     license='GPLv3',

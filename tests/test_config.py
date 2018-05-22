@@ -2,10 +2,10 @@
 import os
 from unittest import mock
 
+import pytest
+
 from integrade import config, exceptions
 from integrade.utils import uuid4
-
-import pytest
 
 
 @pytest.mark.parametrize('ssl', [True, False])
@@ -30,15 +30,8 @@ def test_get_config(ssl, protocol):
 
 
 def test_get_config_negative():
-    """If a base url is specified in the environment, we use it."""
+    """Ensure an exception will be raised if a base URL isn't specified."""
     with mock.patch.object(config, '_CONFIG', None):
         with pytest.raises(exceptions.BaseUrlNotFound):
-            os.environ['CLOUDIGRADE_TOKEN'] = uuid4()
             os.environ.pop('CLOUDIGRADE_BASE_URL')
-            config.get_config()
-
-    with mock.patch.object(config, '_CONFIG', None):
-        with pytest.raises(exceptions.TokenNotFound):
-            os.environ.pop('CLOUDIGRADE_TOKEN')
-            os.environ['CLOUDIGRADE_BASE_URL'] = 'example.com'
             config.get_config()
