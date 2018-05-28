@@ -10,6 +10,7 @@ from pprint import pformat
 from urllib.parse import urljoin, urlunparse
 
 import requests
+from requests.auth import AuthBase
 from requests.exceptions import HTTPError
 
 from integrade import config, exceptions
@@ -85,6 +86,28 @@ def json_handler(response):
     return response.json()
 
 
+class TokenAuth(AuthBase):
+    """A class that enables token authentication with the Requests library.
+
+    For more information, see the Requests documentation on `custom
+    authentication
+    <http://docs.python-requests.org/en/latest/user/advanced/#custom-authentication>`_.
+    """
+
+    def __init__(self, token, header_format='Token'):
+        """Require token variable."""
+        self.token = token
+        self.header_format = header_format
+
+    def __call__(self, request):
+        """Modify header and return request."""
+        request.headers['Authorization'] = ' '.join((
+            self.header_format,
+            self.token,
+        ))
+        return request
+
+
 class Client(object):
     """A client for interacting with the cloudigrade API.
 
@@ -121,7 +144,8 @@ class Client(object):
     .. _Requests: http://docs.python-requests.org/en/master/
     """
 
-    def __init__(self, response_handler=None, url=None, authenticate=True):
+    def __init__(self, response_handler=None, url=None, authenticate=True,
+                 token=None):
         """Initialize this object, collecting base URL from config file.
 
         If no response handler is specified, use the `code_handler` which will
@@ -131,8 +155,8 @@ class Client(object):
         environment variables $CLOUDIGRADE_BASE_URL and $USE_HTTPS values (see
         integrade/config.py).
         """
+        self.token = token
         self.url = url
-        self.token = None
         cfg = config.get_config()
         self.verify = cfg.get('ssl-verify', False)
 
@@ -160,17 +184,14 @@ class Client(object):
             self.response_handler = response_handler
 
         if authenticate:
-            self.token = cfg.get('superuser_token')
+            if not self.token:
+                self.token = cfg.get('superuser_token')
             if not self.token:
                 raise exceptions.TokenNotFound(
                     'No token was found to authenticate with the server. Make '
                     'sure you have $CLOUDIGRADE_TOKEN set in in your '
                     'environment.'
                 )
-
-    def logout(self, **kwargs):
-        """Start sending unauthorized requests by removing our auth token."""
-        self.token = None
 
     def default_headers(self):
         """Build the headers for our request to the server."""

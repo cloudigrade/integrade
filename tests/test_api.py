@@ -115,15 +115,12 @@ def test_negative_create_no_token():
             api.Client(authenticate=True)
 
 
-def test_logout():
-    """Test that when we log out, all credentials are cleared."""
+def test_empty_default_headers():
+    """Test when a token is not defined, default_headers is an empty dict."""
     with patch.object(config, '_CONFIG', VALID_CONFIG):
         assert config.get_config() == VALID_CONFIG
-        client = api.Client
-        cl = client()
-        cl.logout()
-        assert cl.token is None
-        assert cl.default_headers() == {}
+        client = api.Client(authenticate=False)
+        assert client.default_headers() == {}
 
 
 @pytest.mark.parametrize('handler',
@@ -288,3 +285,16 @@ def test_request(good_response):
                     client.token),
                 'Foo': 'bar'},
             'verify': False}
+
+
+def test_token_auth():
+    """Test TokenAuth generates proper request header."""
+    token = uuid4()
+    header_format = uuid4()
+    auth = api.TokenAuth(token, header_format)
+    request = Mock()
+    request.headers = {}
+    changed_request = auth(request)
+    assert changed_request is request
+    assert 'Authorization' in request.headers
+    assert request.headers['Authorization'] == f'{header_format} {token}'

@@ -1,5 +1,14 @@
 """Unit tests for :mod:`integrade.utils`."""
-from integrade.utils import base_url, uuid4
+import string
+
+from integrade.utils import base_url, gen_password, uuid4
+
+
+def test_gen_password():
+    """Test gen_password generates password with printable string chars."""
+    password = gen_password(30)
+    assert len(password) == 30
+    assert set(password).issubset(string.printable)
 
 
 def test_uuid4():

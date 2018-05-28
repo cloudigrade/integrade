@@ -11,66 +11,74 @@
 import pytest
 
 from integrade import api
+from integrade.tests.api.v1 import urls
+from integrade.tests.api.v1.utils import create_user_account
 from integrade.utils import uuid4
 
 
-@pytest.mark.skip
-def test_login():
-    """Test that we can login to the server.
+def test_login_logout():
+    """Test that we can login, make requests and logout to the server.
 
     :id: 2eb55229-4e1e-4d35-ac4a-4f2424d37cf6
-    :description: Test that we can login to the server
-    :steps: Send POST with username and password to the token endpoint
-    :expectedresults: Receive an authorization token that we can then use
-        to build our authentication headers and make authenticated requests.
-    :caseautomation: notautomated
-    """
-
-
-@pytest.mark.skip
-def test_logout(endpoint):
-    """Test that we can log out of the server.
-
-    :id: ca51b2a0-1e33-491d-8bb2-5e81d135424d
-    :description: Test that we can logout of the server and requests missing
-        a valid auth token are rejected.
+    :description: Test that we can login, make requests and logout to the
+        server.
     :steps:
-        1) Log into the server
-        2) Logout of the server
-        3) Try an access the server
-    :expectedresults: Our request missing a valid auth token is rejected.
-    :caseautomation: notautomated
+        1) Send POST with username and password to the token endpoint.
+        2) Send a GET request to /auth/me/ with the authorization token from
+           previous step in the headers.
+        3) Send a POST request to /auth/token/destroy/.
+        4) Try to access /auth/me/ again with the authorization token from step
+           1.
+    :expectedresults:
+        1) Receive an authorization token that can then be used to build
+           authentication headers and make authenticated requests.
+        2) Assert a 200 response is returned and the information about the
+           logged in user are correct.
+        3) Assert a 204 response is returned
+        4) Assert a 401 response is returned and the detailed message states
+           the authentication token is now invalid.
     """
-
-
-def test_token():
-    """Given that we have a valid token, we can make requests.
-
-    :id: addd7d83-961a-4cdf-9473-7c6db93e6af9
-    :description: Test that if we have a good token, we can use it  to make
-        requests.
-    :steps:
-        1) Send a GET request with a valid authorization token in the header.
-        2) Assert that we get a 200 response.
-    :expectedresults: The server accepts our valid token.
-    """
-    client = api.Client()
-    response = client.get()
+    user = create_user_account()
+    client = api.Client(authenticate=False)
+    response = client.post(urls.AUTH_TOKEN_CREATE, user)
     assert response.status_code == 200
+    json_response = response.json()
+    assert 'auth_token' in json_response
+    auth = api.TokenAuth(json_response['auth_token'])
+
+    response = client.get(urls.AUTH_ME, auth=auth)
+    assert response.status_code == 200
+    json_response = response.json()
+    assert json_response['email'] == user['email']
+    assert json_response['username'] == user['username']
+
+    response = client.post(urls.AUTH_TOKEN_DESTROY, {}, auth=auth)
+    assert response.status_code == 204
+
+    client.response_handler = api.echo_handler
+    response = client.get(urls.AUTH_ME, auth=auth)
+    assert response.status_code == 401
+    json_response = response.json()
+    assert json_response['detail'] == 'Invalid token.'
 
 
-def test_token_negative():
+@pytest.mark.parametrize(
+    'endpoint', ('account', 'event', 'instance', 'image', 'report'))
+def test_token_negative(endpoint):
     """Given that we have an invalid token, we cannot make requests.
 
     :id: a87f7069-3ee9-4435-a953-fd8664199419
     :description: Test that if we have a bad token, we cannot use it to make
-        requests.
+        requests to any of the /api/v1/* endpoints
     :steps:
-        1) Send a GET request with a invalid authorization token in the header.
-        2) Assert that we get a 401 response.
-    :expectedresults: The server rejects our invalid token.
+        1) Send a GET request with a invalid authorization token in the header
+           to all /api/v1/* endpoints.
+        2) Assert that we get a 401 response for all requests.
+    :expectedresults: The server rejects our invalid token for all /api/v1/*
+        endpoints.
     """
     client = api.Client(response_handler=api.echo_handler)
-    client.token = uuid4()
-    response = client.get()
+    auth = api.TokenAuth(uuid4())
+    response = client.get(f'/api/v1/{endpoint}', auth=auth)
     assert response.status_code == 401
+    assert response.json() == {'detail': 'Invalid token.'}
