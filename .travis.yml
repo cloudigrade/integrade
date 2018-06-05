@@ -9,8 +9,10 @@ python:
 
 stages:
   - test-integrade
-  - setup-cloudigrade
-  - test-cloudigrade
+  - name: setup-cloudigrade
+    if: branch = master or (branch != master and type = pull_request)
+  - name: test-cloudigrade
+    if: branch = master or (branch != master and type = pull_request)
 
 jobs:
   include:
