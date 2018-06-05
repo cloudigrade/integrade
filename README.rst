@@ -107,16 +107,28 @@ can do this by logging in through the web UI and in the menu opened by clicking
 on your user name, there is an option to ``Copy Login Command``. Paste this to
 the terminal to log the ``oc`` client into that OpenShift cluster.
 
-In either case, given that your ``oc`` binary is logged into the correct
-OpenShift cluster, you can collect the necessary `CLOUDIGRADE_BASE_URL` by
-inspecting the output of `oc status`.  To create the necessary super user and
-retreive a token for that user, you can source the script located in
-``scripts/oc-auth.sh`` which will use ``CLOUDIGRADE_USER`` or create unique
-name using ``uuidgen`` and create a superuser, and then retreive an
-authentication token and set the ``CLOUDIGRADE_TOKEN`` with that value. It is
-important to remember that ``source scripts/oc-auth.sh`` will set the
-environment variables in you current shell but ``bash scripts/oc-auth.sh`` will
-not.
+No matter which OpenShift cluster cloudigrade is running in, given that your
+``oc`` binary is logged into it, you can collect the necessary
+``CLOUDIGRADE_BASE_URL`` by inspecting the output of ``oc status``. If this
+environment variable is not set, by default we assume the test environment,
+``test.cloudigra.de``. To create the necessary super user and retreive a token
+for that user, you can source the script located in ``scripts/oc-auth.sh``
+which will set ``CLOUDIGRADE_USER`` to a unique name using ``uuidgen`` and
+create a superuser with that name, and then retreive an authentication token
+and set the ``CLOUDIGRADE_TOKEN`` with that value. It is important to remember
+that ``source scripts/oc-auth.sh`` will set the environment variables in you
+current shell but ``bash scripts/oc-auth.sh`` will not.
+
+Example use of ``scripts/oc-auth.sh`` to configure Integrade and run the tests
+against the test environment::
+
+    source scripts/oc-auth.sh
+    make test-api
+
+If you want to test a different instance of cloudigrade, just make sure to
+export ``CLOUDIGRADE_BASE_URL`` to the correct value and log your ``oc`` client
+into the correct openshift instance.
+
 
 If you desire to serve ``cloudigrade`` with the development server instead of
 on OpenShift locally or on the test environment, you can use the ``make user``
@@ -125,7 +137,11 @@ and ``make user-authenticate`` targets provided in the ``Makefile`` inside the
 ``CLOUDIGRADE_TOKEN`` manually.
 
 With ``integrade`` configured to talk to the correct cloudigrade instance, to
-run the functional tests, run the make target ``make test-cloudigrade``.
+run the functional tests against the api, run the make target ``make test-api``.
+
+To run the UI tests, you must specify what driver to use. More complete
+documentation is needed, but to get started, you should be able to run all
+tests by running ``py.test --driver=chrome integrade/tests``.
 
 .. |license| image:: https://img.shields.io/github/license/cloudigrade/integrade.svg
    :target: https://github.com/cloudigrade/cloudigrade/blob/master/LICENSE

@@ -12,7 +12,8 @@ help:
 	@echo "  test              to run integrade's framework unit tests"
 	@echo "  test-coverage     to run integrade's unit tests and measure"
 	@echo "                    test coverage"
-	@echo "  test-cloudigrade  to run functional tests against cloudigrade"
+	@echo "  test-api          to run functional tests against cloudigrade"
+	@echo "                    api endpoints"
 
 all: lint test-coverage
 
@@ -28,10 +29,10 @@ lint:
 test:
 	py.test tests
 
-test-cloudigrade:
-	py.test $(PYTEST_OPTIONS) integrade/tests
+test-api:
+	py.test $(PYTEST_OPTIONS) integrade/tests/api/v1
 
 test-coverage:
 	py.test --verbose --cov-report term --cov=integrade --cov=tests tests
 
-.PHONY: all install install-dev lint test test-coverage test-cloudigrade
+.PHONY: all install install-dev lint test test-coverage test-api
