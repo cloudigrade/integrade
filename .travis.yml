@@ -36,10 +36,10 @@ jobs:
         - oc rollout status dc/postgresql
         - REVISION=$(oc rollout latest dc/postgresql -o revision)
         - oc rollout status dc/postgresql --revision=$REVISION
-        - oc rollout status dc/cloudigrade
-        - REVISION=$(oc rollout latest dc/cloudigrade -o revision)
-        - oc rollout status dc/cloudigrade --revision=$REVISION
-        - oc rsh -c cloudigrade $(oc get pods -o jsonpath='{.items[*].metadata.name}' -l name=cloudigrade) scl enable rh-postgresql96 rh-python36 -- python manage.py createsuperuser --no-input --username $CLOUDIGRADE_USER --email="$CLOUDIGRADE_USER@example.com"
+        - oc rollout status dc/cloudigrade-api
+        - REVISION=$(oc rollout latest dc/cloudigrade-api -o revision)
+        - oc rollout status dc/cloudigrade-api --revision=$REVISION
+        - oc rsh -c cloudigrade-api $(oc get pods -o jsonpath='{.items[*].metadata.name}' -l name=cloudigrade-api) scl enable rh-postgresql96 rh-python36 -- python manage.py createsuperuser --no-input --username $CLOUDIGRADE_USER --email="$CLOUDIGRADE_USER@example.com"
 
     - stage: test-cloudigrade
       env:
@@ -51,7 +51,7 @@ jobs:
         - make install-dev
       before_script:
         - oc login $OPENSHIFT_URL --token=$OPENSHIFT_TOKEN
-        - export CLOUDIGRADE_TOKEN=$(oc rsh -c cloudigrade $(oc get pods -o jsonpath='{.items[*].metadata.name}' -l name=cloudigrade) scl enable rh-postgresql96 rh-python36 -- python manage.py drf_create_token $CLOUDIGRADE_USER | awk '{print $3}')
+        - export CLOUDIGRADE_TOKEN=$(oc rsh -c cloudigrade-api $(oc get pods -o jsonpath='{.items[*].metadata.name}' -l name=cloudigrade-api) scl enable rh-postgresql96 rh-python36 -- python manage.py drf_create_token $CLOUDIGRADE_USER | awk '{print $3}')
       script:
         - py.test -vvv integrade/tests/api
 
