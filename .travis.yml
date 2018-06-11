@@ -65,7 +65,7 @@ jobs:
       install:
         - make install-dev
       script:
-      - xvfb-run py.test -vvv --driver Chrome integrade/tests/ui
+        - xvfb-run py.test -vvv --driver Chrome integrade/tests/ui
 
     - stage: test-cloudigrade
       env:
@@ -77,4 +77,4 @@ jobs:
       install:
         - make install-dev
       script:
-      - xvfb-run py.test -vvv --driver Firefox integrade/tests/ui
+        - xvfb-run py.test -vvv --driver Firefox integrade/tests/ui

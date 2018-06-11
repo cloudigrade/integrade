@@ -103,3 +103,6 @@ Pipfile
 
 # mypy
 .mypy_cache/
+
+# ansible
+*.retry

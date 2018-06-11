@@ -81,14 +81,15 @@ Integrade can be configured to test any instance of cloudigrade. The
     CLOUDIGRADE_BASE_URL # base url without http/https prefix
     CLOUDIGRADE_TOKEN    # This is the token of the super user created for
                          # cloudigrade
+    CLOUDIGRADE_CUSTOMER_ACCT # account # for "customer" AWS account
+    CLOUDIGRADE_CUSTOMER_ROLE_ARNS # whitespace delimited arns for role to
+                                   # grant cloudigrade access to the customer
+                                   # accounts for metering purposes
+                                   # must be attached to distinct AWS accounts
 
 The **OPTIONAL** environment variables are::
 
     CLOUDIGRADE_API_VERSION # defaults to 'v1'
-    CLOUDIGRADE_USER        # defaults to 'admin'. A username is generated for
-                            # you when you source scripts/oc-auth.sh.
-    CLOUDIGRADE_USER_PASS   # at the moment we only use the token to
-                            # authenticate, but this will be useful later
     USE_HTTPS  # defaults to False so communication is done over http.
                #  Set to True to use https.
     SSL_VERIFY # defaults to False. If "True" make client verify certificate

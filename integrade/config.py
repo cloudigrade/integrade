@@ -25,9 +25,15 @@ def get_config():
         _CONFIG = {}
         _CONFIG['api_version'] = os.environ.get(
             'CLOUDIGRADE_API_VERSION', 'v1')
-        _CONFIG['superuser'] = os.environ.get('CLOUDIGRADE_USER', 'admin')
-        _CONFIG['superuser_pass'] = os.environ.get('CLOUDIGRADE_USER_PASS', '')
         _CONFIG['base_url'] = os.environ.get('CLOUDIGRADE_BASE_URL', '')
+        # expect CLOUDIGRADE_CUSTOMER_ROLE_ARNS to be a whitespace delimitted
+        # list of valid ARNs, each tied to a different AWS account
+        _CONFIG['valid_roles'] = os.environ.get(
+            'CLOUDIGRADE_CUSTOMER_ROLE_ARNS', '')
+        if len(_CONFIG['valid_roles']) > 0:
+            _CONFIG['valid_roles'] = _CONFIG['valid_roles'].split()
+        else:
+            _CONFIG['valid_roles'] = []
         if _CONFIG['base_url'] == '':
             raise exceptions.BaseUrlNotFound(
                 'Make sure you have $CLOUDIGRADE_BASE_URL set in in'

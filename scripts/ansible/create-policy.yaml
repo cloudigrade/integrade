@@ -1,0 +1,33 @@
+---
+# To use this playbook, you must have the aws cli installed.
+# Install docs: (pip installable)
+#  https://docs.aws.amazon.com/cli/latest/userguide/installing.html
+# 
+# You also need some environment varibles set, namely:
+#  AWS_ACCESS_KEY_ID
+#  AWS_SECRET_ACCESS_KEY
+#  AWS_DEFAULT_REGION
+#  Environment Variable docs:
+#  https://docs.aws.amazon.com/cli/latest/userguide/installing.html
+#
+#  Note you must create the AWS access key in the account in question, docs:
+#   https://docs.aws.amazon.com/general/latest/gr/managing-aws-access-keys.html
+#  
+#  Also note that cloudigrade enforces that only 1 cloud account (globally)
+#  may be associated with a AWS account, so ARNs cannot be reused in the same
+#  session.
+- name: Create policy on AWS using localhost
+  hosts: localhost
+  connection: local
+  tasks:
+    - name: Create IAM Managed Policy
+      iam_managed_policy:
+        policy_name: "CloudigradePolicyMadeWithAnsible"
+        policy_description: "A policy to allow Cloudigrade to do its job."
+        policy: "{{ lookup('file', 'policy/cloudigrade_policy.json') }}"
+        state: present
+      register: policy_result
+
+    - name: Display ARN for policy
+      debug:
+        var: policy_result.policy.arn
