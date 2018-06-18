@@ -20,14 +20,17 @@ def drop_account_data():
     "@pytest.mark.serial_only".
     """
     if which('oc'):
+        py_script = b'from account.models import Account;\
+        Account.objects.all().delete()'
+
         result = subprocess.run(['bash',
                                  '-c',
-                                 'oc rsh -c postgresql $(oc get pods'
+                                 'oc rsh -c cloudigrade-api $(oc get pods'
                                  ' -o jsonpath="{.items[*].metadata.name}" -l'
-                                 ' name=postgresql) scl enable rh-postgresql96'
-                                 ' -- psql -d cloudigrade -c'
-                                 ' "truncate account_account cascade;"'],
-                                stdout=subprocess.PIPE)
+                                 ' name=cloudigrade-api)'
+                                 ' scl enable rh-postgresql96 rh-python36'
+                                 ' -- python manage.py shell'],
+                                stdout=subprocess.PIPE, input=py_script)
         assert result.returncode == 0
     else:
         pytest.skip('Must be able to drop account data for this test to work.'
