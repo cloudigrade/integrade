@@ -15,3 +15,11 @@ class TokenNotFound(Exception):
 
     Make sure the environment variable $CLOUDIGRADE_TOKEN is set.
     """
+
+
+class ConfigFileNotFoundError(Exception):
+    """Did not find the requested config file in the expected location.
+
+    Customize this exception with more information about the expected locations
+    for the config file.
+    """

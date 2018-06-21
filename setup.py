@@ -39,8 +39,12 @@ setup(
         ],
     },
     install_requires=[
+        'awscli',
+        'boto3',
         'pytest',
         'pytest-selenium',
+        'pyyaml',
+        'pyxdg',
         'requests',
     ],
     license='GPLv3',

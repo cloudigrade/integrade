@@ -1,8 +1,11 @@
 """Pytest customizations and fixtures for cloudigrae tests."""
 import subprocess
+from multiprocessing import Pool
 from shutil import which
 
 import pytest
+
+from integrade.tests.aws_utils import terminate_instance
 
 
 @pytest.fixture()
@@ -35,3 +38,25 @@ def drop_account_data():
     else:
         pytest.skip('Must be able to drop account data for this test to work.'
                     'Make sure the "oc" client is in your PATH.')
+
+
+@pytest.fixture()
+def instances_to_terminate():
+    """Provide list to test to indicate instances that should be terminated.
+
+    We must know what aws profile to use, so append tuples of (aws_profile,
+    instance_id) to the list.
+
+    The cleanup code will run after the test even if it fails, so instance ids
+    should be added to the list immediately after creation, so if something
+    fails, they can be cleaned up.
+    """
+    instances_to_terminate = []
+
+    yield instances_to_terminate
+
+    if instances_to_terminate:
+        num_instances = len(instances_to_terminate)
+        with Pool(num_instances) as p:
+            p.map(
+                terminate_instance, instances_to_terminate)
