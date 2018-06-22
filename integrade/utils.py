@@ -12,8 +12,9 @@ def base_url(cfg):
 
 def gen_password(length=20):
     """Generate a random password with letters, digits and punctuation."""
+    chars = string.ascii_letters + string.digits + string.punctuation
     return ''.join(
-        secrets.choice(string.printable)
+        secrets.choice(chars)
         for _ in range(length)
     )
 

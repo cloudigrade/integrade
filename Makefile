@@ -32,6 +32,12 @@ test:
 test-api:
 	py.test $(PYTEST_OPTIONS) integrade/tests/api/v1
 
+test-ui:
+	py.test $(PYTEST_OPTIONS) integrade/tests/ui --driver=Firefox
+
+test-all:
+	py.test $(PYTEST_OPTIONS) integrade --driver=Firefox
+
 test-coverage:
 	py.test --verbose --cov-report term --cov=integrade --cov=tests tests
 

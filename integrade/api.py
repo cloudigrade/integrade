@@ -5,6 +5,7 @@ server, allowing the user to customize how return codes are handled depending
 on the context.
 
 """
+import logging
 from json import JSONDecodeError
 from pprint import pformat
 from urllib.parse import urljoin, urlunparse
@@ -16,6 +17,7 @@ from requests.exceptions import HTTPError
 from integrade import config, exceptions
 
 AUTHORIZATION_HEADER = 'Authorization'
+logger = logging.getLogger(__name__)
 
 
 def raise_error_for_status(response):

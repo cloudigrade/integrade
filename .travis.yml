@@ -1,6 +1,3 @@
-addons:
-  chrome: stable
-  firefox: latest
 cache: pip
 language: python
 sudo: false
@@ -58,23 +55,37 @@ jobs:
     - stage: test-cloudigrade
       env:
         - NAME=ui-chrome
+      addons:
+        chrome: stable
       before_install:
         - ./scripts/setup_chromedriver.sh
         - export PATH="${HOME}/chromedriver:${PATH}"
         - chromedriver --version
       install:
+        - ./scripts/setup_oc.sh
+        - export PATH="${HOME}/oc:${PATH}"
         - make install-dev
+      before_script:
+        - oc login $OPENSHIFT_URL --token=$OPENSHIFT_TOKEN
+        - export CLOUDIGRADE_TOKEN=$(oc rsh -c cloudigrade-api $(oc get pods -o jsonpath='{.items[*].metadata.name}' -l name=cloudigrade-api) scl enable rh-postgresql96 rh-python36 -- python manage.py drf_create_token $CLOUDIGRADE_USER | awk '{print $3}')
       script:
         - xvfb-run py.test -vvv --driver Chrome integrade/tests/ui
 
     - stage: test-cloudigrade
       env:
         - NAME=ui-firefox
+      addons:
+        firefox: latest
       before_install:
         - ./scripts/setup_geckodriver.sh
         - export PATH="${HOME}/geckodriver:${PATH}"
         - geckodriver --version
       install:
+        - ./scripts/setup_oc.sh
+        - export PATH="${HOME}/oc:${PATH}"
         - make install-dev
+      before_script:
+        - oc login $OPENSHIFT_URL --token=$OPENSHIFT_TOKEN
+        - export CLOUDIGRADE_TOKEN=$(oc rsh -c cloudigrade-api $(oc get pods -o jsonpath='{.items[*].metadata.name}' -l name=cloudigrade-api) scl enable rh-postgresql96 rh-python36 -- python manage.py drf_create_token $CLOUDIGRADE_USER | awk '{print $3}')
       script:
         - xvfb-run py.test -vvv --driver Firefox integrade/tests/ui

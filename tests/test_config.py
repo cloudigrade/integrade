@@ -31,22 +31,24 @@ profiles:
 def test_get_config(ssl, protocol, roles):
     """If a base url is specified in the environment, we use it."""
     with mock.patch.object(config, '_CONFIG', None):
-        token = uuid4()
-        os.environ['CLOUDIGRADE_TOKEN'] = token
-        os.environ['CLOUDIGRADE_BASE_URL'] = 'example.com'
-        os.environ['CLOUDIGRADE_CUSTOMER_ROLE_ARNS'] = roles
-        os.environ['USE_HTTPS'] = 'True' if protocol == 'https' else 'False'
-        os.environ['SSL_VERIFY'] = 'True' if ssl else 'False'
-        cfg = config.get_config()
-        assert cfg['superuser_token'] == token
-        assert cfg['base_url'] == 'example.com'
-        assert cfg['scheme'] == protocol
-        assert cfg['ssl-verify'] == ssl
-        assert cfg['api_version'] == 'v1'
-        if not roles:
-            assert cfg['valid_roles'] == []
-        else:
-            assert cfg['valid_roles'] == roles.split()
+        with mock.patch.object(os, 'environ', dict(os.environ)):
+            token = uuid4()
+            use_https = 'True' if protocol == 'https' else 'False'
+            os.environ['CLOUDIGRADE_TOKEN'] = token
+            os.environ['CLOUDIGRADE_BASE_URL'] = 'example.com'
+            os.environ['CLOUDIGRADE_CUSTOMER_ROLE_ARNS'] = roles
+            os.environ['USE_HTTPS'] = use_https
+            os.environ['SSL_VERIFY'] = 'True' if ssl else 'False'
+            cfg = config.get_config()
+            assert cfg['superuser_token'] == token
+            assert cfg['base_url'] == 'example.com'
+            assert cfg['scheme'] == protocol
+            assert cfg['ssl-verify'] == ssl
+            assert cfg['api_version'] == 'v1'
+            if not roles:
+                assert cfg['valid_roles'] == []
+            else:
+                assert cfg['valid_roles'] == roles.split()
 
 
 def test_get_aws_config():

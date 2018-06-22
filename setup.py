@@ -46,6 +46,8 @@ setup(
         'pyyaml',
         'pyxdg',
         'requests',
+        'widgetastic.core',
+        'widgetastic.patternfly',
     ],
     license='GPLv3',
     long_description=long_description,
