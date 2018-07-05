@@ -46,9 +46,14 @@ def get_element_depth(element):
 def find_element_by_text(driver, text, fail_hard=False):
     """Find an element which contains the given text."""
     def t(e):
-        return e.get_attribute('innerHTML')
+        try:
+            return e.__innerHTML
+        except AttributeError:
+            e.__innerHTML = e.get_attribute('innerHTML')
+            return e.__innerHTML
     elements = [
-        e for e in driver.find_elements_by_xpath('//*')
+        e for e in
+        driver.find_elements_by_xpath('//*[text()[contains(.,\'%s\')]]' % text)
         if text in t(e)
     ]
     if elements:

@@ -140,9 +140,22 @@ and ``make user-authenticate`` targets provided in the ``Makefile`` inside the
 With ``integrade`` configured to talk to the correct cloudigrade instance, to
 run the functional tests against the api, run the make target ``make test-api``.
 
-To run the UI tests, you must specify what driver to use. More complete
-documentation is needed, but to get started, you should be able to run all
-tests by running ``py.test --driver=chrome integrade/tests``.
+Running UI Tests
+================
+
+UI tests may run via Selenium-driven local browsers or remotely through the
+SauceLabs service.
+
+You can control which browsers will be used via the `UI_BROWSER` environment
+variable. Multiple browsers may be comma-separated. Currently `Chrome`, `Firefox`,
+and `MicrosoftEdge` are valid for testing.
+
+The UI tests can be easily run locally either just on Chrome, to test quickly, or
+all supported browsers with these two invocations:
+
+    make test-ui
+    make test-ui-all
+
 
 .. |license| image:: https://img.shields.io/github/license/cloudigrade/integrade.svg
    :target: https://github.com/cloudigrade/cloudigrade/blob/master/LICENSE
