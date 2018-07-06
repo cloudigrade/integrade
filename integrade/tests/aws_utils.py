@@ -1,5 +1,7 @@
 """Utility functions for interacting with the AWS API."""
 
+import json
+import os
 import time
 from multiprocessing import Pool
 
@@ -8,22 +10,26 @@ import boto3
 import pytest
 
 from integrade import config
-from integrade.exceptions import ConfigFileNotFoundError
+from integrade.exceptions import (
+        AWSCredentialsNotFoundError,
+        ConfigFileNotFoundError
+    )
 from integrade.tests.constants import EC2_TERMINATED_CODE
+from integrade.utils import uuid4
 
 
-def aws_config_missing():
+def aws_image_config_missing():
     """Test if aws config is missing and return boolean."""
     try:
-        config.get_aws_config()
+        config.get_aws_image_config()
         return False
     except ConfigFileNotFoundError:
         return True
 
 
 # apply as decorator on top of tests that need AWS config to be present
-aws_config_needed = pytest.mark.skipif(
-    aws_config_missing(), reason='AWS configuration missing.')
+aws_image_config_needed = pytest.mark.skipif(
+    aws_image_config_missing(), reason='AWS configuration missing.')
 
 
 def wait_until_running(profile_and_id):
@@ -55,6 +61,54 @@ def terminate_instance(profile_and_id):
     instance.wait_until_terminated()
 
 
+def delete_s3_bucket(profile_and_bucket_name):
+    """Delete an s3 bucket.
+
+    :params: tuple of (aws_profile_name, bucket_name)
+
+    Note: input is taken in as a tuple to facilitate calling this with
+        ``multiprocessing.pool.Pool.map``.
+    """
+    (aws_profile, bucket_name) = profile_and_bucket_name
+    session = aws_session(aws_profile)
+    s3client = session.client('s3')
+    s3resource = session.resource('s3')
+    bucket_resource = s3resource.Bucket(bucket_name)
+    bucket_resource.objects.all().delete()
+    s3client.delete_bucket(Bucket=bucket_name)
+
+
+def delete_cloudtrail(profile_and_cloudtrail_name):
+    """Delete a cloudtrail.
+
+    :params: tuple of (aws_profile_name, cloudtrail_name)
+
+    Note: input is taken in as a tuple to facilitate calling this with
+        ``multiprocessing.pool.Pool.map``.
+    """
+    (aws_profile, cloudtrail_name) = profile_and_cloudtrail_name
+    session = aws_session(aws_profile)
+    client = session.client('cloudtrail')
+    trail_names = [trail['Name']
+                   for trail in client.describe_trails()['trailList']]
+    if cloudtrail_name in trail_names:
+        response = client.delete_trail(Name=cloudtrail_name)
+        assert response['ResponseMetadata']['HTTPStatusCode'] == 200
+
+
+def delete_bucket_and_cloudtrail(profile_cloudtrail_bucket):
+    """Delete a cloudtrail and bucket in the proper order.
+
+    :params: tuple of (aws_profile_name, cloudtrail_name, bucket_name)
+
+    Note: input is taken in as a tuple to facilitate calling this with
+        ``multiprocessing.pool.Pool.map``.
+    """
+    (aws_profile, cloudtrail_name, bucket_name) = profile_cloudtrail_bucket
+    delete_cloudtrail((aws_profile, cloudtrail_name))
+    delete_s3_bucket((aws_profile, bucket_name))
+
+
 def create_instances(
         aws_profile,
         image_name,
@@ -74,19 +128,22 @@ def create_instances(
     ``create_instances`` waits to return until the instances are all
     running.
 
-    The profile must be named and have its credentials stored in ~/.aws/config
+    The profile must be named and have its credentials stored in
+    $XDG_CONFIG_HOME/integrade/.
     The images are associated with the profiles in
-    ~/.config/integrade/aws_config in the following manner:
+    $XDG_CONFIG_HOME/integrade/aws_image_config.yaml in the following manner:
 
     aws:
       profiles:
-        name_of_profile1:
+        CUSTOMER1:  # name of profile
+                    # Should match env variables for AWS keys and Role ARNs
           images:
             name_of_image:
               is_rhel: True
               image_id: ami-123456789
               other_key: other_value
-        name_of_profile2:
+        CUSTOMER2:  # name of profile
+                    # Should match env variables for AWS keys and Role ARNs
           images:
             name_of_image:
               is_rhel: False
@@ -94,7 +151,7 @@ def create_instances(
               other_key: other_value
     """
     client = aws_session(aws_profile).client('ec2')
-    cfg = config.get_aws_config()
+    cfg = config.get_aws_image_config()
     image_id = cfg['profiles'][aws_profile]['images'][image_name]['image_id']
     response = client.run_instances(
         MaxCount=count,
@@ -167,7 +224,7 @@ def get_instances_from_image(aws_profile, image_name):
     :returns: List
     """
     client = aws_session(aws_profile).client('ec2')
-    cfg = config.get_aws_config()
+    cfg = config.get_aws_image_config()
     image_id = cfg['profiles'][aws_profile]['images'][image_name]['image_id']
     instances = []
     for reservation in client.describe_instances(
@@ -189,6 +246,52 @@ def get_current_instances(aws_profile):
     return instance_ids
 
 
+def create_bucket_for_cloudtrail(aws_profile):
+    """Create an s3 bucket suitable to point cloudtrail to for given aws_profile.
+
+    :returns: (string) name of the s3 bucket to point the cloudtrail to.
+    """
+    session = aws_session(aws_profile)
+    s3client = session.client('s3')
+    bucket_name = uuid4()
+    s3client.create_bucket(Bucket=bucket_name, ACL='public-read-write')
+    unique_name1 = uuid4()
+    unique_name2 = uuid4()
+    new_policy = {
+        'Version': '2012-10-17',
+        'Statement': [
+            {
+                'Sid': f'{unique_name1}',
+                'Effect': 'Allow',
+                'Principal': {
+                    'Service': 'cloudtrail.amazonaws.com'
+                },
+                'Action': 's3:GetBucketAcl',
+                'Resource': f'arn:aws:s3:::{bucket_name}'
+            },
+            {
+                'Sid': f'{unique_name2}',
+                'Effect': 'Allow',
+                'Principal': {
+                    'Service': 'cloudtrail.amazonaws.com'
+                },
+                'Action': 's3:PutObject',
+                'Resource': f'arn:aws:s3:::{bucket_name}/AWSLogs/*',
+                'Condition': {
+                    'StringEquals': {
+                        's3:x-amz-acl': 'bucket-owner-full-control'
+                    }
+                }
+            }
+        ]
+    }
+
+    s3_resource = session.resource('s3')
+    bucket_policy = s3_resource.BucketPolicy(bucket_name)
+    bucket_policy.put(Policy=json.dumps(new_policy))
+    return bucket_name
+
+
 def aws_session(aws_profile):
     """Retreive a boto3 Session for the given aws profile name.
 
@@ -202,4 +305,14 @@ def aws_session(aws_profile):
     They must have the "profile" preamble because other types of sections can
     be defined in the ~/.aws/config file.
     """
-    return boto3.Session(profile_name=aws_profile)
+    aws_profile = aws_profile.upper()
+    access_key_id = os.environ.get(f'AWS_ACCESS_KEY_ID_{aws_profile}')
+    access_key = os.environ.get(f'AWS_SECRET_ACCESS_KEY_{aws_profile}')
+    if access_key_id and access_key:
+        return boto3.Session(
+            aws_access_key_id=access_key_id,
+            aws_secret_access_key=access_key)
+    else:
+        raise AWSCredentialsNotFoundError(
+            f'Could not find credentials in the environment for {aws_profile}'
+        )

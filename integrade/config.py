@@ -31,17 +31,51 @@ def get_config():
         _CONFIG['api_version'] = os.environ.get(
             'CLOUDIGRADE_API_VERSION', 'v1')
         _CONFIG['base_url'] = os.environ.get('CLOUDIGRADE_BASE_URL', '')
-        # expect CLOUDIGRADE_CUSTOMER_ROLE_ARNS to be a whitespace delimitted
-        # list of valid ARNs, each tied to a different AWS account
-        _CONFIG['valid_roles'] = os.environ.get(
-            'CLOUDIGRADE_CUSTOMER_ROLE_ARNS', '')
-        if len(_CONFIG['valid_roles']) > 0:
-            _CONFIG['valid_roles'] = _CONFIG['valid_roles'].split()
-        else:
-            _CONFIG['valid_roles'] = []
+        # pull all customer roles out of environ
+
+        def is_role(string): return string.startswith('CLOUDIGRADE_ROLE_')
+
+        def profile_name(string): return string.replace(
+            'CLOUDIGRADE_ROLE_', '')
+
+        profiles = [{'arn': os.environ.get(role),
+                     'name': profile_name(role)}
+                    for role in filter(is_role, os.environ.keys())
+                    ]
+        _CONFIG['aws_profiles'] = profiles
+
+        missing_config_errors = []
+
+        try:
+            aws_image_config = get_aws_image_config()
+        except exceptions.ConfigFileNotFoundError:
+            aws_image_config = {}
+
+        for profile in _CONFIG['aws_profiles']:
+            profile_name = profile['name'].upper()
+            acct_arn = profile['arn']
+            acct_num = [
+                num for num in filter(
+                    str.isdigit,
+                    acct_arn.split(':'))][0]
+            profile['account_number'] = acct_num
+            profile['cloudtrail_name'] = f'cloudigrade-{acct_num}'
+            profile['access_key_id'] = os.environ.get(
+                f'AWS_ACCESS_KEY_ID_{profile_name}')
+            profile['access_key'] = os.environ.get(
+                f'AWS_SECRET_ACCESS_KEY_{profile_name}')
+            profile['images'] = aws_image_config.get('profiles', {}).get(
+                profile_name, {}).get('images', [])
+
+            if not profile['access_key_id']:
+                missing_config_errors.append(
+                    f'Could not find AWS access key id for {profile_name}')
+            if not profile['access_key']:
+                missing_config_errors.append(
+                    f'Could not find AWS access key for {profile_name}')
         if _CONFIG['base_url'] == '':
-            raise exceptions.BaseUrlNotFound(
-                'Make sure you have $CLOUDIGRADE_BASE_URL set in in'
+            missing_config_errors.append(
+                'Could not find $CLOUDIGRADE_BASE_URL set in in'
                 ' your environment.'
             )
         _CONFIG['superuser_token'] = os.environ.get('CLOUDIGRADE_TOKEN', None)
@@ -53,10 +87,15 @@ def get_config():
             _CONFIG['ssl-verify'] = True
         else:
             _CONFIG['ssl-verify'] = False
+
+        if missing_config_errors:
+            raise exceptions.MissingConfigurationError(
+                '\n'.join(missing_config_errors)
+            )
     return deepcopy(_CONFIG)
 
 
-def get_aws_config():
+def get_aws_image_config():
     """Return a copy of the global config dictionary.
 
     This method makes use of a cache. If the cache is empty, the configuration
@@ -67,7 +106,8 @@ def get_aws_config():
     """
     global _AWS_CONFIG  # pylint:disable=global-statement
     if _AWS_CONFIG is None:
-        with open(_get_config_file_path('integrade', 'aws_config.yaml')) as f:
+        with open(_get_config_file_path('integrade',
+                                        'aws_image_config.yaml')) as f:
             _AWS_CONFIG = yaml.load(f)
     return deepcopy(_AWS_CONFIG)
 

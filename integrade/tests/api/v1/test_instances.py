@@ -16,11 +16,11 @@ from integrade import api, config
 from integrade.tests import aws_utils
 from integrade.tests.api.v1 import urls
 from integrade.tests.api.v1.utils import get_auth
-from integrade.tests.aws_utils import aws_config_needed
+from integrade.tests.aws_utils import aws_image_config_needed
 from integrade.tests.constants import AWS_ACCOUNT_TYPE
 
 
-@aws_config_needed
+@aws_image_config_needed
 @pytest.mark.serial_only
 def test_find_running_instances(drop_account_data, instances_to_terminate):
     """Ensure instances are discovered on account creation.
@@ -46,15 +46,16 @@ def test_find_running_instances(drop_account_data, instances_to_terminate):
     """
     auth = get_auth()
     client = api.Client(authenticate=False, response_handler=api.json_handler)
-    aws_cfg = config.get_aws_config()
-    aws_profile = 'customer1'
+    aws_profile = config.get_config()['aws_profiles'][0]
+    aws_profile_name = aws_profile['name']
     # create some instances to detect on creation
     created_instance_ids = aws_utils.create_instances(
-        aws_profile, 'rhel1', count=3)
+        aws_profile_name, 'rhel1', count=3)
     # add new instances to list of instances to terminate after test
-    instances_to_terminate.extend(zip([aws_profile] * 3, created_instance_ids))
+    instances_to_terminate.extend(
+        zip([aws_profile_name] * 3, created_instance_ids))
     cloud_account = {
-        'account_arn': aws_cfg['profiles'][aws_profile]['role_arn'],
+        'account_arn': aws_profile['arn'],
         'resourcetype': AWS_ACCOUNT_TYPE
     }
     client.post(
@@ -70,20 +71,19 @@ def test_find_running_instances(drop_account_data, instances_to_terminate):
     list_images = client.get(urls.IMAGE, auth=auth)
     found_images = [image['ec2_ami_id'] for image in list_images['results']]
     source_image = \
-        aws_cfg['profiles'][aws_profile]['images']['rhel1']['image_id']
+        aws_profile['images']['rhel1']['image_id']
     assert source_image in found_images
 
-    timeout = 600
+    timeout = 300
     while timeout > 0:
         status = client.get(urls.IMAGE,
                             params={'ec2_ami_id': source_image},
                             auth=auth)['results'][0]['status']
         if status in ['pending', 'preparing', 'inspecting']:
-            sleep(30)
-            timeout -= 30
+            sleep(60)
+            timeout -= 60
         if status == 'inspected':
             break
 
     assert 'inspected' == status
-
     # TODO: assert on inspection result (rhel found)

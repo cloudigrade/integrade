@@ -1,6 +1,15 @@
 """Custom exceptions defined by Integrade."""
 
 
+class AWSCredentialsNotFoundError(Exception):
+    """Did not find authentication credentials in the environment.
+
+    Specify different profiles' aws authentication credentials by setting
+    AWS_ACCESS_KEY_ID_${PROFILE_NAME}, AWS_SECRET_ACCESS_KEY_${PROFILE_NAME},
+    and CLOUDIGRADE_ROLE_${PROFILE_NAME} in your environment.
+    """
+
+
 class BaseUrlNotFound(Exception):
     """Was not able to build a base URL with the config information.
 
@@ -22,4 +31,11 @@ class ConfigFileNotFoundError(Exception):
 
     Customize this exception with more information about the expected locations
     for the config file.
+    """
+
+
+class MissingConfigurationError(Exception):
+    """Some configuration necessary to run integrade is missing.
+
+    Specify the missing configuration items in the exception message.
     """

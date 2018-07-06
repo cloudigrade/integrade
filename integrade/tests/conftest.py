@@ -7,7 +7,11 @@ from shutil import which
 
 import pytest
 
-from integrade.tests.aws_utils import terminate_instance
+from integrade.tests.aws_utils import (
+    delete_bucket_and_cloudtrail,
+    delete_cloudtrail,
+    terminate_instance,
+)
 from integrade.tests.ui.fixtures import (ui_dashboard,  # noqa: F401
     ui_loginpage, ui_loginpage_empty, ui_user)  # noqa: F401
 
@@ -37,7 +41,10 @@ def drop_account_data():
                                  ' name=cloudigrade-api)'
                                  ' scl enable rh-postgresql96 rh-python36'
                                  ' -- python manage.py shell'],
-                                stdout=subprocess.PIPE, input=py_script)
+                                stdout=subprocess.PIPE,
+                                input=py_script,
+                                timeout=60
+                                )
         assert result.returncode == 0
     else:
         pytest.skip('Must be able to drop account data for this test to work.'
@@ -60,8 +67,7 @@ def instances_to_terminate():
     yield instances_to_terminate
 
     if instances_to_terminate:
-        num_instances = len(instances_to_terminate)
-        with Pool(num_instances) as p:
+        with Pool() as p:
             p.map(
                 terminate_instance, instances_to_terminate)
 
@@ -146,3 +152,37 @@ class SauceLabsTunnel(object):
     def close(self):
         """Terminate the saucelabs connections."""
         self.processing.terminate()
+
+
+@pytest.fixture()
+def cloudtrails_to_delete():
+    """Provide list to test to indicate cloudtrails that should be terminated.
+
+    We must know what aws profile to use, so append tuples of (aws_profile,
+    cloudtrail_name) to the list.
+    """
+    cloudtrails_to_delete = []
+
+    yield cloudtrails_to_delete
+
+    if cloudtrails_to_delete:
+        with Pool() as p:
+            p.map(
+                delete_cloudtrail, cloudtrails_to_delete)
+
+
+@pytest.fixture()
+def cloudtrails_and_buckets_to_delete():
+    """Provide list to test to indicate cloudtrails and buckets to delete.
+
+    We must know what aws profile to use, so append tuples of (aws_profile,
+    cloudtrail_name, s3_bucket_name) to the list.
+    """
+    to_delete = []
+
+    yield to_delete
+
+    if to_delete:
+        with Pool() as p:
+            p.map(
+                delete_bucket_and_cloudtrail, to_delete)
