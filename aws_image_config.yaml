@@ -1,0 +1,18 @@
+profiles:
+  CUSTOMER1:
+      # account number 439727791560
+      images:
+        rhel1:
+            is_rhel: True
+            image_id: 'ami-09c521cbc20a78b49'
+            is_shared: False
+        
+        rhel2:
+            is_rhel: True
+            image_id: 'ami-0d2e46db3ba19f204'
+            is_shared: False
+
+        centos1:
+            is_rhel: False
+            image_id: 'ami-0bf18d6709ff12ee8'
+            is_shared: False

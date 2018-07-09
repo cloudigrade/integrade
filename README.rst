@@ -72,7 +72,7 @@ cloudigrade projects or improving integrade automation framework, make sure
 that the tests pass and also the code follows the code style properly. The
 ``make lint`` can help you linting your code and ensuring the code style.
 
-Configuring and Running
+Configuring Integrade
 =======================
 
 Integrade can be configured to test any instance of cloudigrade. The
@@ -81,11 +81,16 @@ Integrade can be configured to test any instance of cloudigrade. The
     CLOUDIGRADE_BASE_URL # base url without http/https prefix
     CLOUDIGRADE_TOKEN    # This is the token of the super user created for
                          # cloudigrade
-    CLOUDIGRADE_CUSTOMER_ACCT # account # for "customer" AWS account
-    CLOUDIGRADE_CUSTOMER_ROLE_ARNS # whitespace delimited arns for role to
-                                   # grant cloudigrade access to the customer
-                                   # accounts for metering purposes
-                                   # must be attached to distinct AWS accounts
+
+To run tests that require AWS accounts (and API access to these), configure any
+number of accounts with the following sets of environment varibles::
+
+    CLOUDIGRADE_ROLE_${PROFILE_NAME}
+    AWS_ACCESS_KEY_ID_${PROFILE_NAME}
+    AWS_SECRET_ACCESS_KEY_${PROFILE_NAME}
+
+There can be any number of these "profiles". The only requirement is that the sets of environment variables share this same ending.
+
 
 The **OPTIONAL** environment variables are::
 
@@ -93,6 +98,44 @@ The **OPTIONAL** environment variables are::
     USE_HTTPS  # defaults to False so communication is done over http.
                #  Set to True to use https.
     SSL_VERIFY # defaults to False. If "True" make client verify certificate
+
+
+Additionally, there is an **OPTIONAL** config file you can install in your
+``$XDG_CONFIG_HOME/integrade/aws_image_config.yaml``. An example file is
+provided in the base directory with the name ``aws_image_config.yaml``. This
+yaml file contains dictionaries mapping the ``${PROFILE_NAME}`` of each AWS
+account to images that whos attributes are described in a dictionary. See the
+example file for more details.
+
+For example if one AWS account environment varibles are configured with the
+``${PROFILE_NAME`` of ``CUSTOMER1``, and information matching this profile name
+is in ``$XDG_CONFIG_HOME/integrade/aws_image_config.yaml``, then the config
+object will contain the following information::
+
+    {'api_version': 'v1',
+     'base_url': 'test.cloudigra.de',
+     'aws_profiles': [{'arn': 'arn:aws:iam::439727791560:role/CloudigradeRoleForTestEnv',
+       'name': 'CUSTOMER1',
+       'account_number': '439727791560',
+       'cloudtrail_name': 'cloudigrade-439727791560',
+       'access_key_id': 'SECRET',
+       'access_key': 'ALSOSECRET',
+       'images': {'rhel1': {'is_rhel': True,
+         'image_id': 'ami-09c521cbc20a78b49',
+         'is_shared': False},
+        'rhel2': {'is_rhel': True,
+         'image_id': 'ami-0d2e46db3ba19f204',
+         'is_shared': False},
+        'centos1': {'is_rhel': False,
+         'image_id': 'ami-0bf18d6709ff12ee8',
+         'is_shared': False}}}],
+     'superuser_token': 'ANOTHERSECRET',
+     'scheme': 'http',
+     'ssl-verify': False}
+
+
+Running Integrade
+=======================
 
 To run ``cloudigrade`` locally, especially if you want to run a branch that is
 not master, check out that branch and then follow the directions in the
