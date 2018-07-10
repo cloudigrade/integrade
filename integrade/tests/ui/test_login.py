@@ -9,9 +9,6 @@
 :upstream: yes
 """
 import logging
-import os
-
-import pytest
 
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
@@ -24,14 +21,6 @@ logger = logging.getLogger(__name__)
 
 
 CHECK_VALID = 'return document.getElementById("email").matches(":valid")'
-
-
-@pytest.fixture
-def chrome_options(chrome_options):
-    """Pass no sandbox to Chrome when running on Travis."""
-    if os.environ.get('TRAVIS', 'false') == 'true':
-        chrome_options.add_argument('--no-sandbox')
-    return chrome_options
 
 
 def test_login_invalid_username(selenium, ui_loginpage_empty, ui_user):

@@ -189,15 +189,23 @@ Running UI Tests
 UI tests may run via Selenium-driven local browsers or remotely through the
 SauceLabs service.
 
-You can control which browsers will be used via the `UI_BROWSER` environment
-variable. Multiple browsers may be comma-separated. Currently `Chrome`, `Firefox`,
-and `MicrosoftEdge` are valid for testing.
+Running tests on SauceLabs locally will require use of the SauceLabs Connect
+tunnel, which you can get here: https://wiki.saucelabs.com/display/DOCS/Sauce+Connect+Proxy
 
-The UI tests can be easily run locally either just on Chrome, to test quickly, or
-all supported browsers with these two invocations:
+Download this tool and place the `sc` binary in your path. Next, add the two
+environment variables $SAUCELABS_USERNAME and $SAUCELABS_API_KEY to your
+~/.bash_profile. You can now run the SauceLabs Connect tunnel in a terminal.
 
-    make test-ui
-    make test-ui-all
+    sc --user $SAUCELABS_USERNAME --api-key $SAUCELABS_API_KEY --shared-tunnel
+
+The command will take a few seconds to start up and will tell you when it is
+ready to accept connections from SauceLabs. Once it is ready you can proceed to
+run your tests locally.
+
+The UI tests can be easily run either on Chrome or Firefox:
+
+    py.test -v integrade/tests/ui/ --driver Chrome
+    py.test -v integrade/tests/ui/ --driver Firefox
 
 
 .. |license| image:: https://img.shields.io/github/license/cloudigrade/integrade.svg

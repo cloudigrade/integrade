@@ -1,5 +1,4 @@
 """Pytest customizations and fixtures for cloudigrae tests."""
-import atexit
 import os
 import subprocess
 from multiprocessing import Pool
@@ -72,86 +71,26 @@ def instances_to_terminate():
                 terminate_instance, instances_to_terminate)
 
 
-# This section with the selenium fixture and its dependencies is a good
-# candidate to extract into a reusable library in the near future.
-
-DRIVERS = {}
-BROWSERS = os.environ.get('UI_BROWSER', 'Chrome').split(',')
-
-
-@pytest.fixture(params=BROWSERS)
-def selenium(request):
-    """Adjust the selenium fixture's browser size."""
-    from selenium import webdriver
-
-    force_saucelabs = os.environ.get('UI_USE_SAUCELABS', False)
-    browser = request.param
-
-    if browser in DRIVERS:
-        return DRIVERS[browser]
-
-    if force_saucelabs or browser in ('MicrosoftEdge', 'InternetExplorer'):
-        tunnel = SauceLabsTunnel()
-        tunnel.wait()
-
-        cap = {
-            'browserName': request.param,
-        }
-        user = os.environ['SAUCELABS_USERNAME']
-        key = os.environ['SAUCELABS_KEY']
-        url = _sauce_ondemand_url(user, key)
-        driver = webdriver.Remote(desired_capabilities=cap,
-                                  command_executor=url)
-    elif browser == 'Firefox':
-        driver = webdriver.Firefox()
-    elif browser == 'Chrome':
-        opt = webdriver.ChromeOptions()
-        opt.add_argument('--headless')
-        opt.add_argument('--no-sandbox')
-        opt.add_argument('--disable-dev-shm-usage')
-        driver = webdriver.Chrome(options=opt)
-
-    driver.set_window_size(1200, 800)
-
-    atexit.register(driver.close)
-
-    DRIVERS[browser] = driver
-    return driver
+@pytest.fixture
+def chrome_options(chrome_options):
+    """Pass no sandbox to Chrome when running on Travis."""
+    chrome_options.add_argument('headless')
+    if os.environ.get('TRAVIS', 'false') == 'true':
+        chrome_options.add_argument('--no-sandbox')
+    return chrome_options
 
 
-def _sauce_ondemand_url(saucelabs_user, saucelabs_key):
-    """Get sauce ondemand URL for a given user and key."""
-    return 'http://{0}:{1}@ondemand.saucelabs.com:80/wd/hub'.format(
-        saucelabs_user, saucelabs_key)
+@pytest.fixture
+def firefox_options(firefox_options):
+    """Pass no sandbox to Chrome when running on Travis."""
+    firefox_options.add_argument('-headless')
 
 
-class SauceLabsTunnel(object):
-    """Manages a secure tunnel for Sauce Labs to reach our server."""
-
-    def __init__(self):
-        """Initialize the tunnel as not-ready."""
-        self.ready = False
-
-    def wait(self):
-        """Start the tunnel and wait for it to be ready before returning."""
-        key = os.environ['SAUCELABS_KEY']
-        user = os.environ['SAUCELABS_USERNAME']
-        args = 'sc --user %s --api-key %s --shared-tunnel' % (user, key)
-        args = args.split()
-
-        waiting = 2
-        self.processing = subprocess.Popen(args, stdout=subprocess.PIPE)
-        for line in self.processing.stdout:
-            if b'you may start your tests' in line:
-                waiting -= 1
-                if waiting == 0:
-                    self.ready = True
-            if self.ready:
-                break
-
-    def close(self):
-        """Terminate the saucelabs connections."""
-        self.processing.terminate()
+@pytest.fixture
+def selenium(selenium):
+    """Override pytest-selenium default by changing the browser window size."""
+    selenium.set_window_size(1200, 800)
+    return selenium
 
 
 @pytest.fixture()

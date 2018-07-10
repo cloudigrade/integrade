@@ -32,13 +32,12 @@ test:
 test-api:
 	py.test $(PYTEST_OPTIONS) integrade/tests/api/v1
 
-UI_BROWSER ?= Chrome 
+UI_DRIVER ?= Chrome 
+UI_BROWSER ?= Chrome
 
 test-ui:
-	UI_BROWSER=$(UI_BROWSER) py.test $(PYTEST_OPTIONS) integrade/tests/ui
-
-test-ui-all:
-	UI_BROWSER=Chrome,Firefox,MicrosoftEdge py.test $(PYTEST_OPTIONS) integrade/tests/ui
+	py.test $(PYTEST_OPTIONS) integrade/tests/ui \
+	--driver $(UI_DRIVER) --capability browserName $(UI_BROWSER) \
 
 test-coverage:
 	py.test --verbose --cov-report term --cov=integrade --cov=tests tests
