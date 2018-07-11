@@ -1,0 +1,74 @@
+image: python:3.6
+
+stages:
+  - Test Integrade
+  - Setup Cloudigrade
+  - Test Cloudigrade
+
+Test Integrade:
+  stage: Test Integrade
+  before_script:
+    - make install-dev
+    - pip install codecov
+  script:
+    - make lint
+    - make test-coverage
+  after_script:
+    - codecov
+  coverage: '/\d+\%\s*$/'
+
+Setup Cloudigrade:
+  stage: Setup Cloudigrade
+  before_script:
+    - ./scripts/setup_oc.sh
+    - export PATH="${HOME}/oc:${PATH}"
+    - oc version
+  script:
+    - oc login $OPENSHIFT_URL --token=$OPENSHIFT_TOKEN
+    - oc rollout status dc/postgresql
+    - REVISION=$(oc rollout latest dc/postgresql -o revision)
+    - oc rollout status dc/postgresql --revision=$REVISION
+    - oc rollout status dc/cloudigrade-api
+    - REVISION=$(oc rollout latest dc/cloudigrade-api -o revision)
+    - oc rollout status dc/cloudigrade-api --revision=$REVISION
+    - oc rsh -c cloudigrade-api $(oc get pods -o jsonpath='{.items[*].metadata.name}' -l name=cloudigrade-api) scl enable rh-postgresql96 rh-python36 -- python manage.py createsuperuser --no-input --username $CLOUDIGRADE_USER --email="$CLOUDIGRADE_USER@example.com"
+
+API:
+  stage: Test Cloudigrade
+  before_script:
+    - ./scripts/setup_oc.sh
+    - export PATH="${HOME}/oc:${PATH}"
+    - oc version
+    - make install-dev
+    - oc login $OPENSHIFT_URL --token=$OPENSHIFT_TOKEN
+    - export CLOUDIGRADE_TOKEN=$(oc rsh -c cloudigrade-api $(oc get pods -o jsonpath='{.items[*].metadata.name}' -l name=cloudigrade-api) scl enable rh-postgresql96 rh-python36 -- python manage.py drf_create_token $CLOUDIGRADE_USER | awk '{print $3}')
+  script:
+    - py.test -vvv integrade/tests/api
+
+UI Chrome:
+  stage: Test Cloudigrade
+  before_script:
+    - ./scripts/setup_oc.sh
+    - export PATH="${HOME}/oc:${PATH}"
+    - make install-dev
+    - oc login $OPENSHIFT_URL --token=$OPENSHIFT_TOKEN
+    - export CLOUDIGRADE_TOKEN=$(oc rsh -c cloudigrade-api $(oc get pods -o jsonpath='{.items[*].metadata.name}' -l name=cloudigrade-api) scl enable rh-postgresql96 rh-python36 -- python manage.py drf_create_token $CLOUDIGRADE_USER | awk '{print $3}')
+  script:
+    - py.test -vvv --driver Remote --capability browserName chrome --host selenium --port 4444 integrade/tests/ui
+  services:
+    - name: selenium/standalone-chrome
+      alias: selenium
+
+UI Firefox:
+  stage: Test Cloudigrade
+  before_script:
+    - ./scripts/setup_oc.sh
+    - export PATH="${HOME}/oc:${PATH}"
+    - make install-dev
+    - oc login $OPENSHIFT_URL --token=$OPENSHIFT_TOKEN
+    - export CLOUDIGRADE_TOKEN=$(oc rsh -c cloudigrade-api $(oc get pods -o jsonpath='{.items[*].metadata.name}' -l name=cloudigrade-api) scl enable rh-postgresql96 rh-python36 -- python manage.py drf_create_token $CLOUDIGRADE_USER | awk '{print $3}')
+  script:
+    - py.test -vvv --driver Remote --capability browserName firefox --host selenium --port 4444 integrade/tests/ui
+  services:
+    - name: selenium/standalone-firefox
+      alias: selenium
