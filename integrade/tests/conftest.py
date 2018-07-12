@@ -84,6 +84,7 @@ def chrome_options(chrome_options):
 def firefox_options(firefox_options):
     """Pass no sandbox to Chrome when running on Travis."""
     firefox_options.add_argument('-headless')
+    return firefox_options
 
 
 @pytest.fixture
