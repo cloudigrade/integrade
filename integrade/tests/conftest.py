@@ -74,7 +74,8 @@ def instances_to_terminate():
 @pytest.fixture
 def chrome_options(chrome_options):
     """Pass no sandbox to Chrome when running on Travis."""
-    chrome_options.add_argument('headless')
+    if not os.environ.get('UITEST_SHOW'):
+        chrome_options.add_argument('headless')
     if os.environ.get('TRAVIS', 'false') == 'true':
         chrome_options.add_argument('--no-sandbox')
     return chrome_options
@@ -83,7 +84,8 @@ def chrome_options(chrome_options):
 @pytest.fixture
 def firefox_options(firefox_options):
     """Pass no sandbox to Chrome when running on Travis."""
-    firefox_options.add_argument('-headless')
+    if not os.environ.get('UITEST_SHOW'):
+        firefox_options.add_argument('-headless')
     return firefox_options
 
 

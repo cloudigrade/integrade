@@ -24,7 +24,8 @@ class wait_for_page_text(object):
 
     def __call__(self, driver):
         """Check if the expected check appears in the page yet."""
-        return self.value in driver.page_source
+        body = driver.find_element_by_tag_name('body')
+        return self.value in body.get_attribute('innerText')
 
 
 def get_element_depth(element):
@@ -34,8 +35,10 @@ def get_element_depth(element):
     elements for a condition where an element and its ancestors might match.
     """
     depth = 1
+    if element.tag_name.lower() in ('html', 'body'):
+        return depth
     next_element = element.find_element_by_xpath('..')
-    while next_element.tag_name.lower() != 'body':
+    while next_element.tag_name.lower() not in ('html', 'body'):
         depth += 1
         assert depth < 100
 
@@ -43,22 +46,22 @@ def get_element_depth(element):
     return depth
 
 
-def find_element_by_text(driver, text, fail_hard=False):
+def find_element_by_text(driver, text, fail_hard=False, n=0):
     """Find an element which contains the given text."""
     def t(e):
         try:
-            return e.__innerHTML
+            return e.__innerText
         except AttributeError:
-            e.__innerHTML = e.get_attribute('innerHTML')
-            return e.__innerHTML
+            e.__innerText = e.get_attribute('innerText')
+            return e.__innerText
     elements = [
         e for e in
-        driver.find_elements_by_xpath('//*[text()[contains(.,\'%s\')]]' % text)
+        driver.find_elements_by_xpath('//*[contains(.,\'%s\')]' % text)
         if text in t(e)
     ]
     if elements:
-        elements.sort(key=lambda e: len(t(e)))
-        return elements[0]
+        elements.sort(key=lambda e: (len(t(e)), -get_element_depth(e)))
+        return elements[n]
     elif fail_hard:
         raise ValueError('Did not find in page: %r\n%s' %
                          (text, driver.page_source)
