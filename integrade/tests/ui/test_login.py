@@ -124,7 +124,8 @@ def test_logout(selenium, ui_dashboard, ui_user):
     # And, the Logout item does not appear outside the menu.
     logout = find_element_by_text(selenium, 'Logout')
     assert not logout or not logout.is_displayed()
-    menu = find_element_by_text(selenium, ui_user['username'], fail_hard=True)
+    menu = find_element_by_text(selenium, ui_user['username'],
+                                fail_hard=True, exact=False)
     if not menu:
         raise ValueError(selenium.page_source)
     assert menu.is_displayed(), selenium.get_window_size()

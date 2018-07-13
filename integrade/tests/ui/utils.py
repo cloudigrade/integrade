@@ -46,7 +46,7 @@ def get_element_depth(element):
     return depth
 
 
-def find_element_by_text(driver, text, fail_hard=False, n=0):
+def find_element_by_text(driver, text, fail_hard=False, n=0, exact=True):
     """Find an element which contains the given text."""
     def t(e):
         try:
@@ -57,7 +57,7 @@ def find_element_by_text(driver, text, fail_hard=False, n=0):
     elements = [
         e for e in
         driver.find_elements_by_xpath('//*[contains(.,\'%s\')]' % text)
-        if text in t(e)
+        if (text == t(e) if exact else text in t(e))
     ]
     if elements:
         elements.sort(key=lambda e: (len(t(e)), -get_element_depth(e)))
