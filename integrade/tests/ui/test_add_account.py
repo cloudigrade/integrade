@@ -127,7 +127,7 @@ def test_add_account(drop_account_data, selenium, ui_addacct_page3, ui_user):
 
     dialog_add.click()
 
-    wait = WebDriverWait(selenium, 30)
+    wait = WebDriverWait(selenium, 90)
     wait.until(wait_for_page_text('My Account was created'))
 
     c = api.Client()
