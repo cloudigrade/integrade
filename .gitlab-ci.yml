@@ -1,43 +1,26 @@
-image: python:3.6
+image: registry.gitlab.com/cloudigrade/images/test-container
 
 stages:
   - Test Integrade
-  - Setup Cloudigrade
   - Test Cloudigrade
 
 Test Integrade:
   stage: Test Integrade
   before_script:
+    - python --version
     - make install-dev
     - pip install codecov
   script:
     - make lint
     - make test-coverage
-  after_script:
     - codecov
   coverage: '/\d+\%\s*$/'
 
-Setup Cloudigrade:
-  stage: Setup Cloudigrade
-  before_script:
-    - ./scripts/setup_oc.sh
-    - export PATH="${HOME}/oc:${PATH}"
-    - oc version
-  script:
-    - oc login $OPENSHIFT_URL --token=$OPENSHIFT_TOKEN
-    - oc rollout status dc/postgresql
-    - REVISION=$(oc rollout latest dc/postgresql -o revision)
-    - oc rollout status dc/postgresql --revision=$REVISION
-    - oc rollout status dc/cloudigrade-api
-    - REVISION=$(oc rollout latest dc/cloudigrade-api -o revision)
-    - oc rollout status dc/cloudigrade-api --revision=$REVISION
-    - oc rsh -c cloudigrade-api $(oc get pods -o jsonpath='{.items[*].metadata.name}' -l name=cloudigrade-api) scl enable rh-postgresql96 rh-python36 -- python manage.py createsuperuser --no-input --username $CLOUDIGRADE_USER --email="$CLOUDIGRADE_USER@example.com"
 
 API:
   stage: Test Cloudigrade
   before_script:
-    - ./scripts/setup_oc.sh
-    - export PATH="${HOME}/oc:${PATH}"
+    - python --version
     - oc version
     - make install-dev
     - oc login $OPENSHIFT_URL --token=$OPENSHIFT_TOKEN
@@ -50,8 +33,7 @@ API:
 UI Chrome:
   stage: Test Cloudigrade
   before_script:
-    - ./scripts/setup_oc.sh
-    - export PATH="${HOME}/oc:${PATH}"
+    - python --version
     - make install-dev
     - oc login $OPENSHIFT_URL --token=$OPENSHIFT_TOKEN
     - export CLOUDIGRADE_USER="integrade-$(python -c 'from uuid import uuid4; print(str(uuid4()))')"
@@ -66,8 +48,7 @@ UI Chrome:
 UI Firefox:
   stage: Test Cloudigrade
   before_script:
-    - ./scripts/setup_oc.sh
-    - export PATH="${HOME}/oc:${PATH}"
+    - python --version
     - make install-dev
     - oc login $OPENSHIFT_URL --token=$OPENSHIFT_TOKEN
     - export CLOUDIGRADE_USER="integrade-$(python -c 'from uuid import uuid4; print(str(uuid4()))')"
@@ -82,8 +63,7 @@ UI Firefox:
 UI Microsoft Edge:
   stage: Test Cloudigrade
   before_script:
-    - ./scripts/setup_oc.sh
-    - export PATH="${HOME}/oc:${PATH}"
+    - python --version
     - make install-dev
     - oc login $OPENSHIFT_URL --token=$OPENSHIFT_TOKEN
     - export CLOUDIGRADE_USER="integrade-$(python -c 'from uuid import uuid4; print(str(uuid4()))')"

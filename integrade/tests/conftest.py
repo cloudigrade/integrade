@@ -33,7 +33,7 @@ def drop_account_data():
         py_script = b'from account.models import Account;\
         Account.objects.all().delete()'
 
-        result = subprocess.run(['bash',
+        result = subprocess.run(['sh',
                                  '-c',
                                  'oc rsh -c cloudigrade-api $(oc get pods'
                                  ' -o jsonpath="{.items[*].metadata.name}" -l'
