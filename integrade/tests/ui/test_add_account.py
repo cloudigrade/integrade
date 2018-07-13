@@ -1,25 +1,31 @@
+"""Tests for the Add Account wizard interface.
+
+:caseautomation: automated
+:casecomponent: ui
+:caseimportance: low
+:caselevel: integration
+:requirement: Cloud Meter
+:testtype: functional
+:upstream: yes
+"""
 import logging
-import time
 
 import pytest
 
-from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 
-from integrade import api, config
-from integrade.utils import get_primary_account_id
-from .utils import find_element_by_text, wait_for_input_value, \
-    wait_for_page_text, get_element_depth
-
-from urllib.parse import urljoin
+from integrade import api
 from integrade.tests.api.v1 import urls
+from integrade.utils import get_primary_account_id
 
+from .utils import find_element_by_text, wait_for_page_text
 
 logger = logging.getLogger(__name__)
 
 
 @pytest.fixture
 def ui_addacct_page1(selenium, ui_dashboard):
+    """Open the Add Account dialog."""
     browser, login = ui_dashboard
 
     btn_add_account = find_element_by_text(selenium, 'Add Account')
@@ -35,6 +41,7 @@ def ui_addacct_page1(selenium, ui_dashboard):
 
 @pytest.fixture
 def ui_addacct_page2(selenium, ui_addacct_page1):
+    """Navigate to the second page of the Add Account dialog."""
     profile_name = 'My Account'
 
     find_element_by_text(ui_addacct_page1['dialog'], 'Account Name').click()
@@ -48,6 +55,7 @@ def ui_addacct_page2(selenium, ui_addacct_page1):
 
 @pytest.fixture
 def ui_addacct_page3(selenium, ui_addacct_page2):
+    """Navigate to the 3rd page of the dialog, with the ARN field."""
     dialog = ui_addacct_page2['dialog']
     dialog_next = ui_addacct_page2['dialog_next']
 
