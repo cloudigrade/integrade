@@ -24,8 +24,3 @@ def gen_password(length=20):
 def uuid4():
     """Provide unique string identifiers."""
     return str(uuid.uuid4())
-
-
-def get_primary_account_id():
-    """Return the account ID for the primary AWS account."""
-    return boto3.client('sts').get_caller_identity().get('Account')
