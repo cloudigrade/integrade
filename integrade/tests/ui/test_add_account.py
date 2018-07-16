@@ -134,7 +134,7 @@ def test_add_account(drop_account_data, selenium, ui_addacct_page3, ui_user):
     wait.until(wait_for_page_text('My Account was created'))
 
     r = c.get(urls.CLOUD_ACCOUNT).json()
-    assert len(accounts) == 1, accounts
+    assert len(accounts) == 1, (ui_user['id'], r['results'])
     assert accounts['account_arn'] == acct_arn
 
 
