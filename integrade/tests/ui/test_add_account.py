@@ -136,7 +136,7 @@ def test_add_account(drop_account_data, selenium, ui_addacct_page3, ui_user):
     r = c.get(urls.CLOUD_ACCOUNT).json()
     accounts = [a for a in r['results'] if a['user_id'] == ui_user['id']]
     assert len(accounts) == 1, (len(accounts), ui_user['id'], r['results'])
-    assert accounts['account_arn'] == acct_arn
+    assert accounts[0]['account_arn'] == acct_arn
 
 
 def test_invalid_arn(drop_account_data, selenium, ui_addacct_page3, ui_user):
