@@ -119,7 +119,7 @@ def test_add_account(drop_account_data, selenium, ui_addacct_page3, ui_user):
 
     assert dialog_add.get_attribute('disabled')
 
-    acct_arn = 'arn:aws:iam::543234867065:role/Cloud-Meter-role'
+    acct_arn = 'arn:aws:iam::518028203513:role/Cloud-Meter-role'
     find_element_by_text(dialog, 'ARN').click()
     input = selenium.execute_script('return document.activeElement')
     input.send_keys(acct_arn)
