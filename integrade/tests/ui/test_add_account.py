@@ -16,7 +16,6 @@ from selenium.webdriver.support.ui import WebDriverWait
 
 from integrade import api
 from integrade.tests.api.v1 import urls
-from integrade.utils import get_primary_account_id
 
 from .utils import find_element_by_text, wait_for_page_text
 
