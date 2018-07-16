@@ -118,7 +118,7 @@ def test_add_account(drop_account_data, selenium, ui_addacct_page3, ui_user):
 
     assert dialog_add.get_attribute('disabled')
 
-    acct_arn = 'arn:aws:iam::518028203513:role/Cloud-Meter-role'
+    acct_arn = 'arn:aws:iam::543234867065:role/Cloud-Meter-role'
     find_element_by_text(dialog, 'ARN').click()
     input = selenium.execute_script('return document.activeElement')
     input.send_keys(acct_arn)
@@ -126,7 +126,7 @@ def test_add_account(drop_account_data, selenium, ui_addacct_page3, ui_user):
 
     c = api.Client()
     r = c.get(urls.CLOUD_ACCOUNT).json()
-    assert len(r['results']) == 0
+    accounts = [a for a in r['results'] if a['user_id'] == ui_user['id']]
 
     dialog_add.click()
 
@@ -134,8 +134,8 @@ def test_add_account(drop_account_data, selenium, ui_addacct_page3, ui_user):
     wait.until(wait_for_page_text('My Account was created'))
 
     r = c.get(urls.CLOUD_ACCOUNT).json()
-    assert len(r['results']) == 1
-    assert r['results'][0]['account_arn'] == acct_arn
+    assert len(accounts) == 1, accounts
+    assert accounts['account_arn'] == acct_arn
 
 
 def test_invalid_arn(drop_account_data, selenium, ui_addacct_page3, ui_user):
