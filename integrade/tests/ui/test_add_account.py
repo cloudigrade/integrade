@@ -124,6 +124,7 @@ def test_add_account(drop_account_data, selenium, ui_addacct_page3, ui_user):
     input.send_keys(acct_arn)
     assert not dialog_add.get_attribute('disabled')
 
+    c = api.Client()
     r = c.get(urls.CLOUD_ACCOUNT).json()
     assert len(r['results']) == 0
 
@@ -132,7 +133,6 @@ def test_add_account(drop_account_data, selenium, ui_addacct_page3, ui_user):
     wait = WebDriverWait(selenium, 90)
     wait.until(wait_for_page_text('My Account was created'))
 
-    c = api.Client()
     r = c.get(urls.CLOUD_ACCOUNT).json()
     assert len(r['results']) == 1
     assert r['results'][0]['account_arn'] == acct_arn

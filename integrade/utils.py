@@ -4,8 +4,6 @@ import string
 import uuid
 from urllib.parse import urlunparse
 
-import boto3
-
 
 def base_url(cfg):
     """Generate the base URL based on the configuration."""
