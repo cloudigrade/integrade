@@ -132,8 +132,9 @@ def test_add_account(drop_account_data, selenium, ui_addacct_page3, ui_user):
 
     c = api.Client()
     r = c.get(urls.CLOUD_ACCOUNT).json()
-    assert r['results'][0]['aws_account_id'] == get_primary_account_id()
-    assert r['results'][0]['account_arn'] == acct_arn
+    account_id = get_primary_account_id()
+    assert r['results'][0]['aws_account_id'] == account_id, account_id
+    assert r['results'][0]['account_arn'] == acct_arn, acct_arn
 
 
 def test_invalid_arn(drop_account_data, selenium, ui_addacct_page3, ui_user):
