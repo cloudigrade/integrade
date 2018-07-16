@@ -221,6 +221,11 @@ class Client(object):
         url = urljoin(self.url, endpoint)
         return self.request('HEAD', url, **kwargs)
 
+    def patch(self, endpoint, payload, **kwargs):
+        """Send an HTTP PATCH request."""
+        url = urljoin(self.url, endpoint)
+        return self.request('PATCH', url, json=payload, **kwargs)
+
     def post(self, endpoint, payload, **kwargs):
         """Send an HTTP POST request."""
         url = urljoin(self.url, endpoint)

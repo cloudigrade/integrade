@@ -49,6 +49,7 @@ def test_create_cloud_account(drop_account_data, cloudtrails_to_delete):
     acct_arn = aws_profile['arn']
     cloud_account = {
         'account_arn': acct_arn,
+        'name': uuid4(),
         'resourcetype': 'AwsAccount'
     }
     create_response = client.post(
@@ -71,27 +72,36 @@ def test_create_cloud_account(drop_account_data, cloudtrails_to_delete):
     acct = create_response.json()
 
     # get specific account
-    get_response = client.get(
-        urljoin(urls.CLOUD_ACCOUNT,
-                '{}/'.format(acct['id'])
-                ), auth=auth)
+    account_url = urljoin(urls.CLOUD_ACCOUNT, '{}/'.format(acct['id']))
+    get_response = client.get(account_url, auth=auth)
     assert acct == get_response.json()
 
     # list cloud accounts associated with this user
     list_response = client.get(urls.CLOUD_ACCOUNT, auth=auth)
     assert acct in list_response.json()['results']
 
-    # TODO need to try and update name, but
-    # feature is not delivered yet.
-    # Nameing cloud accounts:
-    #     https://github.com/cloudigrade/cloudigrade/issues/267
-    # Updating cloud accounts:
-    #     https://github.com/cloudigrade/cloudigrade/issues/333
+    # Check if account name can be patched
+    for new_name in (None, acct['name']):
+        payload = {
+            'name': new_name,
+            'resourcetype': 'AwsAccount',
+        }
+        response = client.patch(
+            account_url, payload=payload, auth=auth)
+        response = client.get(account_url, auth=auth)
+        assert response.json()['name'] == new_name
 
-    # TODO need to try and update arn, but
-    # feature is not delivered yet.
-    # Updating cloud accounts:
-    # https://github.com/cloudigrade/cloudigrade/issues/333
+    # Check if an account can be updated
+    for new_name in (None, acct['name']):
+        payload = {
+            'account_arn': acct_arn,
+            'name': new_name,
+            'resourcetype': 'AwsAccount',
+        }
+        response = client.put(
+            account_url, payload=payload, auth=auth)
+        response = client.get(account_url, auth=auth)
+        assert response.json()['name'] == new_name
 
     # assert we cannot create duplicate
     client.response_handler = api.echo_handler

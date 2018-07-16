@@ -201,6 +201,17 @@ def test_response_handler_raises_no_json(
             client.response_handler(bad_response)
 
 
+def test_patch(good_response):
+    """Test that the patch method sends a well formed request."""
+    with patch.object(config, '_CONFIG', VALID_CONFIG):
+        cl = api.Client()
+        cl.request = Mock(return_value=good_response)
+        r = cl.patch('api/v1/', {})
+        assert r == good_response
+        cl.request.assert_called_once_with(
+            'PATCH', urljoin(cl.url, 'api/v1/'), json={})
+
+
 def test_post(good_response):
     """Test that when we use the post method, a well formed request is sent."""
     with patch.object(config, '_CONFIG', VALID_CONFIG):
