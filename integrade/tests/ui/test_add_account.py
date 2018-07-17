@@ -118,7 +118,7 @@ def test_add_account(drop_account_data, selenium, ui_addacct_page3, ui_user):
 
     assert dialog_add.get_attribute('disabled')
 
-    acct_arn = config.get_config()['aws_profiles'][0]['arn']
+    acct_arn = config.get_config()['aws_profiles'][1]['arn']
     find_element_by_text(dialog, 'ARN').click()
     input = selenium.execute_script('return document.activeElement')
     input.send_keys(acct_arn)
