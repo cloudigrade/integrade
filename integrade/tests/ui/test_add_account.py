@@ -14,7 +14,7 @@ import pytest
 
 from selenium.webdriver.support.ui import WebDriverWait
 
-from integrade import api
+from integrade import api, config
 from integrade.tests.api.v1 import urls
 
 from .utils import find_element_by_text, wait_for_page_text
@@ -118,7 +118,7 @@ def test_add_account(drop_account_data, selenium, ui_addacct_page3, ui_user):
 
     assert dialog_add.get_attribute('disabled')
 
-    acct_arn = 'arn:aws:iam::518028203513:role/Cloud-Meter-role'
+    acct_arn = config.get_config()['aws_profiles'][0]['arn']
     find_element_by_text(dialog, 'ARN').click()
     input = selenium.execute_script('return document.activeElement')
     input.send_keys(acct_arn)
