@@ -9,12 +9,17 @@
 :upstream: yes
 """
 import logging
+from time import sleep
+
+from flaky import flaky
 
 import pytest
 
+from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.support.ui import WebDriverWait
 
 from integrade import api, config
+from integrade.tests import conftest
 from integrade.tests.api.v1 import urls
 
 from .utils import find_element_by_text, wait_for_page_text
@@ -97,6 +102,13 @@ def test_account_name_required(selenium, ui_addacct_page1, ui_user):
     assert dialog_next.get_attribute('disabled')
 
 
+def drop_and_retry(err, *args):
+    """Remove account data and retry a test."""
+    conftest.drop_account_data()
+    return True
+
+
+@flaky(rerun_filter=drop_and_retry)
 def test_add_account(drop_account_data, selenium, ui_addacct_page3, ui_user):
     """The user can add a new account using a valid current ARN.
 
@@ -118,7 +130,7 @@ def test_add_account(drop_account_data, selenium, ui_addacct_page3, ui_user):
 
     assert dialog_add.get_attribute('disabled')
 
-    acct_arn = config.get_config()['aws_profiles'][1]['arn']
+    acct_arn = config.get_config()['aws_profiles'][0]['arn']
     find_element_by_text(dialog, 'ARN').click()
     input = selenium.execute_script('return document.activeElement')
     input.send_keys(acct_arn)
@@ -131,7 +143,13 @@ def test_add_account(drop_account_data, selenium, ui_addacct_page3, ui_user):
     dialog_add.click()
 
     wait = WebDriverWait(selenium, 90)
-    wait.until(wait_for_page_text('My Account was created'))
+    try:
+        wait.until(wait_for_page_text('My Account was created'))
+    except TimeoutException:
+        duplicate_error = 'aws account with this account arn already exists.'
+        if duplicate_error in selenium.page_source:
+            # Retry after waiting and clearing accounts
+            sleep(60)
 
     r = c.get(urls.CLOUD_ACCOUNT).json()
     accounts = [a for a in r['results'] if a['user_id'] == ui_user['id']]

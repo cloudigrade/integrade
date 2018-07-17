@@ -43,6 +43,7 @@ setup(
         'boto3',
         'pytest',
         'pytest-selenium',
+        'flaky',
         'pyyaml',
         'pyxdg',
         'requests',
