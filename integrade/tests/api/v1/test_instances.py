@@ -48,12 +48,16 @@ def test_find_running_instances(drop_account_data, instances_to_terminate):
     client = api.Client(authenticate=False, response_handler=api.json_handler)
     aws_profile = config.get_config()['aws_profiles'][0]
     aws_profile_name = aws_profile['name']
-    # create some instances to detect on creation
-    created_instance_ids = aws_utils.create_instances(
-        aws_profile_name, 'rhel1', count=3)
+    # create some instances to detect on creation, random choice from every
+    # configured image type (private, owned, marketplace, community)
+    created_instance_ids, source_image_ids = aws_utils.create_instances(
+        aws_profile_name)
     # add new instances to list of instances to terminate after test
     instances_to_terminate.extend(
-        zip([aws_profile_name] * 3, created_instance_ids))
+        zip(
+            [aws_profile_name] * len(created_instance_ids),
+            created_instance_ids)
+    )
     cloud_account = {
         'account_arn': aws_profile['arn'],
         'resourcetype': AWS_ACCOUNT_TYPE
@@ -70,20 +74,21 @@ def test_find_running_instances(drop_account_data, instances_to_terminate):
         assert inst_id in found_instances
     list_images = client.get(urls.IMAGE, auth=auth)
     found_images = [image['ec2_ami_id'] for image in list_images['results']]
-    source_image = \
-        aws_profile['images']['rhel1']['image_id']
-    assert source_image in found_images
+    for image_id in source_image_ids:
+        assert image_id in found_images
 
-    timeout = 300
-    while timeout > 0:
-        status = client.get(urls.IMAGE,
-                            params={'ec2_ami_id': source_image},
-                            auth=auth)['results'][0]['status']
-        if status in ['pending', 'preparing', 'inspecting']:
-            sleep(60)
-            timeout -= 60
-        if status == 'inspected':
-            break
+    timeout = 900
+    images_to_inspect = source_image_ids
+    while images_to_inspect:
+        for source_image in images_to_inspect:
+            status = client.get(urls.IMAGE,
+                                params={'ec2_ami_id': source_image},
+                                auth=auth)['results'][0]['status']
+            if status in ['pending', 'preparing', 'inspecting']:
+                sleep(60)
+                timeout -= 60
+            if status == 'inspected':
+                images_to_inspect.remove(source_image)
 
-    assert 'inspected' == status
+    assert images_to_inspect == []
     # TODO: assert on inspection result (rhel found)

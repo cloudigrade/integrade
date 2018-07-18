@@ -2,6 +2,7 @@
 
 import json
 import os
+import random
 import time
 from multiprocessing import Pool
 
@@ -111,19 +112,19 @@ def delete_bucket_and_cloudtrail(profile_cloudtrail_bucket):
 
 def create_instances(
         aws_profile,
-        image_name,
         count=1,
-        instance_type='t2.nano'):
+        instance_type='t2.micro'):
     """Create instances from a named image.
 
     :param aws_profile: (string) Name of profile as defined in config file
-    :param image_name: (string) Name of image as defined in config file
-    :param count: (int) Number of instances to create.
+    :param instance_type: (string) Name of instance type on aws.
 
-    :returns: (list) List of the instance ids created.
+    :returns: (tuple of lists) (instance_ids, image_ids) The first list is of
+        the instance ids created, and the second is of the images ids used
+        to create the instances.
 
-    The instances will be created using the named AMI as found in the
-    config file for the given profile.
+    The instances will be created using a random choice of AMIs listed in the
+    config file for the given profile, one from each section.
 
     ``create_instances`` waits to return until the instances are all
     running.
@@ -152,20 +153,30 @@ def create_instances(
     """
     client = aws_session(aws_profile).client('ec2')
     cfg = config.get_aws_image_config()
-    image_id = cfg['profiles'][aws_profile]['images'][image_name]['image_id']
-    response = client.run_instances(
-        MaxCount=count,
-        MinCount=count,
-        ImageId=image_id,
-        InstanceType=instance_type)
-    instance_ids = []
-    for instance in response.get('Instances', []):
-        instance_ids.append(instance['InstanceId'])
-    with Pool(len(instance_ids)) as p:
-        p.map(
-            wait_until_running, zip(
-                [aws_profile] * len(instance_ids), instance_ids))
-    return instance_ids
+    image_ids = []
+    profile_images = cfg['profiles'][aws_profile]['images']
+    for image_group in profile_images:
+        images = profile_images[image_group]
+        image_ids.append(random.choice(images)['image_id'])
+
+    all_instance_ids = []
+
+    for image_id in image_ids:
+        response = client.run_instances(
+            MaxCount=count,
+            MinCount=count,
+            ImageId=image_id,
+            InstanceType=instance_type)
+        instance_ids = []
+        for instance in response.get('Instances', []):
+            instance_ids.append(instance['InstanceId'])
+        all_instance_ids.extend(instance_ids)
+        with Pool() as p:
+            p.map(
+                wait_until_running, zip(
+                    [aws_profile] * len(instance_ids), instance_ids))
+
+    return all_instance_ids, image_ids
 
 
 def run_instances(aws_profile, image_name, count, run_time):
@@ -183,7 +194,7 @@ def run_instances(aws_profile, image_name, count, run_time):
     # now sleep until instances have run for desired amount of time
     time_all_live = time.time()
     time.sleep(run_time)
-    with Pool(len(instance_ids)) as p:
+    with Pool() as p:
         p.map(
             terminate_instance, zip(
                 [aws_profile] * len(instance_ids), instance_ids))
@@ -209,7 +220,7 @@ def terminate_all_instances(aws_profile):
                 instances_to_terminate.append(instance['InstanceId'])
     num_instances = len(instances_to_terminate)
     if instances_to_terminate:
-        with Pool(num_instances) as p:
+        with Pool() as p:
             p.map(
                 terminate_instance, zip(
                     [aws_profile] * num_instances, instances_to_terminate))
