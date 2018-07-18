@@ -22,7 +22,11 @@ from integrade import api, config
 from integrade.tests import conftest
 from integrade.tests.api.v1 import urls
 
-from .utils import find_element_by_text, wait_for_page_text
+from .utils import (
+    fill_input_by_label,
+    find_element_by_text,
+    wait_for_page_text,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -47,11 +51,9 @@ def ui_addacct_page1(selenium, ui_dashboard):
 def ui_addacct_page2(selenium, ui_addacct_page1):
     """Navigate to the second page of the Add Account dialog."""
     profile_name = 'My Account'
+    dialog = ui_addacct_page1['dialog']
 
-    find_element_by_text(ui_addacct_page1['dialog'], 'Account Name').click()
-    input = selenium.execute_script('return document.activeElement')
-    input.send_keys(profile_name)
-
+    fill_input_by_label(selenium, dialog, 'Account Name', profile_name)
     ui_addacct_page1['dialog_next'].click()
 
     return ui_addacct_page1
@@ -72,7 +74,7 @@ def ui_addacct_page3(selenium, ui_addacct_page2):
     return ui_addacct_page2
 
 
-@pytest.mark.skip()
+@pytest.mark.skip(reason='http://gitlab.com/cloudigrade/frontigrade/issues/50')
 def test_account_name_required(selenium, ui_addacct_page1, ui_user):
     """The first page's Account Name field is required before proceeding.
 
@@ -93,9 +95,7 @@ def test_account_name_required(selenium, ui_addacct_page1, ui_user):
     dialog_next = ui_addacct_page1['dialog_next']
 
     assert dialog_next.get_attribute('disabled')
-    find_element_by_text(dialog, 'Account Name').click()
-    input = selenium.execute_script('return document.activeElement')
-    input.send_keys('My Account')
+    fill_input_by_label(selenium, dialog, 'Account Name', 'My Account')
 
     assert not dialog_next.get_attribute('disabled')
     input.clear()
@@ -118,7 +118,7 @@ def test_add_account(drop_account_data, selenium, ui_addacct_page3, ui_user):
         1) Open the dashboard and click the "Add Account"
         2) Enter a name for the account
         3) Proceed to page 3
-        4) Enter an ARN which is not a valid ARN for a resource we are granted
+        4) Enter an ARN which is valid ARN for a resource we are granted
            permission to
         5) Click the "Add" button to attempt to create the account
     :expectedresults: The Account is created and can be fetched by the account
@@ -131,10 +131,7 @@ def test_add_account(drop_account_data, selenium, ui_addacct_page3, ui_user):
     assert dialog_add.get_attribute('disabled')
 
     acct_arn = config.get_config()['aws_profiles'][0]['arn']
-    find_element_by_text(dialog, 'ARN').click()
-    input = selenium.execute_script('return document.activeElement')
-    input.send_keys(acct_arn)
-    assert not dialog_add.get_attribute('disabled')
+    fill_input_by_label(selenium, dialog, 'ARN', acct_arn)
 
     c = api.Client()
     r = c.get(urls.CLOUD_ACCOUNT).json()
@@ -178,9 +175,7 @@ def test_invalid_arn(drop_account_data, selenium, ui_addacct_page3, ui_user):
     wait = WebDriverWait(selenium, 10)
 
     acct_arn = 'arn:aws:iam::543234867065:role/Cloud-Meter-role-WRONG'
-    find_element_by_text(dialog, 'ARN').click()
-    input = selenium.execute_script('return document.activeElement')
-    input.send_keys(acct_arn)
+    fill_input_by_label(selenium, dialog, 'ARN', acct_arn)
     assert not dialog_add.get_attribute('disabled')
 
     dialog_add.click()

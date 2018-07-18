@@ -66,3 +66,10 @@ def find_element_by_text(driver, text, fail_hard=False, n=0, exact=True):
         raise ValueError('Did not find in page: %r\n%s' %
                          (text, driver.page_source)
                          )
+
+
+def fill_input_by_label(driver, element, label, value):
+    """Click on a field label and entering text to the associated input."""
+    find_element_by_text(element or driver, label).click()
+    input = driver.execute_script('return document.activeElement')
+    input.send_keys(value)
