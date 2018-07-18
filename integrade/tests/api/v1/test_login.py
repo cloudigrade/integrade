@@ -63,7 +63,7 @@ def test_login_logout():
 
 
 @pytest.mark.parametrize(
-    'endpoint', ('account', 'event', 'instance', 'image', 'report'))
+    'endpoint', ('account', 'event', 'instance', 'image', 'report/instances'))
 def test_token_negative(endpoint):
     """Given that we have an invalid token, we cannot make requests.
 
