@@ -10,6 +10,8 @@ Test Integrade:
     - python --version
     - make install-dev
     - pip install codecov
+    - apk add curl bash
+    - scripts/wait-for-pipeline.sh
   script:
     - make lint
     - make test-coverage
