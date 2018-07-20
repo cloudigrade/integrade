@@ -54,6 +54,9 @@ UI Firefox:
 
 UI Microsoft Edge:
   stage: Test Cloudigrade
+  only:
+    refs:
+      - master
   <<: *before_script
   script:
     - py.test -vvv --driver SauceLabs --capability browserName MicrosoftEdge integrade/tests/ui
