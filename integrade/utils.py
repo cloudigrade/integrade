@@ -1,8 +1,11 @@
 """Utility functions."""
+import os
 import secrets
 import string
 import uuid
 from urllib.parse import urlunparse
+
+from flaky import flaky as _flaky
 
 
 def base_url(cfg):
@@ -22,3 +25,11 @@ def gen_password(length=20):
 def uuid4():
     """Provide unique string identifiers."""
     return str(uuid.uuid4())
+
+
+def flaky(*args, **kwargs):
+    """Wrap tests as flaky only on CI."""
+    if os.environ.get('CI'):
+        return _flaky(*args, **kwargs)
+    else:
+        return lambda f: f

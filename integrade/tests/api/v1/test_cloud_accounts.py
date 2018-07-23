@@ -16,7 +16,7 @@ from integrade import api, config
 from integrade.tests import aws_utils
 from integrade.tests.api.v1 import urls
 from integrade.tests.api.v1.utils import get_auth
-from integrade.utils import uuid4
+from integrade.utils import flaky, uuid4
 
 
 @pytest.mark.serial_only
@@ -169,6 +169,7 @@ def test_create_multiple_cloud_accounts(
         assert acct in list_response.json()['results']
 
 
+@flaky(max_runs=4)
 @pytest.mark.serial_only
 @pytest.mark.skipif(len(config.get_config()[
     'aws_profiles']) < 3, reason='needs at least 3 aws profiles')

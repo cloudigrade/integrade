@@ -1,4 +1,7 @@
 """Utilities functions for API tests."""
+import time
+
+from selenium.common.exceptions import StaleElementReferenceException
 
 
 class wait_for_input_value(object):
@@ -46,30 +49,49 @@ def get_element_depth(element):
     return depth
 
 
-def find_element_by_text(driver, text, fail_hard=False, n=0, exact=True):
+def find_element_by_text(driver, text,
+                         fail_hard=False,
+                         n=0,
+                         exact=True,
+                         timeout=100):
     """Find an element which contains the given text."""
-    def t(e):
-        try:
-            return e.__innerText
-        except AttributeError:
-            e.__innerText = e.get_attribute('innerText')
-            return e.__innerText
-    elements = [
-        e for e in
-        driver.find_elements_by_xpath('//*[contains(.,\'%s\')]' % text)
-        if (text == t(e) if exact else text in t(e))
-    ]
-    if elements:
-        elements.sort(key=lambda e: (len(t(e)), -get_element_depth(e)))
-        return elements[n]
-    elif fail_hard:
-        raise ValueError('Did not find in page: %r\n%s' %
-                         (text, driver.page_source)
-                         )
+    start = time.time()
+    end = start + timeout
+    while time.time() < end:
+        def t(e):
+            try:
+                try:
+                    return e.__innerText
+                except AttributeError:
+                    e.__innerText = e.get_attribute('innerText')
+                    return e.__innerText
+            except StaleElementReferenceException:
+                return ''
+        elements = [
+            e for e in
+            driver.find_elements_by_xpath('//*[contains(.,\'%s\')]' % text)
+            if (text == t(e) if exact else text in t(e))
+        ]
+        if elements:
+            elements.sort(key=lambda e: (len(t(e)), -get_element_depth(e)))
+            return elements[n]
+    if fail_hard:
+        raise ValueError(
+            'Did not find in page: %r\n%s' %
+            (text, driver.page_source)
+        )
 
 
 def fill_input_by_label(driver, element, label, value):
-    """Click on a field label and entering text to the associated input."""
+    """Click on a field label and enter text to the associated input."""
     find_element_by_text(element or driver, label).click()
     input = driver.execute_script('return document.activeElement')
+    input.clear()
     input.send_keys(value)
+
+
+def read_input_by_label(driver, element, label):
+    """Click on a field label and read text from the associated input."""
+    find_element_by_text(element or driver, label).click()
+    input = driver.execute_script('return document.activeElement')
+    return input.get_attribute('value')
