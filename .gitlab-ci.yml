@@ -3,6 +3,7 @@ image: registry.gitlab.com/cloudigrade/images/test-container
 stages:
   - Test Integrade
   - Test Cloudigrade
+  - Cleanup
 
 Test Integrade:
   stage: Test Integrade
@@ -58,3 +59,15 @@ UI Microsoft Edge:
   <<: *before_script
   script:
     - py.test -vvv --driver SauceLabs --capability browserName MicrosoftEdge integrade/tests/ui
+
+
+Nightly Cleanup:on-schedule:
+  stage: Cleanup
+  only:
+    - schedules
+  before_script:
+    - python --version
+    - oc version
+    - make install-dev
+  script:
+    - python scripts/aws_reaper.py

@@ -11,9 +11,9 @@ import pytest
 
 from integrade import config
 from integrade.exceptions import (
-        AWSCredentialsNotFoundError,
-        ConfigFileNotFoundError
-    )
+    AWSCredentialsNotFoundError,
+    ConfigFileNotFoundError
+)
 from integrade.tests.constants import EC2_TERMINATED_CODE
 from integrade.utils import uuid4
 
@@ -244,6 +244,19 @@ def get_current_instances(aws_profile):
         instance_ids.extend([inst['InstanceId']
                              for inst in reservation.get('Instances', [])])
     return instance_ids
+
+
+def delete_available_volumes(aws_profile):
+    """Delete any available (dangling) volumes."""
+    ec2_client = aws_session(aws_profile).client('ec2')
+    for volume in ec2_client.describe_volumes(
+            Filters=[
+                {
+                    'Name': 'status',
+                    'Values': ['available']
+                }
+            ]).get('Volumes'):
+        ec2_client.delete_volume(VolumeId=volume['VolumeId'])
 
 
 def create_bucket_for_cloudtrail(aws_profile):
