@@ -1,0 +1,129 @@
+.private-shared: &private_shared
+  private-shared:
+    - name: 'rhel'
+      image_id: 'ami-065d0be9883aa064a'
+      is_rhel: True
+      is_openshift: False
+    - name: 'rhel-openshift'
+      image_id: 'ami-0b9fd764645f13510'
+      is_rhel: True
+      is_openshift: True
+    - name: 'ubuntu'
+      image_id: 'ami-0b817f1f3a9927361'
+      is_rhel: False
+      is_openshift: False
+    - name: 'ubuntu-openshift'
+      image_id: 'ami-0ce8a57ac2c5cb5df'
+      is_rhel: False
+      is_openshift: True
+    - name: 'centos'
+      image_id: 'ami-0c522838bc12ae928'
+      is_rhel: False
+      is_openshift: False
+    - name: 'centos-openshift'
+      image_id: 'ami-0f94fa2a144c74cf1'
+      is_rhel: False
+      is_openshift: True
+
+.marketplace: &marketplace
+  marketplace:
+    - name: 'rhel'
+      image_id: 'ami-a8d369c0' # rhel 7
+      is_rhel: True # except we don't want to bill for it
+    - name: 'ubuntu' # ubuntu 16.04
+      image_id: 'ami-077b0e78'
+      is_rhel: False
+    - name: 'windows'
+      image_id: 'ami-9e4d0ce1' # windows server image
+      is_rhel: False
+      is_windows: True
+
+.community: &community
+  community:
+    - name: 'ubuntu'
+      image_id: 'ami-759bc50a'
+    - name: 'windows server 2016'
+      image_id: 'ami-0327667c'
+    - name: 'opensuse'
+      image_id: 'ami-2b170941'
+    - name: 'fedora-28'
+      image_id: 'ami-0011ab01eb7fb4fbc'
+    - name: 'gentoo-pygoscelis-papua'
+      image_id: 'ami-036e776a'
+
+profiles:
+  DEV07CUSTOMER:
+      # account number 439727791560 (dev07)
+      images:
+        owned:
+          - name: 'rhel'
+            image_id: 'ami-0d2e46db3ba19f204'
+            is_rhel: True
+            is_openshift: False
+          - name: 'rhel-openshift'
+            image_id: 'ami-09c521cbc20a78b49'
+            is_rhel: True
+            is_openshift: True
+          - name: 'centos'
+            image_id: 'ami-0bf18d6709ff12ee8'
+            is_rhel: False
+            is_openshift: False
+          - name: 'centos-openshift'
+            image_id: 'ami-0f75a482c0696dc99'
+            is_rhel: False
+            is_openshift: True
+
+        <<: *private_shared
+        <<: *marketplace
+        <<: *community
+
+
+  DEV08CUSTOMER:
+      # account number 311230538223 (dev08)
+      images:
+        owned:
+          - name: 'rhel'
+            image_id: 'ami-09f630ec35588bec4'
+            is_rhel: True
+            is_openshift: False
+          - name: 'rhel-openshift'
+            image_id: 'ami-053b2eeaaa6d13a24'
+            is_rhel: True
+            is_openshift: True
+          - name: 'centos'
+            image_id: 'ami-0f4ef4df59416d9ab'
+            is_rhel: False
+            is_openshift: False
+          - name: 'centos-openshift'
+            image_id: 'ami-067e15718a7a1ed0a'
+            is_rhel: False
+            is_openshift: True
+
+        <<: *private_shared
+        <<: *marketplace
+        <<: *community
+
+  DEV10CUSTOMER:
+      # account number 543234867065 (dev 10)
+       images:
+        owned:
+          - name: 'rhel'
+            image_id: 'ami-0cc60ebed1322e404'
+            is_rhel: True
+            is_openshift: False
+          - name: 'rhel-openshift'
+            image_id: 'ami-031dca721cd450709'
+            is_rhel: True
+            is_openshift: True
+          - name: 'centos'
+            image_id: 'ami-0eedc6c884d81c6ed'
+            is_rhel: False
+            is_openshift: False
+          - name: 'centos-openshift'
+            image_id: 'ami-0f51fd32846a3ff4d'
+            is_rhel: False
+            is_openshift: True
+
+        <<: *private_shared
+        <<: *marketplace
+        <<: *community
