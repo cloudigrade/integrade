@@ -11,8 +11,9 @@
 import pytest
 
 from integrade import api
+from integrade.config import get_config
 from integrade.tests.api.v1 import urls
-from integrade.tests.api.v1.utils import create_user_account
+from integrade.tests.api.v1.utils import create_user_account, get_auth
 from integrade.utils import gen_password, uuid4
 
 
@@ -129,3 +130,37 @@ def test_change_password():
 
     response = client.post(urls.AUTH_TOKEN_DESTROY, {}, auth=auth)
     assert response.status_code == 204
+
+
+def test_user_list(drop_account_data):
+    """Super users can request lists of created user accounts.
+
+    :id: 52567e92-2b6a-43b0-bdc0-5a347b9dd4bc
+    :description: Super users, and only super users, are able to request a user
+        list.
+    :steps:
+        1) Authenticate with a super user account and request the user list
+            end point contains yourself and a created non-super user account.
+        2) Authenticate with a non-super user account and request the user list
+            to verify a 4xx error
+    :expectedresults: The super user can get the list, but not the regular user
+        account.
+    """
+    client = api.Client()
+    response = client.get(urls.USER_LIST)
+    pre_user_list = response.json()
+    usernames = [user['username'] for user in pre_user_list]
+    assert get_config()['super_user_name'] in usernames
+
+    new_user = create_user_account()
+    response = client.get(urls.USER_LIST)
+    new_user_list = [user for user in response.json()
+                     if user not in pre_user_list]
+    new_user_ids = [user['id'] for user in new_user_list]
+
+    assert new_user['id'] in new_user_ids
+
+    auth = get_auth(new_user)
+    client = api.Client(authenticate=False, response_handler=api.echo_handler)
+    response = client.get(urls.USER_LIST, auth=auth)
+    assert response.status_code == 403
