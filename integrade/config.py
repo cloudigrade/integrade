@@ -31,6 +31,8 @@ def get_config():
         _CONFIG['api_version'] = os.environ.get(
             'CLOUDIGRADE_API_VERSION', 'v1')
         _CONFIG['base_url'] = os.environ.get('CLOUDIGRADE_BASE_URL', '')
+        _CONFIG['super_user_name'] = os.environ.get('CLOUDIGRADE_USER')
+        _CONFIG['super_user_password'] = os.environ.get('CLOUDIGRADE_PASSWORD')
         # pull all customer roles out of environ
 
         def is_role(string): return string.startswith('CLOUDIGRADE_ROLE_')

@@ -11,6 +11,7 @@
 import pytest
 
 from integrade import api
+from integrade.config import get_config
 from integrade.tests.api.v1 import urls
 from integrade.tests.api.v1.utils import create_user_account
 from integrade.utils import uuid4
@@ -33,7 +34,8 @@ def test_login_logout():
         1) Receive an authorization token that can then be used to build
            authentication headers and make authenticated requests.
         2) Assert a 200 response is returned and the information about the
-           logged in user are correct.
+           logged in user are correct, including being flagged as a non-super
+           user
         3) Assert a 204 response is returned
         4) Assert a 401 response is returned and the detailed message states
            the authentication token is now invalid.
@@ -44,6 +46,7 @@ def test_login_logout():
     assert response.status_code == 200
     json_response = response.json()
     assert 'auth_token' in json_response
+    assert not json_response['is_superuser']
     auth = api.TokenAuth(json_response['auth_token'])
 
     response = client.get(urls.AUTH_ME, auth=auth)
@@ -60,6 +63,34 @@ def test_login_logout():
     assert response.status_code == 401
     json_response = response.json()
     assert json_response['detail'] == 'Invalid token.'
+
+
+def test_superuser_login():
+    """Test that we can login as a super user and identify we are super.
+
+    :id: 0815070f-5042-45ba-a6bb-f2596f764c7e
+    :description: Test that we can login with a super user's credentials and
+        that the token response includes a flag indicating super user status.
+    :steps:
+        1) Send POST with username and password to the token endpoint.
+    :expectedresults:
+        1) Receive an authorization token that can then be used to build
+           authentication headers and make authenticated requests.
+        2) Assert a 200 response is returned and the information about the
+           logged in user are correct
+        3) Assert the response includes the `is_superuser` field set to True
+    """
+    config = get_config()
+    client = api.Client(authenticate=False)
+    user = {
+        'username': config['super_user_name'],
+        'password': config['super_user_password'],
+    }
+    response = client.post(urls.AUTH_TOKEN_CREATE, user)
+    assert response.status_code == 200
+    json_response = response.json()
+    assert 'auth_token' in json_response
+    assert json_response['is_superuser']
 
 
 @pytest.mark.parametrize(

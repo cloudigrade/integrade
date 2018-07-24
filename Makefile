@@ -1,5 +1,4 @@
 PYTEST_OPTIONS = -vvv
-CLOUDIGRADE_USER=''
 
 help:
 	@echo "Please use \`make <target>' where <target> is one of:"
