@@ -2,6 +2,7 @@ image: registry.gitlab.com/cloudigrade/images/test-container
 
 stages:
   - Test Integrade
+  - Deploy Cloudigrade
   - Test Cloudigrade
   - Cleanup
 
@@ -17,13 +18,126 @@ Test Integrade:
     - codecov
   coverage: '/\d+\%\s*$/'
 
+Deploy Cloudigrade:
+  stage: Deploy Cloudigrade
+  image: registry.gitlab.com/cloudigrade/images/deploy-container:latest
+  environment:
+    name: review/$CI_COMMIT_REF_NAME
+    url: http://${CI_PROJECT_NAME}-${CI_ENVIRONMENT_SLUG}.review.gitlab.cloudigra.de
+    on_stop: Teardown Cloudigrade
+  except:
+    - master
+  variables:
+    ENVIRONMENT_SLUG: ${CI_PROJECT_NAME}-${CI_ENVIRONMENT_SLUG}
+    GIT_STRATEGY: none
+  before_script:
+    - oc login ${OPENSHIFT_URL} --token ${GITLAB_CI_SA_TOKEN}
+    - git clone https://gitlab.com/cloudigrade/shiftigrade.git
+    - cd shiftigrade
+  script:
+    - export CLOUDTRAIL_EVENT_URL="https://sqs.${AWS_DEFAULT_REGION}.amazonaws.com/${AWS_ACCOUNT_NUMBER}/${ENVIRONMENT_SLUG}-cloudigrade-cloudtrail-sqs"
+    - export DB_SECRETS_FILE_NAME="${ENVIRONMENT_SLUG}-db"
+    - export DEPLOYMENT_PREFIX="${ENVIRONMENT_SLUG}"
+    - export DJANGO_DATABASE_HOST="${ENVIRONMENT_SLUG}-db.cloudigrade-review.svc"
+    - export DJANGO_SECRET_KEY="${CI_COMMIT_SHA}"  # TODO: generate a proper secret key
+    - export GITLAB_DEPLOYMENT="${ENVIRONMENT_SLUG}"
+    - export HOUNDIGRADE_ECS_CLUSTER_NAME="${ENVIRONMENT_SLUG}-houndigrade"
+    - export HOUNDIGRADE_AWS_AUTOSCALING_GROUP_NAME="${HOUNDIGRADE_ECS_CLUSTER_NAME}-asg"
+    - export HOUNDIGRADE_LAUNCH_CONFIG_NAME="${HOUNDIGRADE_ECS_CLUSTER_NAME}-lc"
+    - export EC2_HOST_NAME="${HOUNDIGRADE_ECS_CLUSTER_NAME}-host"
+
+    - cd ansible
+    - >
+      ansible-playbook \
+        -e application_name=houndigrade \
+        -e aws_prefix="${DEPLOYMENT_PREFIX}" \
+        -e ec2_ami_id="${RECOMMENDED_AMI}" \
+        -e ec2_asg_availability_zones="${HOUNDIGRADE_AWS_AVAILABILITY_ZONE}" \
+        -e ec2_asg_desired_capacity=0 \
+        -e ec2_asg_max_size=0 \
+        -e ec2_asg_min_size=0 \
+        -e ec2_asg_name="${HOUNDIGRADE_AWS_AUTOSCALING_GROUP_NAME}" \
+        -e ec2_asg_vpc_subnets="${SUBNET_NAME}" \
+        -e ec2_instance_name="${EC2_HOST_NAME}" \
+        -e ec2_instance_type="${INSTANCE_TYPE}" \
+        -e ec2_launch_configuration_name="${HOUNDIGRADE_LAUNCH_CONFIG_NAME}" \
+        -e ec2_security_groups="${SECURITY_GROUP_NAME}" \
+        -e ecs_cluster_name="${HOUNDIGRADE_ECS_CLUSTER_NAME}" \
+        -e key_name="${SSH_KEY_NAME}" \
+        -e vpc_name="${VPC_NAME}" \
+        provision-aws-resources.yaml
+    - ansible-playbook -e aws_prefix="${DEPLOYMENT_PREFIX}" clean-sqs.yaml
+    - cd -
+
+    - >
+      oc process openshift//postgresql-ephemeral \
+        -p NAMESPACE=openshift \
+        -p DATABASE_SERVICE_NAME=${ENVIRONMENT_SLUG}-db \
+        -p POSTGRESQL_DATABASE=postgres \
+        -p POSTGRESQL_VERSION=9.6 \
+      | oc apply -f -
+    - oc rollout status dc/${ENVIRONMENT_SLUG}-db
+    - kontemplate template ocp/test.yaml | oc apply -f -
+    - oc rollout status "dc/${ENVIRONMENT_SLUG}"-cloudigrade-api
+    - oc rollout status "dc/${ENVIRONMENT_SLUG}"-cloudigrade-celery
+    - oc rollout status "dc/${ENVIRONMENT_SLUG}"-frontigrade
+
+Teardown Cloudigrade:
+  stage: Deploy Cloudigrade
+  image: registry.gitlab.com/cloudigrade/images/deploy-container:latest
+  variables:
+    ENVIRONMENT_SLUG: ${CI_PROJECT_NAME}-${CI_ENVIRONMENT_SLUG}
+    GIT_STRATEGY: none
+  except:
+    - master
+  before_script:
+    - oc login ${OPENSHIFT_URL} --token ${GITLAB_CI_SA_TOKEN}
+    - git clone https://gitlab.com/cloudigrade/shiftigrade.git
+    - cd shiftigrade
+  script:
+    - oc delete bc,cm,dc,is,routes,secrets,svc -l gitlab-deployment="${ENVIRONMENT_SLUG}"
+    - oc delete dc,svc,secret "${ENVIRONMENT_SLUG}-db"
+
+    - export DEPLOYMENT_PREFIX="${ENVIRONMENT_SLUG}"
+    - export HOUNDIGRADE_ECS_CLUSTER_NAME="${ENVIRONMENT_SLUG}-houndigrade"
+    - export HOUNDIGRADE_AWS_AUTOSCALING_GROUP_NAME="${HOUNDIGRADE_ECS_CLUSTER_NAME}-asg"
+    - export HOUNDIGRADE_LAUNCH_CONFIG_NAME="${HOUNDIGRADE_ECS_CLUSTER_NAME}-lc"
+
+    - cd ansible
+    - >
+      ansible-playbook \
+        -e aws_prefix="${DEPLOYMENT_PREFIX}" \
+        -e bucket_state=absent \
+        -e ec2_asg_name="${HOUNDIGRADE_AWS_AUTOSCALING_GROUP_NAME}" \
+        -e ec2_asg_state=absent \
+        -e ec2_launch_configuration_name="${HOUNDIGRADE_LAUNCH_CONFIG_NAME}" \
+        -e ec2_lc_state=absent \
+        -e ecs_cluster_name="${HOUNDIGRADE_ECS_CLUSTER_NAME}" \
+        -e ecs_state=absent \
+        -e sqs_state=absent \
+        provision-aws-resources.yaml
+    - ansible-playbook -e aws_prefix="${DEPLOYMENT_PREFIX}" -e sqs_state=absent clean-sqs.yaml
+    - cd -
+  when: manual
+  environment:
+    name: review/$CI_COMMIT_REF_NAME
+    action: stop
+
 .before_script: &before_script
   before_script:
     - python --version
     - oc version
     - make install-dev
-    - oc login $OPENSHIFT_URL --token=$OPENSHIFT_TOKEN
+    - export CLOUDIGRADE_BASE_URL="${ENVIRONMENT_SLUG}.review.gitlab.cloudigra.de"
+    - export DEPLOYMENT_PREFIX="${ENVIRONMENT_SLUG}"
+    - oc login ${OPENSHIFT_URL} --token ${GITLAB_CI_SA_TOKEN}
     - source scripts/oc-auth.sh
+  environment:
+    name: review/$CI_COMMIT_REF_NAME
+    url: http://${CI_PROJECT_NAME}-${CI_ENVIRONMENT_SLUG}.review.gitlab.cloudigra.de
+    on_stop: Teardown Cloudigrade
+  variables:
+    ENVIRONMENT_SLUG: ${CI_PROJECT_NAME}-${CI_ENVIRONMENT_SLUG}
 
 API:
   stage: Test Cloudigrade
