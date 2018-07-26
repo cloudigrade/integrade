@@ -3,7 +3,7 @@ alias uuid4='python -c "import uuid;print(uuid.uuid4())"'
 export CLOUDIGRADE_BASE_URL="${CLOUDIGRADE_BASE_URL:-test.cloudigra.de}"
 export CLOUDIGRADE_USER=$(uuid4)
 export CLOUDIGRADE_PASSWORD=$(uuid4)
-if [ $DEPLOYMENT_PREFIX = "" ]; then
+if [ -z ${DEPLOYMENT_PREFIX} ]; then
 	export CLOUDIGRADE_POD_NAME=cloudigrade-api
 else
 	export CLOUDIGRADE_POD_NAME=${DEPLOYMENT_PREFIX}-cloudigrade-api
