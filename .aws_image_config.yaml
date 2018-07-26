@@ -29,13 +29,16 @@
   marketplace:
     - name: 'rhel'
       image_id: 'ami-a8d369c0' # rhel 7
-      is_rhel: True # except we don't want to bill for it
+      is_rhel: False # we don't want to bill for it
+      is_openshift: False
     - name: 'ubuntu' # ubuntu 16.04
       image_id: 'ami-077b0e78'
-      is_rhel: False
+      is_rhel: False # we don't want to bill for it
+      is_openshift: False
     - name: 'windows'
       image_id: 'ami-9e4d0ce1' # windows server image
       is_rhel: False
+      is_openshift: False
       is_windows: True
 
 .community: &community

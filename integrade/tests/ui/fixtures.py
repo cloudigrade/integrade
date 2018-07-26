@@ -8,11 +8,11 @@ from selenium.webdriver.support.ui import WebDriverWait
 from widgetastic.browser import Browser
 
 from integrade.config import get_config
+from integrade.tests.utils import create_user_account, get_auth
 from integrade.utils import base_url
 
 from .utils import wait_for_page_text
 from .views import LoginView
-from ..api.v1.utils import create_user_account, get_auth
 from ...utils import gen_password, uuid4
 
 

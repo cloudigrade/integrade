@@ -1,22 +1,39 @@
 """Utility functions for interacting with the AWS API."""
 
 import json
+import logging
 import os
 import random
-import time
 from multiprocessing import Pool
 
 import boto3
+
+import botocore
 
 import pytest
 
 from integrade import config
 from integrade.exceptions import (
     AWSCredentialsNotFoundError,
-    ConfigFileNotFoundError
+    ConfigFileNotFoundError,
+    MissingConfigurationError
 )
 from integrade.tests.constants import EC2_TERMINATED_CODE
 from integrade.utils import uuid4
+
+
+def get_image_id_by_name(aws_profile, image_type, image_name):
+    """Grab image id from aws image config."""
+    cfg = config.get_aws_image_config()
+    images = cfg['profiles'].get(
+            aws_profile, {}).get('images', {}).get(image_type, [])
+    for image in images:
+        if image['name'] == image_name:
+            return image['image_id']
+    # If no matching image was found, raise an error.
+    raise MissingConfigurationError(
+            f'No image named {image_name} found in the {image_type}'
+            f' section of the aws image config for {aws_profile}')
 
 
 def aws_image_config_missing():
@@ -60,6 +77,21 @@ def terminate_instance(profile_and_id):
     instance = session.resource('ec2').Instance(ec2_instance_id)
     instance.terminate()
     instance.wait_until_terminated()
+
+
+def stop_instance(profile_and_id):
+    """Stop an instance and wait until it is stopped.
+
+    :params: tuple of (aws_profile_name, instance_id)
+
+    Note: input is taken in as a tuple to facilitate calling this with
+        ``multiprocessing.pool.Pool.map``.
+    """
+    (aws_profile, ec2_instance_id) = profile_and_id
+    session = aws_session(aws_profile)
+    instance = session.resource('ec2').Instance(ec2_instance_id)
+    instance.stop()
+    instance.wait_until_stopped()
 
 
 def delete_s3_bucket(profile_and_bucket_name):
@@ -151,7 +183,6 @@ def create_instances(
               image_id: ami-567890234
               other_key: other_value
     """
-    client = aws_session(aws_profile).client('ec2')
     cfg = config.get_aws_image_config()
     image_ids = []
     profile_images = cfg['profiles'][aws_profile]['images']
@@ -162,44 +193,61 @@ def create_instances(
     all_instance_ids = []
 
     for image_id in image_ids:
-        response = client.run_instances(
-            MaxCount=count,
-            MinCount=count,
-            ImageId=image_id,
-            InstanceType=instance_type)
-        instance_ids = []
-        for instance in response.get('Instances', []):
-            instance_ids.append(instance['InstanceId'])
+        instance_ids = run_instances_by_id(aws_profile, image_id, count)
         all_instance_ids.extend(instance_ids)
-        with Pool() as p:
-            p.map(
-                wait_until_running, zip(
-                    [aws_profile] * len(instance_ids), instance_ids))
 
     return all_instance_ids, image_ids
 
 
-def run_instances(aws_profile, image_name, count, run_time):
+def run_instances_by_id(
+        aws_profile,
+        image_id,
+        count,
+        instance_type='t2.micro'):
     """Create instances and run them for a certain amount of time.
 
-    :param aws_profile: (string) Name of profile as defined in config file
-    :param image_name: (string) Name of image as defined in config file
+    :param aws_profile: (string) Name of profile as defined in config file.
+    :param image_id: (string) AMI of image to be run.
     :param count: (int) Number of instances to create.
-    :param run_time: (double) Desired time to let instances run (in seconds)
 
-    :returns: (double) Time from when instances were all live until all
-         instances were all terminated (in seconds).
+    :returns: (list of string) List of the instance ids as strings.
     """
-    instance_ids = create_instances(aws_profile, image_name, count=count)
-    # now sleep until instances have run for desired amount of time
-    time_all_live = time.time()
-    time.sleep(run_time)
+    client = aws_session(aws_profile).client('ec2')
+    response = client.run_instances(
+        MaxCount=count,
+        MinCount=count,
+        ImageId=image_id,
+        InstanceType=instance_type)
+    instance_ids = []
+    for instance in response.get('Instances', []):
+        instance_ids.append(instance['InstanceId'])
     with Pool() as p:
         p.map(
-            terminate_instance, zip(
+            wait_until_running, zip(
                 [aws_profile] * len(instance_ids), instance_ids))
-    time_all_terminated = time.time()
-    return time_all_terminated - time_all_live
+    return instance_ids
+
+
+def run_instances_by_name(
+        aws_profile,
+        image_type,
+        image_name,
+        count,
+        instance_type='t2.micro'):
+    """Create instances and run them for a certain amount of time.
+
+    :param aws_profile: (string) Name of profile as defined in config file.
+    :param image_type: (string) Name of the section of images in the config
+        file to select the image from (owned, private-shared, community).
+    :param image_name: (string) Name of image as defined in config file.
+    :param count: (int) Number of instances to create.
+
+    :returns: (list of string) List of the instance ids as strings.
+    """
+    image_id = get_image_id_by_name(aws_profile, image_type, image_name)
+    instance_ids = run_instances_by_id(
+        aws_profile, image_id, count, instance_type)
+    return instance_ids
 
 
 def terminate_all_instances(aws_profile):
@@ -339,6 +387,34 @@ def clean_up_cloudigrade_ami_copies(aws_profile):
         client.delete_snapshot(SnapshotId=snap_id)
 
 
+def clean_cloudigrade_queues():
+    """Purge any messages off of queues that have the deployment_prefix.
+
+    :raises:
+        1) MissingConfigurationError if no DEPLOYMENT_PREFIX is found
+        in the environment.
+        2) AWSCredentialsNotFoundError if the credentials expected for the
+        cloudigrade are not found in the environment.
+    """
+    session = aws_session('CLOUDIGRADE')
+    client = session.client('sqs')
+    deployment_prefix = os.environ.get('DEPLOYMENT_PREFIX', False)
+    if not deployment_prefix:
+        iam = session.resource('iam')
+        current_user_arn = iam.CurrentUser().arn
+        raise MissingConfigurationError(
+            'No deployment prefix was specified with the environment'
+            ' variable DEPLOYMENT_PREFIX. Without this, we cannot safely'
+            ' purge the SQS queues on the cloudigrade aws account'
+            f' accessed with arn {current_user_arn}.')
+    for q_url in client.list_queues(
+            QueueNamePrefix=deployment_prefix).get('QueueUrls', []):
+        try:
+            client.purge_queue(QueueUrl=q_url)
+        except botocore.errorfactory.ClientError as e:
+            logging.getLogger().error(str(e))
+
+
 def aws_session(aws_profile):
     """Retreive a boto3 Session for the given aws profile name.
 
@@ -353,8 +429,12 @@ def aws_session(aws_profile):
     be defined in the ~/.aws/config file.
     """
     aws_profile = aws_profile.upper()
-    access_key_id = os.environ.get(f'AWS_ACCESS_KEY_ID_{aws_profile}')
-    access_key = os.environ.get(f'AWS_SECRET_ACCESS_KEY_{aws_profile}')
+    if aws_profile == 'CLOUDIGRADE':
+        access_key_id = os.environ.get('AWS_ACCESS_KEY_ID')
+        access_key = os.environ.get('AWS_SECRET_ACCESS_KEY')
+    else:
+        access_key_id = os.environ.get(f'AWS_ACCESS_KEY_ID_{aws_profile}')
+        access_key = os.environ.get(f'AWS_SECRET_ACCESS_KEY_{aws_profile}')
     if access_key_id and access_key:
         return boto3.Session(
             aws_access_key_id=access_key_id,

@@ -11,8 +11,8 @@
 import re
 
 from integrade import api
-from integrade.tests.api.v1 import urls
-from integrade.tests.api.v1.utils import get_auth
+from integrade.tests import urls
+from integrade.tests.utils import get_auth
 
 
 def test_sysconfig():

@@ -14,8 +14,8 @@ import pytest
 
 from integrade import api, config
 from integrade.tests import aws_utils
-from integrade.tests.api.v1 import urls
-from integrade.tests.api.v1.utils import get_auth
+from integrade.tests import urls
+from integrade.tests.utils import get_auth
 from integrade.utils import flaky, uuid4
 
 
@@ -150,10 +150,6 @@ def test_create_multiple_cloud_accounts(
     accts = []
     for profile in cfg['aws_profiles']:
         arn = profile['arn']
-        cloudtrails_to_delete.append((
-            profile['name'],
-            profile['cloudtrail_name']
-        ))
         cloud_account = {
             'account_arn': arn,
             'resourcetype': 'AwsAccount'
@@ -164,6 +160,10 @@ def test_create_multiple_cloud_accounts(
             auth=auth
         )
         assert create_response.status_code == 201
+        cloudtrails_to_delete.append((
+            profile['name'],
+            profile['cloudtrail_name']
+        ))
 
         accts.append(create_response.json())
 

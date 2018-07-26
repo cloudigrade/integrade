@@ -1,8 +1,8 @@
-"""Utilities functions for API tests."""
+"""Utilities functions for tests."""
 import copy
 
 from integrade import api, injector
-from integrade.tests.api.v1 import urls
+from integrade.tests import urls
 from integrade.utils import gen_password, uuid4
 
 
@@ -48,7 +48,7 @@ def get_auth(user=None):
 
     Example::
 
-        from integrade.tests.api.v1 import urls
+        from integrade.tests import urls
         client = api.client(authenticate=False)
         auth1 = get_user_and_auth()
         client.get(urls.CLOUD_ACCOUNT, auth=auth1)

@@ -1,4 +1,4 @@
-"""Pytest customizations and fixtures for cloudigrae tests."""
+"""Pytest customizations and fixtures for cloudigrade tests."""
 import os
 from multiprocessing import Pool
 
@@ -10,8 +10,12 @@ from integrade.tests.aws_utils import (
     delete_cloudtrail,
     terminate_instance,
 )
-from integrade.tests.ui.fixtures import (ui_dashboard,  # noqa: F401
-    ui_loginpage, ui_loginpage_empty, ui_user)  # noqa: F401
+from integrade.tests.ui.fixtures import (  # noqa: F401
+    ui_dashboard,
+    ui_loginpage,
+    ui_loginpage_empty,
+    ui_user
+)
 
 
 @pytest.fixture()

@@ -33,6 +33,9 @@ def get_config():
         _CONFIG['base_url'] = os.environ.get('CLOUDIGRADE_BASE_URL', '')
         _CONFIG['super_user_name'] = os.environ.get('CLOUDIGRADE_USER')
         _CONFIG['super_user_password'] = os.environ.get('CLOUDIGRADE_PASSWORD')
+        deployment_prefix = os.environ.get('DEPLOYMENT_PREFIX', '')
+        _CONFIG['cloudigrade_s3_bucket'] = os.environ.get(
+                'AWS_S3_BUCKET_NAME', '')
         # pull all customer roles out of environ
 
         def is_role(string): return string.startswith('CLOUDIGRADE_ROLE_')
@@ -62,7 +65,6 @@ def get_config():
                     str.isdigit,
                     acct_arn.split(':'))][0]
             profile['account_number'] = acct_num
-            deployment_prefix = os.environ.get('DEPLOYMENT_PREFIX', '')
             if deployment_prefix:
                 profile['cloudtrail_name'] = f'{deployment_prefix}{acct_num}'
             else:

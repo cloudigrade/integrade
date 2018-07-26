@@ -39,3 +39,12 @@ class MissingConfigurationError(Exception):
 
     Specify the missing configuration items in the exception message.
     """
+
+
+class EventTimeoutError(Exception):
+    """Integrade timed out while waiting for an event to occur.
+
+    It takes time for events to get to cloudigrade, but we cannot wait forever.
+    Raise this error if the timeout is exceeded while waiting for an event to
+    occur.
+    """

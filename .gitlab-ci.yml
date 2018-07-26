@@ -3,6 +3,7 @@ image: registry.gitlab.com/cloudigrade/images/test-container
 stages:
   - Test Integrade
   - Deploy Cloudigrade
+  - Test Cloudigrade Inspection
   - Test Cloudigrade
   - Teardown Cloudigrade
   - Cleanup
@@ -152,11 +153,20 @@ Automatically Teardown Cloudigrade:
   variables:
     ENVIRONMENT_SLUG: ${CI_PROJECT_NAME}-${CI_ENVIRONMENT_SLUG}
 
+Inspection:
+  stage: Test Cloudigrade Inspection
+  <<: *before_script
+  script:
+    - export AWS_S3_BUCKET_NAME="${ENVIRONMENT_SLUG}-cloudigrade-s3"
+    - cp .aws_image_config.yaml integrade/aws_image_config.yaml
+    - export XDG_CONFIG_HOME=$PWD
+    - py.test -vvv -m 'run_first' integrade/tests/api
+
 API:
   stage: Test Cloudigrade
   <<: *before_script
   script:
-    - py.test -vvv integrade/tests/api
+    - py.test -vvv -m 'not run_first' integrade/tests/api
 
 UI Chrome:
   stage: Test Cloudigrade

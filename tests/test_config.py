@@ -1,5 +1,6 @@
 """Unit tests for :mod:`integrade.config`."""
 import os
+import random
 import time
 from unittest import mock
 
@@ -35,12 +36,19 @@ def test_get_config(ssl, protocol):
             token = uuid4()
             use_https = 'True' if protocol == 'https' else 'False'
             account_number = int(time.time())
-            deployment_prefix = uuid4()
+            deployment_prefix = random.choice([
+                'aardvark',
+                'aardvark-',
+                'flying-aardvark-',
+                '42',
+                uuid4(),
+                ])
             os.environ['CLOUDIGRADE_TOKEN'] = token
             os.environ['CLOUDIGRADE_BASE_URL'] = 'example.com'
             os.environ['CLOUDIGRADE_ROLE_CUSTOMER1'] = '{}:{}:{}'.format(
                 uuid4(), account_number, uuid4())
             os.environ['DEPLOYMENT_PREFIX'] = deployment_prefix
+            os.environ['AWS_S3_BUCKET_NAME'] = deployment_prefix
             os.environ['AWS_ACCESS_KEY_ID_CUSTOMER1'] = uuid4()
             os.environ['USE_HTTPS'] = use_https
             os.environ['SSL_VERIFY'] = 'True' if ssl else 'False'
@@ -55,6 +63,7 @@ def test_get_config(ssl, protocol):
             assert cfg['aws_profiles'][0]['cloudtrail_name'] == (
                 f'{deployment_prefix}{account_number}'
             )
+            assert cfg['cloudigrade_s3_bucket'] == deployment_prefix
 
 
 def test_negative_get_config_missing():

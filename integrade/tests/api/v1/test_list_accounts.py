@@ -13,10 +13,13 @@ from datetime import datetime, time, timedelta
 import pytest
 
 from integrade import api, config
-from integrade.injector import clear_images, direct_count_images, \
-    inject_instance_data
-from integrade.tests.api.v1 import urls
-from integrade.tests.api.v1.utils import get_auth
+from integrade.injector import (
+    clear_images,
+    direct_count_images,
+    inject_instance_data,
+)
+from integrade.tests import urls
+from integrade.tests.utils import get_auth
 from integrade.utils import uuid4
 
 

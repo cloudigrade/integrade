@@ -12,8 +12,8 @@ import pytest
 
 from integrade import api
 from integrade.config import get_config
-from integrade.tests.api.v1 import urls
-from integrade.tests.api.v1.utils import create_user_account
+from integrade.tests import urls
+from integrade.tests.utils import create_user_account
 from integrade.utils import uuid4
 
 
