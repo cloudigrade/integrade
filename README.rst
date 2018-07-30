@@ -2,7 +2,7 @@
 integrade
 *********
 
-|license| |travis| |codecov|
+|license| |gitlabci| |codecov|
 
 What is integrade?
 ==================
@@ -25,7 +25,7 @@ improving the automation framework check the Contributing section.
 To install integrade you have to clone the repository and install it. The
 following commands will do that for you::
 
-    git clone git@github.com:cloudigrade/integrade.git
+    git clone git@gitlab.com:cloudigrade/integrade.git
     cd integrade
     make install
 
@@ -49,7 +49,7 @@ contributions.
 To do a development installation you have to clone the repository and install
 the develpment requirements. Run the following commands to do that::
 
-    git clone git@github.com:cloudigrade/integrade.git
+    git clone git@gitlab.com:cloudigrade/integrade.git
     cd integrade
     make install-dev
 
@@ -140,10 +140,10 @@ Running Integrade
 To run ``cloudigrade`` locally, especially if you want to run a branch that is
 not master, check out that branch and then follow the directions in the
 Cloudigrade readme for `running locally in OpenShift
-<https://github.com/cloudigrade/cloudigrade#running-locally-in-openshift>`_.
+<https://gitlab.com/cloudigrade/cloudigrade#running-locally-in-openshift>`_.
 Then, to deploy the code in that branch in particular, follow the directions
 for `deploying in-progress code to OpenShift
-<https://github.com/cloudigrade/cloudigrade#running-locally-in-openshift>`_.
+<https://gitlab.com/cloudigrade/cloudigrade#running-locally-in-openshift>`_.
 
 To run ``integrade`` against the test environment, it is necessary to log your
 local ``oc`` (the command line OpenShift client` into the test environment. You
@@ -210,7 +210,7 @@ The UI tests can be easily run either on Chrome or Firefox:
 
 .. |license| image:: https://img.shields.io/github/license/cloudigrade/integrade.svg
    :target: https://github.com/cloudigrade/cloudigrade/blob/master/LICENSE
-.. |travis| image:: https://travis-ci.org/cloudigrade/integrade.svg?branch=master
-    :target: https://travis-ci.org/cloudigrade/integrade
-.. |codecov| image:: https://codecov.io/gh/cloudigrade/integrade/branch/master/graph/badge.svg
-   :target: https://codecov.io/gh/cloudigrade/integrade
+.. |gitlabci| image:: https://gitlab.com/cloudigrade/integrade/badges/master/pipeline.svg
+   :target: https://gitlab.com/cloudigrade/integrade/commits/master
+.. |codecov| image:: https://codecov.io/gl/cloudigrade/integrade/branch/master/graph/badge.svg
+   :target: https://codecov.io/gl/cloudigrade/integrade

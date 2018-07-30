@@ -53,5 +53,5 @@ setup(
     license='GPLv3',
     long_description=long_description,
     packages=find_packages(include=['integrade*']),
-    url='https://github.com/cloudigrade/integrade',
+    url='https://gitlab.com/cloudigrade/integrade',
 )
