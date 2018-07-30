@@ -29,21 +29,29 @@ def drop_account_data():
     other tests. For that reason, mark any test using this fixture with
     "@pytest.mark.serial_only".
     """
+    deployment_prefix = os.environ.get('DEPLOYMENT_PREFIX', '')
+    if deployment_prefix:
+        container_name = f'{deployment_prefix}-cloudigrade-api'
+    else:
+        container_name = 'cloudigrade-api'
+
     if which('oc'):
         py_script = b'from account.models import Account;\
         Account.objects.all().delete()'
 
-        result = subprocess.run(['sh',
-                                 '-c',
-                                 'oc rsh -c cloudigrade-api $(oc get pods'
-                                 ' -o jsonpath="{.items[*].metadata.name}" -l'
-                                 ' name=cloudigrade-api)'
-                                 ' scl enable rh-postgresql96 rh-python36'
-                                 ' -- python manage.py shell'],
-                                stdout=subprocess.PIPE,
-                                input=py_script,
-                                timeout=60
-                                )
+        command = (
+            f'oc rsh -c {container_name} $(oc get pods '
+            '-o jsonpath="{.items[*].metadata.name}" '
+            f'-l name={container_name}) scl enable rh-postgresql96 '
+            'rh-python36 -- python manage.py shell'
+        )
+
+        result = subprocess.run(
+            ['sh', '-c', command],
+            stdout=subprocess.PIPE,
+            input=py_script,
+            timeout=60
+        )
         assert result.returncode == 0
     else:
         pytest.skip('Must be able to drop account data for this test to work.'
