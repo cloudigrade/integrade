@@ -61,7 +61,11 @@ def get_config():
                     str.isdigit,
                     acct_arn.split(':'))][0]
             profile['account_number'] = acct_num
-            profile['cloudtrail_name'] = f'cloudigrade-{acct_num}'
+            deployment_prefix = os.environ.get('DEPLOYMENT_PREFIX', '')
+            if deployment_prefix:
+                profile['cloudtrail_name'] = f'{deployment_prefix}-{acct_num}'
+            else:
+                profile['cloudtrail_name'] = f'cloudigrade-{acct_num}'
             profile['access_key_id'] = os.environ.get(
                 f'AWS_ACCESS_KEY_ID_{profile_name}')
             profile['access_key'] = os.environ.get(
