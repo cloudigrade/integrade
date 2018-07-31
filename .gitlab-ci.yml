@@ -4,6 +4,7 @@ stages:
   - Test Integrade
   - Deploy Cloudigrade
   - Test Cloudigrade
+  - Teardown Cloudigrade
   - Cleanup
 
 Test Integrade:
@@ -25,8 +26,6 @@ Deploy Cloudigrade:
     name: review/$CI_COMMIT_REF_NAME
     url: http://${CI_PROJECT_NAME}-${CI_ENVIRONMENT_SLUG}.review.gitlab.cloudigra.de
     on_stop: Teardown Cloudigrade
-  except:
-    - master
   variables:
     ENVIRONMENT_SLUG: ${CI_PROJECT_NAME}-${CI_ENVIRONMENT_SLUG}
     GIT_STRATEGY: none
@@ -82,14 +81,11 @@ Deploy Cloudigrade:
     - oc rollout status "dc/${ENVIRONMENT_SLUG}"-cloudigrade-celery
     - oc rollout status "dc/${ENVIRONMENT_SLUG}"-frontigrade
 
-Teardown Cloudigrade:
-  stage: Deploy Cloudigrade
+.teardown_cloudigrade: &teardown_cloudigrade
   image: registry.gitlab.com/cloudigrade/images/deploy-container:latest
   variables:
     ENVIRONMENT_SLUG: ${CI_PROJECT_NAME}-${CI_ENVIRONMENT_SLUG}
     GIT_STRATEGY: none
-  except:
-    - master
   before_script:
     - oc login ${OPENSHIFT_URL} --token ${GITLAB_CI_SA_TOKEN}
     - git clone https://gitlab.com/cloudigrade/shiftigrade.git
@@ -118,10 +114,23 @@ Teardown Cloudigrade:
         provision-aws-resources.yaml
     - ansible-playbook -e aws_prefix="${DEPLOYMENT_PREFIX}" -e sqs_state=absent clean-sqs.yaml
     - cd -
-  when: manual
   environment:
     name: review/$CI_COMMIT_REF_NAME
     action: stop
+
+Teardown Cloudigrade:
+  stage: Deploy Cloudigrade
+  except:
+    - master
+  when: manual
+  <<: *teardown_cloudigrade
+
+Automatically Teardown Cloudigrade:
+  stage: Teardown Cloudigrade
+  only:
+    - master
+  when: always
+  <<: *teardown_cloudigrade
 
 .before_script: &before_script
   before_script:
