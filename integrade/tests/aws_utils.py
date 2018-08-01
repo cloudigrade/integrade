@@ -316,6 +316,29 @@ def create_bucket_for_cloudtrail(aws_profile):
     return bucket_name
 
 
+def clean_up_cloudigrade_ami_copies(aws_profile):
+    """Clean up any copies of AMIs that cloudigrade made.
+
+    Cloudigrade makes copies of AMIs when they are not owned
+    by the account being metered. These add up and make it unclear
+    what the current test session is doing, so it is good to clean
+    them up on a regular basis.
+    """
+    client = aws_session(aws_profile).client('ec2')
+    cloudigrade_image_copies = []
+    cloudigrade_snapshots = []
+    for image in client.describe_images(Owners=['self']).get('Images', []):
+        if 'cloudigrade reference copy' in image['Name']:
+            cloudigrade_image_copies.append(image['ImageId'])
+            for device in image.get('BlockDeviceMappings', []):
+                if device.get('Ebs', {}).get('SnapshotId'):
+                    cloudigrade_snapshots.append(device['Ebs']['SnapshotId'])
+    for image_id in cloudigrade_image_copies:
+        client.deregister_image(ImageId=image_id)
+    for snap_id in cloudigrade_snapshots:
+        client.delete_snapshot(SnapshotId=snap_id)
+
+
 def aws_session(aws_profile):
     """Retreive a boto3 Session for the given aws profile name.
 

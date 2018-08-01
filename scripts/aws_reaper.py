@@ -1,12 +1,17 @@
 """Terminate all instances and delete dangling volumes in customer accounts."""
 
+import argparse
+
 from integrade import config
 from integrade.tests import aws_utils
 
 
-def customer_aws_reaper():
-    """Terminate all instances and delete dangling volumes.
+def customer_aws_reaper(cloudtrails_only=False):
+    """Clean up customer accounts from all testing activities.
 
+    Terminate all instances and delete dangling volumes. De-registers the AMIs
+    created by cloudigrade as copies of shared private AMIs and the associated
+    snapshots.
     Iterates over all customers profiles configured for integrade to use as
     customer accounts and terminates their instances and deletes any dangling
     EBS volumes. Useful for periodic clean up but DANGEROUS! DELETES stuff!!!
@@ -29,9 +34,28 @@ def customer_aws_reaper():
     """
     cfg = config.get_config()
     for profile in cfg['aws_profiles']:
-        aws_utils.terminate_all_instances(profile['name'])
-        aws_utils.delete_available_volumes(profile['name'])
+        aws_utils.delete_cloudtrail(
+            (profile['name'], profile['cloudtrail_name']))
+        if cloudtrails_only:
+            continue
+        else:
+            aws_utils.terminate_all_instances(profile['name'])
+            aws_utils.delete_available_volumes(profile['name'])
+            aws_utils.clean_up_cloudigrade_ami_copies(profile['name'])
 
 
 if __name__ == '__main__':
-    customer_aws_reaper()
+    parser = argparse.ArgumentParser(
+        description='Clean up customer accounts from test activities.')
+    parser.add_argument(
+        '--cloudtrails-only',
+        required=False,
+        default=False,
+        action='store_true',
+        dest='cloudtrails_only',
+        help=('Only delete the cloudtrails from this test run, not any.'
+              ' Instances or other resources.')
+    )
+    args = parser.parse_args()
+
+    customer_aws_reaper(args.cloudtrails_only)

@@ -95,6 +95,7 @@ Deploy Cloudigrade:
     - git clone https://gitlab.com/cloudigrade/shiftigrade.git
     - cd shiftigrade
   script:
+    - python scripts/aws_reaper.py --cloudtrails-only
     - oc delete bc,cm,dc,is,routes,secrets,svc -l gitlab-deployment="${ENVIRONMENT_SLUG}"
     - oc delete dc,svc,secret "${ENVIRONMENT_SLUG}-db"
 
@@ -185,6 +186,12 @@ UI Microsoft Edge:
   script:
     - py.test -vvv --driver SauceLabs --capability browserName MicrosoftEdge integrade/tests/ui
 
+# Cleans up customer accounts between test runs
+Test Cleanup:
+  stage: Cleanup
+  <<: *before_script
+  script:
+    - python scripts/aws_reaper.py --cloudtrails-only
 
 Nightly Cleanup:on-schedule:
   stage: Cleanup
