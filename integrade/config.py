@@ -44,6 +44,7 @@ def get_config():
                      'name': profile_name(role)}
                     for role in filter(is_role, os.environ.keys())
                     ]
+        profiles.sort(key=lambda p: p['name'])
         _CONFIG['aws_profiles'] = profiles
 
         missing_config_errors = []
@@ -53,7 +54,7 @@ def get_config():
         except exceptions.ConfigFileNotFoundError:
             aws_image_config = {}
 
-        for profile in _CONFIG['aws_profiles']:
+        for i, profile in enumerate(_CONFIG['aws_profiles']):
             profile_name = profile['name'].upper()
             acct_arn = profile['arn']
             acct_num = [
@@ -73,12 +74,13 @@ def get_config():
             profile['images'] = aws_image_config.get('profiles', {}).get(
                 profile_name, {}).get('images', [])
 
-            if not profile['access_key_id']:
-                missing_config_errors.append(
-                    f'Could not find AWS access key id for {profile_name}')
-            if not profile['access_key']:
-                missing_config_errors.append(
-                    f'Could not find AWS access key for {profile_name}')
+            if i == 0:
+                if not profile['access_key_id']:
+                    missing_config_errors.append(
+                        f'Could not find AWS access key id for {profile_name}')
+                if not profile['access_key']:
+                    missing_config_errors.append(
+                        f'Could not find AWS access key for {profile_name}')
         if _CONFIG['base_url'] == '':
             missing_config_errors.append(
                 'Could not find $CLOUDIGRADE_BASE_URL set in in'

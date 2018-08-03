@@ -53,7 +53,7 @@ def find_element_by_text(driver, text,
                          fail_hard=False,
                          n=0,
                          exact=True,
-                         timeout=100):
+                         timeout=0.1):
     """Find an element which contains the given text."""
     start = time.time()
     end = start + timeout

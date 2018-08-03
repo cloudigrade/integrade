@@ -1,11 +1,10 @@
 """Pytest customizations and fixtures for cloudigrae tests."""
 import os
-import subprocess
 from multiprocessing import Pool
-from shutil import which
 
 import pytest
 
+from integrade import injector
 from integrade.tests.aws_utils import (
     delete_bucket_and_cloudtrail,
     delete_cloudtrail,
@@ -29,33 +28,12 @@ def drop_account_data():
     other tests. For that reason, mark any test using this fixture with
     "@pytest.mark.serial_only".
     """
-    deployment_prefix = os.environ.get('DEPLOYMENT_PREFIX', '')
-    if deployment_prefix:
-        container_name = f'{deployment_prefix}-cloudigrade-api'
-    else:
-        container_name = 'cloudigrade-api'
+    py_script = """
+    from account.models import Account
+    Account.objects.all().delete()
+    """
 
-    if which('oc'):
-        py_script = b'from account.models import Account;\
-        Account.objects.all().delete()'
-
-        command = (
-            f'oc rsh -c {container_name} $(oc get pods '
-            '-o jsonpath="{.items[*].metadata.name}" '
-            f'-l name={container_name}) scl enable rh-postgresql96 '
-            'rh-python36 -- python manage.py shell'
-        )
-
-        result = subprocess.run(
-            ['sh', '-c', command],
-            stdout=subprocess.PIPE,
-            input=py_script,
-            timeout=60
-        )
-        assert result.returncode == 0
-    else:
-        pytest.skip('Must be able to drop account data for this test to work.'
-                    'Make sure the "oc" client is in your PATH.')
+    injector.run_remote_python(py_script)
 
 
 @pytest.fixture()
