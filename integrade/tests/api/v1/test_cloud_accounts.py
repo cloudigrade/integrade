@@ -57,7 +57,11 @@ def test_create_cloud_account(drop_account_data, cloudtrails_to_delete):
         payload=cloud_account,
         auth=auth
     )
+    create_data = create_response.json()
     assert create_response.status_code == 201
+    assert create_data['account_arn'] == acct_arn
+    assert create_data['aws_account_id'] == aws_profile['account_number']
+
     # Assert that a cloudtrail has been set up in the customer's account
     cloudtrail_client = aws_utils.aws_session(
         profile_name).client('cloudtrail')
