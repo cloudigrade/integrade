@@ -25,7 +25,7 @@ from integrade.utils import flaky, uuid4
 def test_create_cloud_account(drop_account_data, cloudtrails_to_delete):
     """Ensure cloud accounts can be registered to a user.
 
-    :id: d0174576-9b7c-48f7-8556-b560badf062d
+    :id: f7a9225b-83af-4567-b59a-a8bb62d612c9
     :description: Ensure an user can register a cloud account by specifying
         the role ARN.
     :steps: 1) Create a user and authenticate with their password
@@ -134,7 +134,7 @@ def test_create_multiple_cloud_accounts(
         cloudtrails_to_delete):
     """Ensure cloud accounts can be registered to a user.
 
-    :id: d0174576-9b7c-48f7-8556-b560badf062d
+    :id: f1db2617-fd15-4270-b9d3-595db001e1e7
     :description: Ensure an user can register multiple cloud accounts as long
         as each ARN is associated with unique cloud accounts.
     :steps: 1) Create a user and authenticate with their password
@@ -173,6 +173,120 @@ def test_create_multiple_cloud_accounts(
         assert acct in list_response.json()['results']
 
 
+@pytest.mark.skip(
+    reason='https://gitlab.com/cloudigrade/cloudigrade/issues/429')
+@pytest.mark.serial_only
+@pytest.mark.skipif(len(config.get_config()[
+    'aws_profiles']) < 2, reason='needs at least 1 aws profile')
+def test_create_cloud_account_duplicate_names(
+    drop_account_data, cloudtrails_to_delete
+):
+    """Ensure cloud accounts can be registered to a user.
+
+    :id: 47b6b382-092a-420f-a8b0-63e6578e4857
+    :description: Ensure an user can register a cloud account by specifying
+        the role ARN.
+    :steps: 1) Create a user and authenticate with their password
+        2) Send a POST with the cloud account information to 'api/v1/account/'
+        3) Send a GET to 'api/v1/account/' to get a list of the cloud accounts
+        4) Attempt to create a duplicate and expect it to be rejected
+        5) Attempt to delete the account and expect to be rejected
+    :expectedresults:
+        1) The server returns a 201 response with the information
+            of the created account.
+        2) The account cannot be duplicated, and attempts to do so receive a
+            400 status code.
+        3) The account cannot be deleted and attempts to do so receive a 405
+            response.
+    """
+    auth = get_auth()
+    client = api.Client(authenticate=False, response_handler=api.echo_handler)
+    cfg = config.get_config()
+    cloud_account = {
+        'account_arn': cfg['aws_profiles'][0]['arn'],
+        'name': cfg['aws_profiles'][0]['name'],
+        'resourcetype': 'AwsAccount'
+    }
+    create_response = client.post(
+        urls.CLOUD_ACCOUNT,
+        payload=cloud_account,
+        auth=auth
+    )
+    assert create_response.status_code == 201
+
+    # Now try to reuse the name
+    cloud_account = {
+        'account_arn': cfg['aws_profiles'][1]['arn'],
+        'name': cfg['aws_profiles'][0]['name'],
+        'resourcetype': 'AwsAccount'
+    }
+    create_response = client.post(
+        urls.CLOUD_ACCOUNT,
+        payload=cloud_account,
+        auth=auth
+    )
+    assert create_response.status_code == 400
+
+
+@pytest.mark.serial_only
+@pytest.mark.skipif(len(config.get_config()[
+    'aws_profiles']) < 2, reason='needs at least 1 aws profile')
+def test_create_cloud_account_duplicate_names_different_users(
+    drop_account_data, cloudtrails_to_delete
+):
+    """Ensure cloud accounts can be registered to a user.
+
+    :id: 7bf483b7-f0d0-40db-9c18-396dc4a58792
+    :description: Ensure an user can register a cloud account by specifying
+        the role ARN.
+    :steps: 1) Create a user and authenticate with their password
+        2) Send a POST with the cloud account information to 'api/v1/account/'
+        3) Send a GET to 'api/v1/account/' to get a list of the cloud accounts
+        4) Attempt to create a duplicate and expect it to be rejected
+        5) Attempt to delete the account and expect to be rejected
+    :expectedresults:
+        1) The server returns a 201 response with the information
+            of the created account.
+        2) The account cannot be duplicated, and attempts to do so receive a
+            400 status code.
+        3) The account cannot be deleted and attempts to do so receive a 405
+            response.
+    """
+    auth = get_auth()
+    client = api.Client(authenticate=False, response_handler=api.echo_handler)
+    cfg = config.get_config()
+    aws_profile = cfg['aws_profiles'][0]
+    profile_name = aws_profile['name']
+    acct_arn = aws_profile['arn']
+    cloud_account = {
+        'account_arn': acct_arn,
+        'name': profile_name,
+        'resourcetype': 'AwsAccount'
+    }
+    create_response = client.post(
+        urls.CLOUD_ACCOUNT,
+        payload=cloud_account,
+        auth=auth
+    )
+    assert create_response.status_code == 201
+
+    # Now try to reuse the name
+    auth = get_auth()
+    aws_profile = cfg['aws_profiles'][1]
+    acct_arn = aws_profile['arn']
+    cloud_account = {
+        'account_arn': acct_arn,
+        'name': profile_name,
+        'resourcetype': 'AwsAccount'
+    }
+    create_response = client.post(
+        urls.CLOUD_ACCOUNT,
+        payload=cloud_account,
+        auth=auth
+    )
+    assert create_response.status_code == 201, create_response.json()
+
+
 @flaky(max_runs=4)
 @pytest.mark.serial_only
 @pytest.mark.skipif(len(config.get_config()[
@@ -181,7 +295,7 @@ def test_negative_read_other_cloud_account(
         drop_account_data, cloudtrails_to_delete):
     """Ensure users cannot access eachother's cloud accounts.
 
-    :id: d0174576-9b7c-48f7-8556-b560badf062d
+    :id: b500d301-dd46-41b0-af3b-0145f9404784
     :description: Ensure one user is not allowed to read another user's cloud
         account data.
     :steps: 1) Create two users and authenticate with their passwords
@@ -314,7 +428,7 @@ def test_cloudtrail_updated(
         cloudtrails_and_buckets_to_delete):
     """Ensure the cloudtrail is updated if a pre-existing one is found.
 
-    :id: d0174576-9b7c-48f7-8556-b560badf062d
+    :id: f4a93a35-41e5-490d-bc3f-7c0df9ea805b
     :description: Ensure that at cloud account creation, if a pre-existing
         cloudigrade cloudtrail is found, it is updated.
     :steps: 1) Create a user and authenticate with their password

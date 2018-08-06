@@ -25,7 +25,7 @@ from integrade.tests.constants import AWS_ACCOUNT_TYPE
 def test_find_running_instances(drop_account_data, instances_to_terminate):
     """Ensure instances are discovered on account creation.
 
-    :id: d0174576-9b7c-48f7-8556-b560badf062d
+    :id: 741a0fad-45a8-4aab-9daa-11adad458d34
     :description: Ensure running instances are discovered and the images
         inspected.
     :steps: 1) Create a user and authenticate with their password

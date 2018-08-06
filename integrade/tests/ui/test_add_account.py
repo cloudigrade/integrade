@@ -180,7 +180,7 @@ def test_add_account(mistake,
                      drop_account_data, selenium, ui_addacct_page3, ui_user):
     """The user can add a new account using a valid current ARN.
 
-    :id: fa01c0a2-86da-11e8-af5f-8c1645548902
+    :id: 7f4e55e8-b4c2-42ac-b651-b7f6689aeebe
     :description: The user can create and name a new cloud account.
     :steps:
         1) Open the dashboard and click the "Add Account"
