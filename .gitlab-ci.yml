@@ -80,10 +80,10 @@ Deploy Cloudigrade:
     - export DJANGO_DATABASE_NAME="$(oc extract secret/${DB_SECRETS_FILE_NAME} --to=- --keys=database-name)"
     - export DJANGO_DATABASE_PASSWORD="$(oc extract secret/${DB_SECRETS_FILE_NAME} --to=- --keys=database-password)"
     - export DJANGO_DATABASE_USER="$(oc extract secret/${DB_SECRETS_FILE_NAME} --to=- --keys=database-user)"
-    - kontemplate template ocp/test.yaml | oc apply -f -
-    - oc rollout status "dc/${ENVIRONMENT_SLUG}"-cloudigrade-api
-    - oc rollout status "dc/${ENVIRONMENT_SLUG}"-cloudigrade-celery
-    - oc rollout status "dc/${ENVIRONMENT_SLUG}"-frontigrade
+    - kontemplate template ocp/review.yaml | oc apply -f -
+    - oc rollout status "dc/${ENVIRONMENT_SLUG}cloudigrade-api"
+    - oc rollout status "dc/${ENVIRONMENT_SLUG}cloudigrade-celery"
+    - oc rollout status "dc/${ENVIRONMENT_SLUG}frontigrade"
 
 .teardown_cloudigrade: &teardown_cloudigrade
   image: registry.gitlab.com/cloudigrade/images/deploy-container:latest

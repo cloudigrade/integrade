@@ -12,7 +12,7 @@ def run_remote_python(script, **kwargs):
 
     deployment_prefix = os.environ.get('DEPLOYMENT_PREFIX', '')
     if deployment_prefix:
-        container_name = f'{deployment_prefix}-cloudigrade-api'
+        container_name = f'{deployment_prefix}cloudigrade-api'
     else:
         container_name = 'cloudigrade-api'
 

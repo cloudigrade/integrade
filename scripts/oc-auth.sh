@@ -1,7 +1,7 @@
 #!/bin/bash
 
 if [[ ${DEPLOYMENT_PREFIX:-} ]]; then
-    CONTAINER_NAME="${DEPLOYMENT_PREFIX}-cloudigrade-api"
+    CONTAINER_NAME="${DEPLOYMENT_PREFIX}cloudigrade-api"
 else
     CONTAINER_NAME="cloudigrade-api"
 fi

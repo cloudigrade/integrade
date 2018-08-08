@@ -64,7 +64,7 @@ def get_config():
             profile['account_number'] = acct_num
             deployment_prefix = os.environ.get('DEPLOYMENT_PREFIX', '')
             if deployment_prefix:
-                profile['cloudtrail_name'] = f'{deployment_prefix}-{acct_num}'
+                profile['cloudtrail_name'] = f'{deployment_prefix}{acct_num}'
             else:
                 profile['cloudtrail_name'] = f'cloudigrade-{acct_num}'
             profile['access_key_id'] = os.environ.get(

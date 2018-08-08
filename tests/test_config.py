@@ -54,7 +54,7 @@ def test_get_config(ssl, protocol):
             assert len(cfg['aws_profiles']) == 1
             assert cfg['aws_profiles'][0]['name'] == 'CUSTOMER1'
             assert cfg['aws_profiles'][0]['cloudtrail_name'] == (
-                f'{deployment_prefix}-{account_number}'
+                f'{deployment_prefix}{account_number}'
             )
 
 
