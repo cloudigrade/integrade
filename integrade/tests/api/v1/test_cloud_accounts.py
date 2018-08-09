@@ -486,5 +486,5 @@ def test_cloudtrail_updated(
     assert aws_profile['cloudtrail_name'] in trail_names
     the_trail = [trail for trail in trails if trail['Name']
                  == aws_profile['cloudtrail_name']][0]
-    assert 'cloudigrade-s3' in the_trail['S3BucketName']
+    assert the_trail['S3BucketName'].endswith('-cloudigrade-s3')
     assert bucket_name not in the_trail['S3BucketName']

@@ -6,31 +6,13 @@ import pytest
 from integrade import injector
 
 
-@pytest.mark.parametrize('code', (
-    ('print 123', 'print 123'),
-    ('   print 123', 'print 123'),
-    ("""
-        def foo():
-            print 123
-    """, 'def foo():\n    print 123')
-))
-def test_code_adjustment(code):
-    """The code passed should be re-indented properly."""
-    orig, used = code
-    with patch('integrade.injector.subprocess.run') as run:
-        run.return_value.returncode = 0
-        injector.run_remote_python(orig)
-
-    args, kwargs = run.call_args
-    assert kwargs['input'].decode('utf8') == used
-
-
 def test_data_injection():
     """The code gets data injected into it."""
-    code = 'result = x + 1'
+    code = 'global result;result = x + 1'
 
     with patch('integrade.injector.subprocess.run') as run:
         run.return_value.returncode = 0
+        run.return_value.stdout = b''
         injector.run_remote_python(code, x=41)
 
     args, kwargs = run.call_args

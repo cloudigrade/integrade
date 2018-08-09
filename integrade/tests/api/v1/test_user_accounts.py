@@ -8,8 +8,6 @@
 :testtype: functional
 :upstream: yes
 """
-import pytest
-
 from integrade import api
 from integrade.config import get_config
 from integrade.tests.api.v1 import urls
@@ -53,30 +51,6 @@ def test_create_with_email():
         'username': uuid4(),
         'password': gen_password()
     })
-
-
-@pytest.mark.parametrize('missing_field', ('password', 'username'))
-def test_create_negative(missing_field):
-    """Ensure user accounts can't be created without username or password.
-
-    :id: 133962f4-0c1c-449a-9594-5b8f3d9be0d1
-    :description: Ensure an user account can't be created by an super user
-        account without providing either username or password.
-    :steps: With an authenticated superuser, send a post request to
-        /auth/user/create/ without either username or password.
-    :expectedresults: The server returns a 400 response with the information
-        that the missing field is required.
-    """
-    user = {
-        'username': uuid4(),
-        'password': gen_password()
-    }
-    user.pop(missing_field)
-    client = api.Client(response_handler=api.echo_handler)
-    response = client.post(urls.AUTH_USERS_CREATE, user)
-    assert response.status_code == 400
-    json_response = response.json()
-    assert json_response[missing_field] == ['This field is required.']
 
 
 def test_change_password():

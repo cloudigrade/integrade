@@ -13,7 +13,8 @@ from datetime import datetime, time, timedelta
 import pytest
 
 from integrade import api, config
-from integrade.injector import inject_instance_data
+from integrade.injector import clear_images, direct_count_images, \
+    inject_instance_data
 from integrade.tests.api.v1 import urls
 from integrade.tests.api.v1.utils import get_auth
 from integrade.utils import uuid4
@@ -45,12 +46,14 @@ def create_cloud_account(auth, n):
         auth=auth
     )
     assert create_response.status_code == 201
+    clear_images(create_response.json()['id'])
     return create_response.json()
 
 
 @pytest.fixture
 def cloud_account(drop_account_data, cloudtrails_to_delete):
     """Create a cloud account, return the auth object and account details."""
+    assert direct_count_images() == 0
     auth = get_auth()
     create_response = create_cloud_account(auth, 0)
     return (auth, create_response)
@@ -231,7 +234,7 @@ def test_list_account_while_impersonating(cloud_account, impersonate):
 def test_list_account_with_multiple(cloud_account):
     """Test account data fetched via impersonating a user as a superuser.
 
-    :id: 5f99c7ec-a4d3-4040-868f-9340015e4c9c
+    :id: 1f16a664-a4ea-410e-9ff8-0a6e42cb4df2
     :description: Test that the same assertions can be made for fetching data
         as a regular user and fetching data impersonating that same user
     :steps:

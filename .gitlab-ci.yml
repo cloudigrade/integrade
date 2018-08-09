@@ -44,6 +44,7 @@ Deploy Cloudigrade:
     - export HOUNDIGRADE_AWS_AUTOSCALING_GROUP_NAME="${HOUNDIGRADE_ECS_CLUSTER_NAME}-asg"
     - export HOUNDIGRADE_LAUNCH_CONFIG_NAME="${HOUNDIGRADE_ECS_CLUSTER_NAME}-lc"
     - export EC2_HOST_NAME="${HOUNDIGRADE_ECS_CLUSTER_NAME}-host"
+    - export AWS_S3_BUCKET_NAME="${ENVIRONMENT_SLUG}-cloudigrade-s3"
 
     - cd ansible
     - >
@@ -64,6 +65,7 @@ Deploy Cloudigrade:
         -e ecs_cluster_name="${HOUNDIGRADE_ECS_CLUSTER_NAME}" \
         -e key_name="${SSH_KEY_NAME}" \
         -e vpc_name="${VPC_NAME}" \
+        -e bucket_name="${AWS_S3_BUCKET_NAME}" \
         provision-aws-resources.yaml
     - ansible-playbook -e aws_prefix="${DEPLOYMENT_PREFIX}" clean-sqs.yaml
     - cd -

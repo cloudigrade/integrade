@@ -46,7 +46,7 @@ def ui_loginpage_empty(selenium, ui_user):
     """Fixture factory to navigate to the login page."""
     def _():
         selenium.get(base_url(get_config()))
-        assert selenium.title == 'Cloud Meter'
+        assert selenium.title == 'Cloud Meter', selenium.page_source
 
         browser = Browser(selenium)
         login = LoginView(browser)

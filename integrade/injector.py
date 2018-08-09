@@ -3,7 +3,7 @@ import os
 import pickle
 import subprocess
 from shutil import which
-from textwrap import dedent
+from textwrap import dedent, indent
 
 
 def run_remote_python(script, **kwargs):
@@ -16,11 +16,13 @@ def run_remote_python(script, **kwargs):
     else:
         container_name = 'cloudigrade-api'
 
-    if kwargs:
-        data = pickle.dumps(kwargs)
-        preload = 'import pickle as _pickle\n' \
-            f'globals().update(_pickle.loads({repr(data)}))\n'
-        script = preload + script
+    data = pickle.dumps(kwargs)
+    wrap_start = 'import pickle as _pickle;import sys as _sys;\n' \
+        f'globals().update(_pickle.loads({repr(data)}))\n' \
+        'def _codewrapper():\n'
+    wrap_end = '\n_retval = _codewrapper()\n' \
+        '_sys.stdout.buffer.write(_pickle.dumps(_retval))\n'
+    script = wrap_start + indent(script, '  ') + wrap_end
     script = script.encode('utf8')
 
     if which('oc'):
@@ -39,6 +41,8 @@ def run_remote_python(script, **kwargs):
             for line in result.stdout:
                 print(line)
             raise RuntimeError('Remote script failed')
+        elif result.stdout:
+            return pickle.loads(result.stdout)
     else:
         raise EnvironmentError(
             'Must have access to the cloudigrade openshift pod via the "oc"'
@@ -96,3 +100,33 @@ def inject_instance_data(
         )
         on = not on
     """, **locals())
+
+
+def direct_count_images(acct_id=None):
+    """Count the number of images in an account directly."""
+    return run_remote_python("""
+        from datetime import date, timedelta
+        from account.models import Account, AwsInstance, AwsInstanceEvent
+        from account.models import AwsMachineImage
+
+        if acct_id:
+            acct = Account.objects.get(id=acct_id)
+            return AwsMachineImage.objects.filter(account=acct).count()
+        else:
+            return AwsMachineImage.objects.all().count()
+        """, **locals())
+
+
+def clear_images(acct_id=None):
+    """Count the number of images in an account directly."""
+    return run_remote_python("""
+        from datetime import date, timedelta
+        from account.models import Account, AwsInstance, AwsInstanceEvent
+        from account.models import AwsMachineImage
+
+        if acct_id:
+            acct = Account.objects.get(id=acct_id)
+            return AwsMachineImage.objects.filter(account=acct).delete()
+        else:
+            return AwsMachineImage.objects.all().delete()
+        """, **locals())
