@@ -19,9 +19,9 @@ else
     export CLOUDIGRADE_USER=$(uuid4)
     export CLOUDIGRADE_PASSWORD=$(uuid4)
 
-    oc rsh -c "${CONTAINER_NAME}" "${POD}" scl enable rh-postgresql96 rh-python36 -- python manage.py createsuperuser --no-input --username "${CLOUDIGRADE_USER}" --email="${CLOUDIGRADE_USER}@example.com"
-    export CLOUDIGRADE_TOKEN=$(oc rsh -c "${CONTAINER_NAME}" "${POD}" scl enable rh-postgresql96 rh-python36 -- python manage.py drf_create_token "${CLOUDIGRADE_USER}" | awk '{print $3}')
-cat << EOF | oc rsh -c "${CONTAINER_NAME}" "${POD}" scl enable rh-postgresql96 rh-python36 -- python manage.py shell
+    oc rsh -c "${CONTAINER_NAME}" "${POD}" scl enable rh-python36 -- python manage.py createsuperuser --no-input --username "${CLOUDIGRADE_USER}" --email="${CLOUDIGRADE_USER}@example.com"
+    export CLOUDIGRADE_TOKEN=$(oc rsh -c "${CONTAINER_NAME}" "${POD}" scl enable rh-python36 -- python manage.py drf_create_token "${CLOUDIGRADE_USER}" | awk '{print $3}')
+cat << EOF | oc rsh -c "${CONTAINER_NAME}" "${POD}" scl enable rh-python36 -- python manage.py shell
 from django.contrib.auth.models import User
 user = User.objects.get(email="$CLOUDIGRADE_USER@example.com")
 user.set_password("$CLOUDIGRADE_PASSWORD")

@@ -31,7 +31,7 @@ def run_remote_python(script, **kwargs):
                                  f'oc rsh -c {container_name} $(oc get pods'
                                  ' -o jsonpath="{.items[*].metadata.name}" -l'
                                  f' name={container_name})'
-                                 ' scl enable rh-postgresql96 rh-python36'
+                                 ' scl enable rh-python36'
                                  ' -- python manage.py shell'],
                                 stdout=subprocess.PIPE,
                                 input=script,
