@@ -190,6 +190,7 @@ Test Cleanup:
   <<: *before_script
   script:
     - python scripts/aws_reaper.py --cloudtrails-only
+  when: always
 
 Nightly Cleanup:on-schedule:
   stage: Cleanup
