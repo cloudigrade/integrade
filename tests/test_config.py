@@ -42,7 +42,6 @@ def test_get_config(ssl, protocol):
                 uuid4(), account_number, uuid4())
             os.environ['DEPLOYMENT_PREFIX'] = deployment_prefix
             os.environ['AWS_ACCESS_KEY_ID_CUSTOMER1'] = uuid4()
-            os.environ['AWS_SECRET_ACCESS_KEY_CUSTOMER1'] = uuid4()
             os.environ['USE_HTTPS'] = use_https
             os.environ['SSL_VERIFY'] = 'True' if ssl else 'False'
             cfg = config.get_config()
@@ -70,7 +69,6 @@ def test_negative_get_config_missing():
                 msg = str(e)
                 msg.replace('\n', ' ')
                 assert 'CLOUDIGRADE_BASE_URL' in msg
-                assert 'AWS access key' in msg
                 assert 'AWS access key id' in msg
 
 

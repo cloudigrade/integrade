@@ -69,8 +69,6 @@ def get_config():
                 profile['cloudtrail_name'] = f'cloudigrade-{acct_num}'
             profile['access_key_id'] = os.environ.get(
                 f'AWS_ACCESS_KEY_ID_{profile_name}')
-            profile['access_key'] = os.environ.get(
-                f'AWS_SECRET_ACCESS_KEY_{profile_name}')
             profile['images'] = aws_image_config.get('profiles', {}).get(
                 profile_name, {}).get('images', [])
 
@@ -78,9 +76,6 @@ def get_config():
                 if not profile['access_key_id']:
                     missing_config_errors.append(
                         f'Could not find AWS access key id for {profile_name}')
-                if not profile['access_key']:
-                    missing_config_errors.append(
-                        f'Could not find AWS access key for {profile_name}')
         if _CONFIG['base_url'] == '':
             missing_config_errors.append(
                 'Could not find $CLOUDIGRADE_BASE_URL set in in'
