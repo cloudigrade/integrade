@@ -81,7 +81,8 @@ Deploy Cloudigrade:
 
     - kontemplate template ocp/review.yaml | oc apply -f -
     - oc rollout status "dc/${ENVIRONMENT_SLUG}cloudigrade-api"
-    - oc rollout status "dc/${ENVIRONMENT_SLUG}cloudigrade-celery"
+    - oc rollout status "dc/${ENVIRONMENT_SLUG}cloudigrade-celery-beat"
+    - oc rollout status "dc/${ENVIRONMENT_SLUG}cloudigrade-celery-worker"
     - oc rollout status "dc/${ENVIRONMENT_SLUG}frontigrade"
 
 .teardown_cloudigrade: &teardown_cloudigrade
