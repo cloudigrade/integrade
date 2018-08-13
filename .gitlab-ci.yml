@@ -186,10 +186,10 @@ UI Microsoft Edge:
 
 # Cleans up customer accounts between test runs
 Test Cleanup:
-  stage: Cleanup
+  stage: Teardown Cloudigrade
   <<: *before_script
   script:
-    - python scripts/aws_reaper.py --cloudtrails-only
+    - python scripts/aws_reaper.py --env-cloudtrail-only
   when: always
 
 Nightly Cleanup:on-schedule:
@@ -201,4 +201,4 @@ Nightly Cleanup:on-schedule:
     - oc version
     - make install-dev
   script:
-    - python scripts/aws_reaper.py
+    - python scripts/aws_reaper.py --all-integrade-cloudtrails
