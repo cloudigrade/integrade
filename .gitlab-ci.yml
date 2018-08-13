@@ -37,7 +37,7 @@ Deploy Cloudigrade:
     - export CLOUDTRAIL_EVENT_URL="https://sqs.${AWS_DEFAULT_REGION}.amazonaws.com/${AWS_ACCOUNT_NUMBER}/${ENVIRONMENT_SLUG}-cloudigrade-cloudtrail-sqs"
     - export DB_SECRETS_FILE_NAME="${ENVIRONMENT_SLUG}-db"
     - export DEPLOYMENT_PREFIX="${ENVIRONMENT_SLUG}"
-    - export DJANGO_DATABASE_HOST="${ENVIRONMENT_SLUG}-db.cloudigrade-review.svc"
+    - export DJANGO_DATABASE_HOST="${ENVIRONMENT_SLUG}-db.${OPENSHIFT_PROJECT}.svc"
     - export DJANGO_SECRET_KEY="${CI_COMMIT_SHA}"  # TODO: generate a proper secret key
     - export GITLAB_DEPLOYMENT="${ENVIRONMENT_SLUG}"
     - export HOUNDIGRADE_ECS_CLUSTER_NAME="${ENVIRONMENT_SLUG}-houndigrade"
