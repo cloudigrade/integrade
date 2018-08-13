@@ -71,9 +71,9 @@ def inject_instance_data(
     left on 3 days ago.
     """
     if instance_id is None:
-        instance_id = str(randint(100000, 999999))
+        instance_id = str(randint(100000, 999999999999))
     if ec2_ami_id is None:
-        ec2_ami_id = str(randint(100000, 999999))
+        ec2_ami_id = str(randint(100000, 999999999999))
     run_remote_python("""
     from datetime import date, timedelta
     from account.models import Account, AwsInstance, AwsInstanceEvent

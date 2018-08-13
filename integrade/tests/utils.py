@@ -1,9 +1,34 @@
 """Utilities functions for tests."""
 import copy
+from datetime import datetime, time, timedelta
 
-from integrade import api, injector
+from integrade import api, config, injector
 from integrade.tests import urls
 from integrade.utils import gen_password, uuid4
+
+
+_SENTINEL = object()
+
+
+def create_cloud_account(auth, n, name=_SENTINEL):
+    """Create a cloud account based on configured AWS customer info."""
+    client = api.Client(authenticate=False)
+    cfg = config.get_config()
+    aws_profile = cfg['aws_profiles'][n]
+    acct_arn = aws_profile['arn']
+    cloud_account = {
+        'account_arn': acct_arn,
+        'name': uuid4() if name is _SENTINEL else name,
+        'resourcetype': 'AwsAccount'
+    }
+    create_response = client.post(
+        urls.CLOUD_ACCOUNT,
+        payload=cloud_account,
+        auth=auth
+    )
+    assert create_response.status_code == 201
+    injector.clear_images(create_response.json()['id'])
+    return create_response.json()
 
 
 def create_user_account(user=None):
@@ -67,3 +92,12 @@ def get_auth(user=None):
     json_response = response.json()
     assert 'auth_token' in json_response
     return api.TokenAuth(json_response['auth_token'])
+
+
+def get_time_range(offset=0):
+    """Create start/end time for parameters to account report API."""
+    fmt = '%Y-%m-%dT%H:%MZ'
+    tomorrow = datetime.now().date() + timedelta(days=1 + offset)
+    end = datetime.combine(tomorrow, time(4, 0, 0))
+    start = end - timedelta(days=30)
+    return start.strftime(fmt), end.strftime(fmt)

@@ -8,49 +8,16 @@
 :testtype: functional
 :upstream: yes
 """
-from datetime import datetime, time, timedelta
-
 import pytest
 
 from integrade import api, config
-from integrade.injector import (
-    clear_images,
-    direct_count_images,
-    inject_instance_data,
-)
+from integrade.injector import direct_count_images, inject_instance_data
 from integrade.tests import urls
-from integrade.tests.utils import get_auth
-from integrade.utils import uuid4
-
-
-def get_time_range(offset=0):
-    """Create start/end time for parameters to account report API."""
-    fmt = '%Y-%m-%dT%H:%MZ'
-    tomorrow = datetime.now().date() + timedelta(days=1 + offset)
-    end = datetime.combine(tomorrow, time(4, 0, 0))
-    start = end - timedelta(days=30)
-    return start.strftime(fmt), end.strftime(fmt)
-
-
-def create_cloud_account(auth, n, name=None):
-    """Create a cloud account based on configured AWS customer info."""
-    client = api.Client(authenticate=False)
-    cfg = config.get_config()
-    aws_profile = cfg['aws_profiles'][n]
-    acct_arn = aws_profile['arn']
-    cloud_account = {
-        'account_arn': acct_arn,
-        'name': name or uuid4(),
-        'resourcetype': 'AwsAccount'
-    }
-    create_response = client.post(
-        urls.CLOUD_ACCOUNT,
-        payload=cloud_account,
-        auth=auth
-    )
-    assert create_response.status_code == 201
-    clear_images(create_response.json()['id'])
-    return create_response.json()
+from integrade.tests.utils import (
+    create_cloud_account,
+    get_auth,
+    get_time_range,
+)
 
 
 @pytest.fixture
@@ -59,6 +26,11 @@ def cloud_account(drop_account_data, cloudtrails_to_delete):
     assert direct_count_images() == 0
     auth = get_auth()
     create_response = create_cloud_account(auth, 0)
+    cfg = config.get_config()
+    cloudtrails_to_delete.append([
+        cfg['aws_profiles'][0]['name'],
+        cfg['aws_profiles'][0]['cloudtrail_name']
+    ])
     return (auth, create_response)
 
 
@@ -234,7 +206,7 @@ def test_list_account_while_impersonating(cloud_account, impersonate):
 
 @pytest.mark.skipif(len(config.get_config()[
     'aws_profiles']) < 2, reason='needs at least 2 aws profiles')
-def test_list_account_with_multiple(cloud_account):
+def test_list_account_with_multiple(cloud_account, cloudtrails_to_delete):
     """Test account data fetched via impersonating a user as a superuser.
 
     :id: 1f16a664-a4ea-410e-9ff8-0a6e42cb4df2
@@ -258,6 +230,11 @@ def test_list_account_with_multiple(cloud_account):
     offset = 0
 
     second_account = create_cloud_account(auth, 1)
+    cfg = config.get_config()
+    cloudtrails_to_delete.append([
+        cfg['aws_profiles'][1]['name'],
+        cfg['aws_profiles'][1]['cloudtrail_name']
+    ])
 
     client = api.Client(authenticate=False)
 
