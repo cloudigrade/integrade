@@ -190,6 +190,7 @@ API All Manually:
   
 API Quick:
   stage: Test API
+  when: on_success
   except:
     refs:
       - master
@@ -200,7 +201,7 @@ API Quick:
 
 UI Quick:
   stage: Test UI
-  when: always
+  when: on_success
   <<: *before_script
   script:
     - export TEST_MODULES="$(git diff-tree --no-commit-id --name-only -r master..HEAD integrade/tests/ui)"
