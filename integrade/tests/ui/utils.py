@@ -63,7 +63,8 @@ def find_element_by_text(driver, text,
                 try:
                     return e.__innerText
                 except AttributeError:
-                    e.__innerText = e.get_attribute('innerText')
+                    text = ' '.join(e.get_attribute('innerText').split())
+                    e.__innerText = text
                     return e.__innerText
             except StaleElementReferenceException:
                 return ''
@@ -88,6 +89,7 @@ def fill_input_by_label(driver, element, label, value):
     input = driver.execute_script('return document.activeElement')
     input.clear()
     input.send_keys(value)
+    return input
 
 
 def read_input_by_label(driver, element, label):

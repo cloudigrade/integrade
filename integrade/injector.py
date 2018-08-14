@@ -2,6 +2,7 @@
 import os
 import pickle
 import subprocess
+from random import randint
 from shutil import which
 from textwrap import dedent, indent
 
@@ -54,8 +55,8 @@ def run_remote_python(script, **kwargs):
 
 def inject_instance_data(
     acct_id, image_type, events,
-    instance_id='000000000000',
-    ec2_ami_id='000000000000',
+    instance_id=None,
+    ec2_ami_id=None,
 ):
     """Inject instance and image data for tests.
 
@@ -69,34 +70,48 @@ def inject_instance_data(
     was powered on 10 days ago, powered off 5 days ago, then powered on and
     left on 3 days ago.
     """
+    if instance_id is None:
+        instance_id = str(randint(100000, 999999))
+    if ec2_ami_id is None:
+        ec2_ami_id = str(randint(100000, 999999))
     run_remote_python("""
     from datetime import date, timedelta
     from account.models import Account, AwsInstance, AwsInstanceEvent
     from account.models import AwsMachineImage
 
-    acct = Account.objects.get(id=acct_id)
-    image1 = AwsMachineImage.objects.create(
-        account=acct,
-        status=AwsMachineImage.INSPECTED,
-        rhel_detected=True if 'rhel' in image_type else False,
-        openshift_detected=True if 'openshift' in image_type else False,
-
+    acct = Account.objects.get_or_create(id=acct_id)[0]
+    image1 = AwsMachineImage.objects.get_or_create(
         ec2_ami_id=ec2_ami_id,
-        platform='none',
-    )
-    instance1 = AwsInstance.objects.create(
-        account=acct,
+
+        defaults=dict(
+            account=acct,
+            status=AwsMachineImage.INSPECTED,
+            rhel_detected=True if 'rhel' in image_type else False,
+            openshift_detected=True if 'openshift' in image_type else False,
+
+            platform='none',
+        )
+    )[0]
+    instance1 = AwsInstance.objects.get_or_create(
         ec2_instance_id=instance_id,
-        region='us-east1',
-    )
+
+        defaults=dict(
+            account=acct,
+            region='us-east1',
+        )
+    )[0]
 
     on = False
     for event in events:
+        if isinstance(event, int):
+            when = date.today() - timedelta(days=event)
+        else:
+            when = event
         AwsInstanceEvent.objects.create(
             event_type='power_on' if not on else 'power_off',
             machineimage=image1,
             instance=instance1,
-            occurred_at=date.today() - timedelta(days=event),
+            occurred_at=when,
         )
         on = not on
     """, **locals())
@@ -126,7 +141,8 @@ def clear_images(acct_id=None):
 
         if acct_id:
             acct = Account.objects.get(id=acct_id)
-            return AwsMachineImage.objects.filter(account=acct).delete()
+            images = AwsMachineImage.objects.filter(account=acct)
         else:
-            return AwsMachineImage.objects.all().delete()
+            images = AwsMachineImage.objects.all()
+        images.delete()
         """, **locals())

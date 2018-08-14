@@ -10,12 +10,6 @@ from integrade.tests.aws_utils import (
     delete_cloudtrail,
     terminate_instance,
 )
-from integrade.tests.ui.fixtures import (  # noqa: F401
-    ui_dashboard,
-    ui_loginpage,
-    ui_loginpage_empty,
-    ui_user
-)
 
 
 @pytest.fixture()

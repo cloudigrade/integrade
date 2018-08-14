@@ -21,11 +21,11 @@ def create_user_account(user=None):
     else:
         user = copy.deepcopy(user)
 
-    py_script = """
-    from django.contrib.auth.models import User
-    return User.objects.create_user(**user).id
-    """
-    user['id'] = injector.run_remote_python(py_script, **locals())
+    user['id'] = injector.run_remote_python("""
+        from django.contrib.auth.models import User
+        return User.objects.create_user(**user).id
+    """, **locals())
+
     return user
 
 

@@ -32,7 +32,7 @@ def get_time_range(offset=0):
     return start.strftime(fmt), end.strftime(fmt)
 
 
-def create_cloud_account(auth, n):
+def create_cloud_account(auth, n, name=None):
     """Create a cloud account based on configured AWS customer info."""
     client = api.Client(authenticate=False)
     cfg = config.get_config()
@@ -40,7 +40,7 @@ def create_cloud_account(auth, n):
     acct_arn = aws_profile['arn']
     cloud_account = {
         'account_arn': acct_arn,
-        'name': uuid4(),
+        'name': name or uuid4(),
         'resourcetype': 'AwsAccount'
     }
     create_response = client.post(

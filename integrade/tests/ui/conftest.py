@@ -3,6 +3,7 @@ import logging
 
 import pytest
 
+from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.support.ui import WebDriverWait
 
 from widgetastic.browser import Browser
@@ -78,12 +79,36 @@ def ui_dashboard(selenium, ui_loginpage, ui_user):
     else:
         browser, login = ui_loginpage()
 
+    wait = WebDriverWait(selenium, 30)
+
+    # Login passes with correct password
+    login.password.fill(ui_user['password'])
+    login.login.click()
+
+    text = 'Welcome to Cloud Meter'
+    try:
+        wait.until(wait_for_page_text(text))
+    except TimeoutException as e:
+        e.msg = f'{text} not found in page: {selenium.page_source}'
+
+    return browser, login
+
+
+@pytest.fixture
+def ui_acct_list(selenium, ui_loginpage, ui_user):
+    """Fixture to navigate to the account list by logging in."""
+    if 'Welcome to Cloud Meter' in selenium.page_source:
+        browser = Browser(selenium)
+        return browser, LoginView(browser)
+    else:
+        browser, login = ui_loginpage()
+
     wait = WebDriverWait(selenium, 10)
 
     # Login passes with correct password
     login.password.fill(ui_user['password'])
     login.login.click()
 
-    wait.until(wait_for_page_text('Welcome to Cloud Meter'))
+    wait.until(wait_for_page_text('Accounts'))
 
     return browser, login

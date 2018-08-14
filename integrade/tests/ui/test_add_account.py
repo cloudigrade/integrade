@@ -91,7 +91,7 @@ def test_fill_name_and_clear(selenium, ui_addacct_page1, ui_user):
     dialog_next = ui_addacct_page1['dialog_next']
 
     assert dialog_next.get_attribute('disabled')
-    fill_input_by_label(selenium, dialog, 'Account Name', 'My Account')
+    input = fill_input_by_label(selenium, dialog, 'Account Name', 'My Account')
 
     assert not dialog_next.get_attribute('disabled')
     input.clear()
