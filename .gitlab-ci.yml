@@ -164,11 +164,11 @@ Inspection:
     - export AWS_S3_BUCKET_NAME="${ENVIRONMENT_SLUG}-cloudigrade-s3"
     - cp .aws_image_config.yaml integrade/aws_image_config.yaml
     - export XDG_CONFIG_HOME=$PWD
-    - py.test -vvv -m 'run_first' integrade/tests/api
+    - py.test -vvv --force-flaky -m 'run_first' integrade/tests/api
 
 .api_all: &api_all
   script:
-    - py.test -vvv -m 'not run_first' integrade/tests/api
+    - py.test -vvv --force-flaky -m 'not run_first' integrade/tests/api
 
 API All Automatically:
   stage: Test API
@@ -196,7 +196,7 @@ API Quick:
   <<: *before_script
   script:
     - export TEST_MODULES="$(git diff-tree --no-commit-id --name-only -r HEAD integrade/tests/api)"
-    - if [[ "${TEST_MODULES}" ]]; then echo "${TEST_MODULES}" | xargs py.test -vvv -m 'not run_first'; fi
+    - if [[ "${TEST_MODULES}" ]]; then echo "${TEST_MODULES}" | xargs py.test -vvv --force-flaky -m 'not run_first'; fi
 
 UI Quick:
   stage: Test UI
@@ -204,7 +204,7 @@ UI Quick:
   <<: *before_script
   script:
     - export TEST_MODULES="$(git diff-tree --no-commit-id --name-only -r HEAD integrade/tests/ui)"
-    - if [[ "${TEST_MODULES}" ]]; then echo "${TEST_MODULES}" | xargs py.test -vvv -m 'not run_first'; fi
+    - if [[ "${TEST_MODULES}" ]]; then echo "${TEST_MODULES}" | xargs py.test -vvv --force-flaky -m 'not run_first'; fi
   services:
     - name: selenium/standalone-chrome
       alias: selenium
@@ -214,7 +214,7 @@ UI All Manually:
   when: manual
   <<: *before_script
   script:
-    - py.test -vvv --driver Remote --capability browserName chrome --host selenium --port 4444 integrade/tests/ui
+    - py.test -vvv --force-flaky --driver Remote --capability browserName chrome --host selenium --port 4444 integrade/tests/ui
   services:
     - name: selenium/standalone-chrome
       alias: selenium
@@ -226,7 +226,7 @@ UI Chrome:
       - master
   <<: *before_script
   script:
-    - py.test -vvv --driver Remote --capability browserName chrome --host selenium --port 4444 integrade/tests/ui
+    - py.test -vvv --force-flaky --driver Remote --capability browserName chrome --host selenium --port 4444 integrade/tests/ui
   services:
     - name: selenium/standalone-chrome
       alias: selenium
@@ -238,7 +238,7 @@ UI Firefox:
       - master
   <<: *before_script
   script:
-    - py.test -vvv --driver Remote --capability browserName firefox --host selenium --port 4444 integrade/tests/ui
+    - py.test -vvv --force-flaky --driver Remote --capability browserName firefox --host selenium --port 4444 integrade/tests/ui
   services:
     - name: selenium/standalone-firefox
       alias: selenium
@@ -250,7 +250,7 @@ UI Microsoft Edge:
       - master
   <<: *before_script
   script:
-    - py.test -vvv --driver SauceLabs --capability browserName MicrosoftEdge integrade/tests/ui
+    - py.test -vvv --force-flaky --driver SauceLabs --capability browserName MicrosoftEdge integrade/tests/ui
 
 # Cleans up customer accounts between test runs
 Test Cleanup:
