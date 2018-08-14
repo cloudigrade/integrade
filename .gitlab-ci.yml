@@ -166,11 +166,38 @@ Inspection:
     - export XDG_CONFIG_HOME=$PWD
     - py.test -vvv -m 'run_first' integrade/tests/api
 
-API:
-  stage: Test API
-  <<: *before_script
+.api_all: &api_all
   script:
     - py.test -vvv -m 'not run_first' integrade/tests/api
+
+API All Automatically:
+  stage: Test API
+  only:
+    refs:
+      - master
+  when: always
+  <<: *before_script
+  <<: *api_all
+
+API All Manually:
+  stage: Test API
+  except:
+    refs:
+      - master
+  when: manual
+  <<: *before_script
+  <<: *api_all
+  
+API Quick:
+  stage: Test API
+  except:
+    refs:
+      - master
+  <<: *before_script
+  script:
+    - export TEST_MODULES="$(git diff-tree --no-commit-id --name-only -r HEAD integrade/tests/api)"
+    - if [[ "${TEST_MODULES}" ]]; then echo "${TEST_MODULES}" | xargs py.test -vvv -m 'not run_first'; fi
+
 
 UI Chrome:
   stage: Test UI
