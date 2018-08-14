@@ -198,9 +198,32 @@ API Quick:
     - export TEST_MODULES="$(git diff-tree --no-commit-id --name-only -r HEAD integrade/tests/api)"
     - if [[ "${TEST_MODULES}" ]]; then echo "${TEST_MODULES}" | xargs py.test -vvv -m 'not run_first'; fi
 
+UI Quick:
+  stage: Test UI
+  when: always
+  <<: *before_script
+  script:
+    - export TEST_MODULES="$(git diff-tree --no-commit-id --name-only -r HEAD integrade/tests/ui)"
+    - if [[ "${TEST_MODULES}" ]]; then echo "${TEST_MODULES}" | xargs py.test -vvv -m 'not run_first'; fi
+  services:
+    - name: selenium/standalone-chrome
+      alias: selenium
+
+UI All Manually:
+  stage: Test UI
+  when: manual
+  <<: *before_script
+  script:
+    - py.test -vvv --driver Remote --capability browserName chrome --host selenium --port 4444 integrade/tests/ui
+  services:
+    - name: selenium/standalone-chrome
+      alias: selenium
 
 UI Chrome:
   stage: Test UI
+  only:
+    refs:
+      - master
   <<: *before_script
   script:
     - py.test -vvv --driver Remote --capability browserName chrome --host selenium --port 4444 integrade/tests/ui
