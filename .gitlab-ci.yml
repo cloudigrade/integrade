@@ -4,7 +4,8 @@ stages:
   - Test Integrade
   - Deploy Cloudigrade
   - Test Cloudigrade Inspection
-  - Test Cloudigrade
+  - Test API
+  - Test UI
   - Teardown Cloudigrade
   - Cleanup
 
@@ -166,13 +167,13 @@ Inspection:
     - py.test -vvv -m 'run_first' integrade/tests/api
 
 API:
-  stage: Test Cloudigrade
+  stage: Test API
   <<: *before_script
   script:
     - py.test -vvv -m 'not run_first' integrade/tests/api
 
 UI Chrome:
-  stage: Test Cloudigrade
+  stage: Test UI
   <<: *before_script
   script:
     - py.test -vvv --driver Remote --capability browserName chrome --host selenium --port 4444 integrade/tests/ui
@@ -181,7 +182,10 @@ UI Chrome:
       alias: selenium
 
 UI Firefox:
-  stage: Test Cloudigrade
+  stage: Test UI
+  only:
+    refs:
+      - master
   <<: *before_script
   script:
     - py.test -vvv --driver Remote --capability browserName firefox --host selenium --port 4444 integrade/tests/ui
@@ -190,7 +194,7 @@ UI Firefox:
       alias: selenium
 
 UI Microsoft Edge:
-  stage: Test Cloudigrade
+  stage: Test UI
   only:
     refs:
       - master
