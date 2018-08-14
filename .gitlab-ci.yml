@@ -195,7 +195,7 @@ API Quick:
       - master
   <<: *before_script
   script:
-    - export TEST_MODULES="$(git diff-tree --no-commit-id --name-only -r HEAD integrade/tests/api)"
+    - export TEST_MODULES="$(git diff-tree --no-commit-id --name-only -r master..HEAD integrade/tests/api)"
     - if [[ "${TEST_MODULES}" ]]; then echo "${TEST_MODULES}" | xargs py.test -vvv --force-flaky -m 'not run_first'; fi
 
 UI Quick:
@@ -203,7 +203,7 @@ UI Quick:
   when: always
   <<: *before_script
   script:
-    - export TEST_MODULES="$(git diff-tree --no-commit-id --name-only -r HEAD integrade/tests/ui)"
+    - export TEST_MODULES="$(git diff-tree --no-commit-id --name-only -r master..HEAD integrade/tests/ui)"
     - if [[ "${TEST_MODULES}" ]]; then echo "${TEST_MODULES}" | xargs py.test -vvv --force-flaky -m 'not run_first'; fi
   services:
     - name: selenium/standalone-chrome
