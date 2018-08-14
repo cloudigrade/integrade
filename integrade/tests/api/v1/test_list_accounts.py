@@ -11,27 +11,14 @@
 import pytest
 
 from integrade import api, config
-from integrade.injector import direct_count_images, inject_instance_data
+from integrade.injector import (
+    inject_instance_data,
+)
 from integrade.tests import urls
-from integrade.tests.utils import (
+from integrade.tests.api.v1.conftest import (
     create_cloud_account,
-    get_auth,
     get_time_range,
 )
-
-
-@pytest.fixture
-def cloud_account(drop_account_data, cloudtrails_to_delete):
-    """Create a cloud account, return the auth object and account details."""
-    assert direct_count_images() == 0
-    auth = get_auth()
-    create_response = create_cloud_account(auth, 0)
-    cfg = config.get_config()
-    cloudtrails_to_delete.append([
-        cfg['aws_profiles'][0]['name'],
-        cfg['aws_profiles'][0]['cloudtrail_name']
-    ])
-    return (auth, create_response)
 
 
 def test_list_accounts_empty(cloud_account):
@@ -229,12 +216,16 @@ def test_list_account_with_multiple(cloud_account, cloudtrails_to_delete):
     time = 0
     offset = 0
 
+<<<<<<< HEAD
     second_account = create_cloud_account(auth, 1)
     cfg = config.get_config()
     cloudtrails_to_delete.append([
         cfg['aws_profiles'][1]['name'],
         cfg['aws_profiles'][1]['cloudtrail_name']
     ])
+=======
+    second_account = create_cloud_account(auth, 1, cloudtrails_to_delete)
+>>>>>>> e7b91c3... Update tests to deal with failures
 
     client = api.Client(authenticate=False)
 

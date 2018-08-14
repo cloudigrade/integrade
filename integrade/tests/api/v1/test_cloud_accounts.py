@@ -453,9 +453,18 @@ def test_cloudtrail_updated(
 
     # create our own cloud trail with a different s3 bucket
     bucket_name = aws_utils.create_bucket_for_cloudtrail(profile_name)
-    cloudtrail_client.create_trail(
-        Name=aws_profile['cloudtrail_name'],
-        S3BucketName=bucket_name)
+    if client.describe_trails(
+            trailNameList=[aws_profile['cloudtrail_name']]
+            ).get('trailList'):
+        cloudtrail_client.update_trail(
+            Name=aws_profile['cloudtrail_name'],
+            S3BucketName=bucket_name
+            )
+    else:
+        cloudtrail_client.create_trail(
+            Name=aws_profile['cloudtrail_name'],
+            S3BucketName=bucket_name
+            )
     # make sure we clean up our trail and bucket even if test fails
     cloudtrails_and_buckets_to_delete.append(
         (profile_name, aws_profile['cloudtrail_name'], bucket_name))
