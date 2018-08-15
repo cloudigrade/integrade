@@ -158,8 +158,7 @@ Automatically Teardown Cloudigrade:
 Inspection:
   stage: Test Cloudigrade Inspection
   only:
-    refs:
-      - master
+    - master
   <<: *before_script
   script:
     - export AWS_S3_BUCKET_NAME="${ENVIRONMENT_SLUG}-cloudigrade-s3"
@@ -174,8 +173,7 @@ Inspection:
 API All Automatically:
   stage: Test Cloudigrade API
   only:
-    refs:
-      - master
+    - master
   when: always
   <<: *before_script
   <<: *api_all
@@ -183,18 +181,18 @@ API All Automatically:
 API All Manually:
   stage: Test Cloudigrade API
   except:
-    refs:
-      - master
+    - master
   when: manual
   <<: *before_script
   <<: *api_all
+  after_script:
+    - python scripts/aws_reaper.py --env-cloudtrail-only
   
 API Quick:
   stage: Test Cloudigrade API
   when: on_success
   except:
-    refs:
-      - master
+    - master
   <<: *before_script
   script:
     - export TEST_MODULES="$(git diff-tree --no-commit-id --name-only -r master..HEAD integrade/tests/api)"
@@ -220,12 +218,13 @@ UI All Manually:
   services:
     - name: selenium/standalone-chrome
       alias: selenium
+  after_script:
+    - python scripts/aws_reaper.py --env-cloudtrail-only
 
 UI Chrome:
   stage: Test Cloudigrade UI
   only:
-    refs:
-      - master
+    - master
   <<: *before_script
   script:
     - py.test -vvv --force-flaky ${DRIVER_CHROME} integrade/tests/ui
@@ -236,8 +235,7 @@ UI Chrome:
 UI Firefox:
   stage: Test Cloudigrade UI
   only:
-    refs:
-      - master
+    - master
   <<: *before_script
   script:
     - py.test -vvv --force-flaky --driver Remote --capability browserName firefox --host selenium --port 4444 integrade/tests/ui
@@ -248,8 +246,7 @@ UI Firefox:
 UI Microsoft Edge:
   stage: Test Cloudigrade UI
   only:
-    refs:
-      - master
+    - master
   <<: *before_script
   script:
     - py.test -vvv --force-flaky --driver SauceLabs --capability browserName MicrosoftEdge integrade/tests/ui
