@@ -13,10 +13,13 @@ from urllib.parse import urljoin
 import pytest
 
 from integrade import api, config
+from integrade.injector import (
+    inject_aws_cloud_account,
+)
 from integrade.tests import aws_utils
 from integrade.tests import urls
-from integrade.tests.utils import get_auth
-from integrade.utils import flaky, uuid4
+from integrade.tests.utils import create_user_account, get_auth
+from integrade.utils import uuid4
 
 
 @pytest.mark.serial_only
@@ -199,24 +202,15 @@ def test_create_cloud_account_duplicate_names(
         3) The account cannot be deleted and attempts to do so receive a 405
             response.
     """
-    auth = get_auth()
+    user = create_user_account()
+    auth = get_auth(user)
     client = api.Client(authenticate=False, response_handler=api.echo_handler)
     cfg = config.get_config()
-    cloud_account = {
-        'account_arn': cfg['aws_profiles'][0]['arn'],
-        'name': cfg['aws_profiles'][0]['name'],
-        'resourcetype': 'AwsAccount'
-    }
-    create_response = client.post(
-        urls.CLOUD_ACCOUNT,
-        payload=cloud_account,
-        auth=auth
-    )
-    assert create_response.status_code == 201
+    inject_aws_cloud_account(user['id'], name=cfg['aws_profiles'][0]['name'])
 
     # Now try to reuse the name
     cloud_account = {
-        'account_arn': cfg['aws_profiles'][1]['arn'],
+        'account_arn': cfg['aws_profiles'][0]['arn'],
         'name': cfg['aws_profiles'][0]['name'],
         'resourcetype': 'AwsAccount'
     }
@@ -252,23 +246,13 @@ def test_create_cloud_account_duplicate_names_different_users(
         3) The account cannot be deleted and attempts to do so receive a 405
             response.
     """
-    auth = get_auth()
+    user = create_user_account()
+    auth = get_auth(user)
     client = api.Client(authenticate=False, response_handler=api.echo_handler)
     cfg = config.get_config()
     aws_profile = cfg['aws_profiles'][0]
     profile_name = aws_profile['name']
-    acct_arn = aws_profile['arn']
-    cloud_account = {
-        'account_arn': acct_arn,
-        'name': profile_name,
-        'resourcetype': 'AwsAccount'
-    }
-    create_response = client.post(
-        urls.CLOUD_ACCOUNT,
-        payload=cloud_account,
-        auth=auth
-    )
-    assert create_response.status_code == 201
+    inject_aws_cloud_account(user['id'], name=profile_name)
 
     # Now try to reuse the name
     auth = get_auth()
@@ -287,10 +271,7 @@ def test_create_cloud_account_duplicate_names_different_users(
     assert create_response.status_code == 201, create_response.json()
 
 
-@flaky(max_runs=4)
 @pytest.mark.serial_only
-@pytest.mark.skipif(len(config.get_config()[
-    'aws_profiles']) < 3, reason='needs at least 3 aws profiles')
 def test_negative_read_other_cloud_account(
         drop_account_data, cloudtrails_to_delete):
     """Ensure users cannot access eachother's cloud accounts.
@@ -308,88 +289,68 @@ def test_negative_read_other_cloud_account(
         user making the request, except the super user, who sees all accounts.
     """
     client = api.Client(authenticate=False)
-    auth1 = get_auth()
-    auth2 = get_auth()
+    user1 = create_user_account()
+    user2 = create_user_account()
+    auth1 = get_auth(user1)
+    auth2 = get_auth(user2)
 
-    cfg = config.get_config()
-    profile1 = cfg['aws_profiles'][0]
-    arn1 = profile1['arn']
     # create cloud account for 1st user
-    cloud_account = {
-        'account_arn': arn1,
-        'resourcetype': 'AwsAccount'
-    }
-    create_response = client.post(
-        urls.CLOUD_ACCOUNT,
-        payload=cloud_account,
-        auth=auth1
-    )
-    assert create_response.status_code == 201
-    # since account was created, add trail to cleanup
-    cloudtrails_to_delete.append((
-        profile1['name'],
-        profile1['cloudtrail_name']
-    ))
-    acct1 = create_response.json()
-
-    # update cloud account to differnt ARN
-    # and create account for 2nd user
-    profile2 = cfg['aws_profiles'][1]
-    arn2 = profile2['arn']
-    cloud_account['account_arn'] = arn2
-    create_response = client.post(
-        urls.CLOUD_ACCOUNT,
-        payload=cloud_account,
-        auth=auth2
-    )
-    assert create_response.status_code == 201, create_response.json()
-    # since account was created, add trail to cleanup
-    cloudtrails_to_delete.append((
-        profile2['name'],
-        profile2['cloudtrail_name']
-    ))
-    acct2 = create_response.json()
+    acct1 = inject_aws_cloud_account(user1['id'])
+    # create account for 2nd user
+    acct2 = inject_aws_cloud_account(user2['id'])
 
     # list cloud accounts associated with each user
     list_response = client.get(urls.CLOUD_ACCOUNT, auth=auth1)
-    assert acct1 in list_response.json()['results']
-    assert acct2 not in list_response.json()['results']
+    acct_ids_found = [
+            acct['aws_account_id']
+            for acct in list_response.json()['results']
+            ]
+    assert acct1['aws_account_id'] in acct_ids_found
+    assert acct2['aws_account_id'] not in acct_ids_found
 
     list_response = client.get(urls.CLOUD_ACCOUNT, auth=auth2)
-    assert acct2 in list_response.json()['results']
-    assert acct1 not in list_response.json()['results']
+    acct_ids_found = [
+            acct['aws_account_id']
+            for acct in list_response.json()['results']
+            ]
+    assert acct2['aws_account_id'] in acct_ids_found
+    assert acct1['aws_account_id'] not in acct_ids_found
 
     # use super user token to see all
     superclient = api.Client()
     list_response = superclient.get(urls.CLOUD_ACCOUNT)
-    assert acct1 in list_response.json()['results']
-    assert acct2 in list_response.json()['results']
+    acct_ids_found = [
+            acct['aws_account_id']
+            for acct in list_response.json()['results']
+            ]
+    assert acct2['aws_account_id'] in acct_ids_found
+    assert acct1['aws_account_id'] in acct_ids_found
 
     # create cloud account with super user
     # update cloud account to differnt ARN
-    profile3 = cfg['aws_profiles'][2]
-    arn3 = profile3['arn']
-    cloud_account['account_arn'] = arn3
-    create_response = superclient.post(
-        urls.CLOUD_ACCOUNT,
-        payload=cloud_account,
-    )
-    assert create_response.status_code == 201, create_response.json()
-    # since account was created, add trail to cleanup
-    cloudtrails_to_delete.append((
-        profile3['name'],
-        profile3['cloudtrail_name']
-    ))
-    acct3 = create_response.json()
+    # FIXME: clumsy way to get super user id
+    all_users = superclient.get(urls.USER_LIST).json()
+    super_user_id = [
+            user['id'] for user in all_users if user['is_superuser']
+            ][0]
+    acct3 = inject_aws_cloud_account(super_user_id)
     list_response = superclient.get(urls.CLOUD_ACCOUNT)
-    assert acct3 in list_response.json()['results']
+    acct_ids_found = [
+            acct['aws_account_id']
+            for acct in list_response.json()['results']
+            ]
+    assert acct3['aws_account_id'] in acct_ids_found
     assert list_response.json()['count'] == 3
 
     # make sure user1 still just see theirs
     list_response = client.get(urls.CLOUD_ACCOUNT, auth=auth1)
-    assert acct1 in list_response.json()['results']
-    assert acct2 not in list_response.json()['results']
-    assert acct3 not in list_response.json()['results']
+    acct_ids_found = [
+            acct['aws_account_id']
+            for acct in list_response.json()['results']
+            ]
+    assert acct1['aws_account_id'] in acct_ids_found
+    assert acct2['aws_account_id'] not in acct_ids_found
+    assert acct3['aws_account_id'] not in acct_ids_found
 
 
 @pytest.mark.parametrize('field_to_delete', ['resourcetype', 'account_arn'])
@@ -453,7 +414,7 @@ def test_cloudtrail_updated(
 
     # create our own cloud trail with a different s3 bucket
     bucket_name = aws_utils.create_bucket_for_cloudtrail(profile_name)
-    if client.describe_trails(
+    if cloudtrail_client.describe_trails(
             trailNameList=[aws_profile['cloudtrail_name']]
             ).get('trailList'):
         cloudtrail_client.update_trail(

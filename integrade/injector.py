@@ -53,6 +53,73 @@ def run_remote_python(script, **kwargs):
         )
 
 
+def direct_count_images(acct_id=None):
+    """Count the number of images in an account directly."""
+    return run_remote_python("""
+        from datetime import date, timedelta
+        from account.models import Account, AwsInstance, AwsInstanceEvent
+        from account.models import AwsMachineImage
+
+        if acct_id:
+            acct = Account.objects.get(id=acct_id)
+            return AwsMachineImage.objects.filter(account=acct).count()
+        else:
+            return AwsMachineImage.objects.all().count()
+        """, **locals())
+
+
+def clear_images(acct_id=None):
+    """Count the number of images in an account directly."""
+    return run_remote_python("""
+        from datetime import date, timedelta
+        from account.models import Account, AwsInstance, AwsInstanceEvent
+        from account.models import AwsMachineImage
+
+        if acct_id:
+            acct = Account.objects.get(id=acct_id)
+            images = AwsMachineImage.objects.filter(account=acct)
+        else:
+            images = AwsMachineImage.objects.all()
+        images.delete()
+        """, **locals())
+
+
+def inject_aws_cloud_account(user_id, name=None, aws_account_number=None):
+    """Mock an aws account for the user specified.
+
+    Mocked AWS accounts dont point to a real AWS account! No cloudtrail
+    will exist, no real events will arrive, and no images will actually be
+    inspected.
+
+    :returns: (int) The account id, needed by inject_instance_data.
+    """
+    if aws_account_number is None:
+        aws_account_number = str(randint(100000000000, 999999999999))
+    arn = f'arn:aws:iam:{aws_account_number}:role/mock-arn'
+    if name is None:
+        name = aws_account_number
+    return run_remote_python("""
+    from account.models import AwsAccount
+
+    kwargs = {
+        'aws_account_id': aws_account_number,
+        'user_id': user_id,
+        'account_arn': arn,
+        'name': name,
+              }
+
+    acct, new = AwsAccount.objects.get_or_create(**kwargs)
+
+    return {
+        'id' : acct.id,
+        'aws_account_id' : aws_account_number,
+        'user_id' : user_id,
+        'account_arn' : arn,
+        'name' : name
+    }
+    """, **locals())
+
+
 def inject_instance_data(
     acct_id, image_type, events,
     instance_id=None,
@@ -115,34 +182,3 @@ def inject_instance_data(
         )
         on = not on
     """, **locals())
-
-
-def direct_count_images(acct_id=None):
-    """Count the number of images in an account directly."""
-    return run_remote_python("""
-        from datetime import date, timedelta
-        from account.models import Account, AwsInstance, AwsInstanceEvent
-        from account.models import AwsMachineImage
-
-        if acct_id:
-            acct = Account.objects.get(id=acct_id)
-            return AwsMachineImage.objects.filter(account=acct).count()
-        else:
-            return AwsMachineImage.objects.all().count()
-        """, **locals())
-
-
-def clear_images(acct_id=None):
-    """Count the number of images in an account directly."""
-    return run_remote_python("""
-        from datetime import date, timedelta
-        from account.models import Account, AwsInstance, AwsInstanceEvent
-        from account.models import AwsMachineImage
-
-        if acct_id:
-            acct = Account.objects.get(id=acct_id)
-            images = AwsMachineImage.objects.filter(account=acct)
-        else:
-            images = AwsMachineImage.objects.all()
-        images.delete()
-        """, **locals())

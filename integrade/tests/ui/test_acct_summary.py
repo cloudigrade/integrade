@@ -13,9 +13,10 @@ import time
 
 import pytest
 
-from integrade.injector import inject_instance_data
-from integrade.tests.api.v1.test_list_accounts import create_cloud_account
-from integrade.tests.utils import get_auth
+from integrade.injector import (
+    inject_aws_cloud_account,
+    inject_instance_data,
+)
 
 from .utils import find_element_by_text
 
@@ -23,8 +24,7 @@ from .utils import find_element_by_text
 @pytest.fixture
 def cloud_account(ui_user, drop_account_data, cloudtrails_to_delete):
     """Create a cloud account, return the auth object and account details."""
-    create_response = create_cloud_account(get_auth(ui_user), 0, 'mine')
-    return create_response
+    return inject_aws_cloud_account(ui_user['id'])
 
 
 @pytest.fixture

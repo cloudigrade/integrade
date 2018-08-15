@@ -10,7 +10,7 @@ from integrade.utils import gen_password, uuid4
 _SENTINEL = object()
 
 
-def create_cloud_account(auth, n, name=_SENTINEL):
+def create_cloud_account(auth, n, cloudtrails_to_delete=None, name=_SENTINEL):
     """Create a cloud account based on configured AWS customer info."""
     client = api.Client(authenticate=False)
     cfg = config.get_config()
@@ -28,6 +28,11 @@ def create_cloud_account(auth, n, name=_SENTINEL):
     )
     assert create_response.status_code == 201
     injector.clear_images(create_response.json()['id'])
+
+    if isinstance(cloudtrails_to_delete, list):
+        cloudtrails_to_delete.append(
+            (aws_profile['name'], aws_profile['cloudtrail_name'])
+        )
     return create_response.json()
 
 

@@ -12,14 +12,12 @@ import operator
 
 import pytest
 
-from integrade import api, config
-from integrade.injector import inject_instance_data
-from integrade.tests import urls
-from integrade.tests.utils import (
-    create_cloud_account,
-    get_auth,
-    get_time_range,
+from integrade import api
+from integrade.injector import (
+    inject_aws_cloud_account,
+    inject_instance_data,
 )
+from integrade.tests import urls, utils
 
 
 def usertype(superuser):
@@ -27,13 +25,8 @@ def usertype(superuser):
     return 'superuser' if superuser else 'regularuser'
 
 
-@pytest.mark.skipif(
-    len(config.get_config()['aws_profiles']) < 3,
-    reason='needs at least 3 aws profiles',
-)
 @pytest.mark.parametrize('superuser', (False, True), ids=usertype)
-def test_cloud_account_filter_by_name(
-        cloudtrails_to_delete, drop_account_data, superuser):
+def test_cloud_account_filter_by_name(drop_account_data, superuser):
     """Test that cloud accounts can be filtered by name.
 
     :id: 5abbfb8d-c447-464a-a980-4c7e8d2fcc80
@@ -44,34 +37,28 @@ def test_cloud_account_filter_by_name(
     :steps:
         1) Add three cloud accounts
         2) Insert some instance events for all accounts.
-        3) Filter the cloud accounts using a two words pattern. Each pattern's
-           word should match a single account.
+        3) Filter the cloud accounts using a two word long pattern. Each
+           pattern's word should match a single account.
         4) Ensure two accounts are returned and assert that their instance
            events are correct.
     :expectedresults:
         Two accounts are returned, one matched by the first word and the other
         by the second word. All instance events should match.
     """
-    auth = get_auth()
-    cfg = config.get_config()
-    first_account = create_cloud_account(
-        auth, 0, name='greatest account ever')
-    cloudtrails_to_delete.append([
-        cfg['aws_profiles'][0]['name'],
-        cfg['aws_profiles'][0]['cloudtrail_name']
-    ])
-    second_account = create_cloud_account(
-        auth, 1, name='just another account')
-    cloudtrails_to_delete.append([
-        cfg['aws_profiles'][1]['name'],
-        cfg['aws_profiles'][1]['cloudtrail_name']
-    ])
-    third_account = create_cloud_account(
-        auth, 2, name='my awesome account')
-    cloudtrails_to_delete.append([
-        cfg['aws_profiles'][2]['name'],
-        cfg['aws_profiles'][2]['cloudtrail_name']
-    ])
+    user = utils.create_user_account()
+    auth = utils.get_auth(user)
+    first_account = inject_aws_cloud_account(
+        user['id'],
+        name='a greatest account ever',
+    )
+    second_account = inject_aws_cloud_account(
+        user['id'],
+        name='b just another account',
+    )
+    third_account = inject_aws_cloud_account(
+        user['id'],
+        name='c my awesome account',
+    )
 
     client = api.Client(authenticate=superuser)
 
@@ -87,7 +74,7 @@ def test_cloud_account_filter_by_name(
     # for 10 days
     inject_instance_data(third_account['id'], 'openshift', [13, 3])
 
-    start, end = get_time_range()
+    start, end = utils.get_time_range()
     params = {
         'end': end,
         'name_pattern': 'EaT sOme ToFu',
@@ -99,7 +86,7 @@ def test_cloud_account_filter_by_name(
 
     results = sorted(
         response.json()['cloud_account_overviews'],
-        key=operator.itemgetter('cloud_account_id')
+        key=operator.itemgetter('name')
     )
     assert len(results) == 2, results
     for expected, account in zip((first_account, third_account), results):

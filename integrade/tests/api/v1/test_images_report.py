@@ -12,15 +12,13 @@ import pytest
 
 from integrade import api
 from integrade.injector import (
+    inject_aws_cloud_account,
     inject_instance_data,
 )
-from integrade.tests import urls
-from integrade.tests.api.v1.conftest import (
-    get_time_range,
-)
+from integrade.tests import urls, utils
 
 
-def test_image_report_empty(cloud_account):
+def test_image_report_empty():
     """Test accounts without any instance or image report has empty summary.
 
     :id: 2a152ef6-fcd8-491c-b3cc-bda81699453a
@@ -32,14 +30,16 @@ def test_image_report_empty(cloud_account):
     :expectedresults:
         - An empty list is returned
     """
-    auth, cloud_account = cloud_account
+    user = utils.create_user_account()
+    auth = utils.get_auth(user)
+    acct = inject_aws_cloud_account(user['id'])
     client = api.Client(authenticate=False)
 
-    report_start, report_end = get_time_range()
+    report_start, report_end = utils.get_time_range()
     params = {
         'start': report_start,
         'end': report_end,
-        'account_id': cloud_account['id'],
+        'account_id': acct['id'],
     }
     response = client.get(urls.REPORT_IMAGES, params=params, auth=auth)
 
@@ -48,7 +48,7 @@ def test_image_report_empty(cloud_account):
     assert images == [], repr(images)
 
 
-def test_past_without_instances(cloud_account):
+def test_past_without_instances():
     """Test accounts with instances only after the filter period.
 
     :id: 72aaa6e2-2c60-4e71-bb47-3644bd6beb71
@@ -62,15 +62,17 @@ def test_past_without_instances(cloud_account):
         - The account is in the response and matches the created account
         - Instances, images, RHEL, and Openshift all have None counts
     """
-    auth, cloud_account = cloud_account
+    user = utils.create_user_account()
+    auth = utils.get_auth(user)
+    acct = inject_aws_cloud_account(user['id'])
     client = api.Client(authenticate=False)
 
     # ask for last 30 days
-    report_start, report_end = get_time_range()
+    report_start, report_end = utils.get_time_range()
     params = {
         'start': report_start,
         'end': report_end,
-        'account_id': cloud_account['id'],
+        'account_id': acct['id'],
     }
 
     response = client.get(urls.REPORT_IMAGES, params=params, auth=auth)
@@ -83,7 +85,7 @@ def test_past_without_instances(cloud_account):
     instance_start = 60
     instance_end = 45
     events = [instance_start, instance_end]
-    inject_instance_data(cloud_account['id'], image_type, events)
+    inject_instance_data(acct['id'], image_type, events)
 
     # test that still have no images in report
     response = client.get(urls.REPORT_IMAGES, params=params, auth=auth)
@@ -94,13 +96,13 @@ def test_past_without_instances(cloud_account):
 
 @pytest.mark.debug
 @pytest.mark.parametrize('conf', [
-    ('', 1, 1, 0, 0, 2, 1, 0),
-    ('windows', 1, 1, 0, 0, 2, 1, 0),
-    ('rhel', 1, 1, 1, 0, 2, 1, 0),
-    ('openshift', 1, 1, 0, 1, 2, 1, 0),
-    ('rhel,openshift', 1, 1, 1, 1, 2, 1, 0),
+    ('', 1, 1, False, False, 2, 1, 0),
+    ('windows', 1, 1, False, False, 2, 1, 0),
+    ('rhel', 1, 1, True, False, 2, 1, 0),
+    ('openshift', 1, 1, False, True, 2, 1, 0),
+    ('rhel,openshift', 1, 1, True, True, 2, 1, 0),
 ])
-def test_image_tagging(cloud_account, conf):
+def test_image_tagging(conf):
     """Test instance events generate image usage results with correct tags.
 
     :id: f3c84697-a40c-40d9-846d-117e2647e9d3
@@ -113,7 +115,9 @@ def test_image_tagging(cloud_account, conf):
     :expectedresults:
         - The images have correct tags and usage amounts
     """
-    auth, cloud_account = cloud_account
+    user = utils.create_user_account()
+    auth = utils.get_auth(user)
+    acct = inject_aws_cloud_account(user['id'])
     image_type, exp_inst, exp_images, exp_rhel, exp_openshift, \
         instance_start, instance_end, offset = conf
     # start and end values indicate number of days in the past
@@ -124,24 +128,24 @@ def test_image_tagging(cloud_account, conf):
     events = [instance_start]
     if instance_end:
         events.append(instance_end)
-    inject_instance_data(cloud_account['id'], image_type, events)
+    inject_instance_data(acct['id'], image_type, events)
 
-    report_start, report_end = get_time_range(offset)
+    report_start, report_end = utils.get_time_range(offset)
     params = {
         'start': report_start,
         'end': report_end,
-        'account_id': cloud_account['id'],
+        'account_id': acct['id'],
     }
     response = client.get(urls.REPORT_IMAGES, params=params, auth=auth)
 
     image = response.json()['images'][0]
-    assert image['rhel'] == bool(exp_rhel), repr(image)
-    assert image['openshift'] == bool(exp_openshift), repr(image)
+    assert image['rhel'] == exp_rhel, repr(image)
+    assert image['openshift'] == exp_openshift, repr(image)
     assert int(image['runtime_seconds']) == int(expected_runtime), repr(image)
 
 
 @pytest.mark.parametrize('impersonate', (False, True))
-def test_list_images_while_impersonating(cloud_account, impersonate):
+def test_list_images_while_impersonating(impersonate):
     """Test account data fetched via impersonating a user as a superuser.
 
     :id: 5f99c7ec-a4d3-4040-868f-9340015e4c9c
@@ -156,10 +160,12 @@ def test_list_images_while_impersonating(cloud_account, impersonate):
         - The images are returned for the user and a super user, but
             no one else.
     """
-    auth, cloud_account = cloud_account
+    user = utils.create_user_account()
+    auth = utils.get_auth(user)
+    acct = inject_aws_cloud_account(user['id'])
     image_type = 'rhel'
-    exp_rhel = 1
-    exp_openshift = 0
+    exp_rhel = True
+    exp_openshift = False
     start = 12
     end = 10
     offset = 0
@@ -173,17 +179,17 @@ def test_list_images_while_impersonating(cloud_account, impersonate):
     events = [start]
     if end:
         events.append(end)
-    inject_instance_data(cloud_account['id'], image_type, events)
+    inject_instance_data(acct['id'], image_type, events)
 
-    report_start, report_end = get_time_range(offset)
+    report_start, report_end = utils.get_time_range(offset)
     params = {
         'start': report_start,
         'end': report_end,
-        'account_id': cloud_account['id'],
+        'account_id': acct['id'],
     }
     response = client.get(urls.REPORT_IMAGES, params=params, auth=auth)
 
     image = response.json()['images'][0]
-    assert image['rhel'] == bool(exp_rhel), repr(image)
-    assert image['openshift'] == bool(exp_openshift), repr(image)
+    assert image['rhel'] == exp_rhel, repr(image)
+    assert image['openshift'] == exp_openshift, repr(image)
     assert int(image['runtime_seconds']) == int(expected_runtime), repr(image)
