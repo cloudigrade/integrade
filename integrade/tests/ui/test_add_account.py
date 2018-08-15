@@ -86,8 +86,6 @@ def test_fill_name_and_clear(selenium, ui_addacct_page1, ui_user):
         5) Clear the field and observe the button is disabled again
     :expectedresults: The "Next" button should only ever be enabled when the
         account name field is valid.
-
-    TEST CHANGE
     """
     dialog = ui_addacct_page1['dialog']
     dialog_next = ui_addacct_page1['dialog_next']
