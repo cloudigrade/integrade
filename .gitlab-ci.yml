@@ -4,8 +4,8 @@ stages:
   - Test Integrade
   - Deploy Cloudigrade
   - Test Cloudigrade Inspection
-  - Test API
-  - Test UI
+  - Test Cloudigrade API
+  - Test Cloudigrade UI
   - Teardown Cloudigrade
   - Cleanup
 
@@ -172,7 +172,7 @@ Inspection:
     - py.test -vvv --force-flaky -m 'not run_first' integrade/tests/api
 
 API All Automatically:
-  stage: Test API
+  stage: Test Cloudigrade API
   only:
     refs:
       - master
@@ -181,7 +181,7 @@ API All Automatically:
   <<: *api_all
 
 API All Manually:
-  stage: Test API
+  stage: Test Cloudigrade API
   except:
     refs:
       - master
@@ -190,7 +190,7 @@ API All Manually:
   <<: *api_all
   
 API Quick:
-  stage: Test API
+  stage: Test Cloudigrade API
   when: on_success
   except:
     refs:
@@ -201,7 +201,7 @@ API Quick:
     - if [[ "${TEST_MODULES}" ]]; then echo "${TEST_MODULES}" | xargs py.test -vvv --force-flaky -m 'not run_first'; fi
 
 UI Quick:
-  stage: Test UI
+  stage: Test Cloudigrade UI
   when: on_success
   <<: *before_script
   script:
@@ -212,7 +212,7 @@ UI Quick:
       alias: selenium
 
 UI All Manually:
-  stage: Test UI
+  stage: Test Cloudigrade UI
   when: manual
   <<: *before_script
   script:
@@ -222,7 +222,7 @@ UI All Manually:
       alias: selenium
 
 UI Chrome:
-  stage: Test UI
+  stage: Test Cloudigrade UI
   only:
     refs:
       - master
@@ -234,7 +234,7 @@ UI Chrome:
       alias: selenium
 
 UI Firefox:
-  stage: Test UI
+  stage: Test Cloudigrade UI
   only:
     refs:
       - master
@@ -246,7 +246,7 @@ UI Firefox:
       alias: selenium
 
 UI Microsoft Edge:
-  stage: Test UI
+  stage: Test Cloudigrade UI
   only:
     refs:
       - master
