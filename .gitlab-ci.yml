@@ -147,6 +147,7 @@ Automatically Teardown Cloudigrade:
     - export DEPLOYMENT_PREFIX="${ENVIRONMENT_SLUG}"
     - oc login ${OPENSHIFT_URL} --token ${GITLAB_CI_SA_TOKEN}
     - source scripts/oc-auth.sh
+    - export DRIVER_CHROME="--driver Remote --capability browserName chrome --host selenium --port 4444"
   environment:
     name: review/$CI_COMMIT_REF_NAME
     url: http://${CI_PROJECT_NAME}-${CI_ENVIRONMENT_SLUG}.review.gitlab.cloudigra.de
@@ -205,7 +206,7 @@ UI Quick:
   <<: *before_script
   script:
     - export TEST_MODULES="$(git diff-tree --no-commit-id --name-only -r master..HEAD integrade/tests/ui)"
-    - if [[ "${TEST_MODULES}" ]]; then echo "${TEST_MODULES}" | xargs py.test -vvv --force-flaky -m 'not run_first'; fi
+    - if [[ "${TEST_MODULES}" ]]; then echo "${TEST_MODULES}" | xargs py.test -vvv --force-flaky -m 'not run_first' ${DRIVER_CHROME}; fi
   services:
     - name: selenium/standalone-chrome
       alias: selenium
@@ -215,7 +216,7 @@ UI All Manually:
   when: manual
   <<: *before_script
   script:
-    - py.test -vvv --force-flaky --driver Remote --capability browserName chrome --host selenium --port 4444 integrade/tests/ui
+    - py.test -vvv --force-flaky ${DRIVER_CHROME} integrade/tests/ui
   services:
     - name: selenium/standalone-chrome
       alias: selenium
@@ -227,7 +228,7 @@ UI Chrome:
       - master
   <<: *before_script
   script:
-    - py.test -vvv --force-flaky --driver Remote --capability browserName chrome --host selenium --port 4444 integrade/tests/ui
+    - py.test -vvv --force-flaky ${DRIVER_CHROME} integrade/tests/ui
   services:
     - name: selenium/standalone-chrome
       alias: selenium
