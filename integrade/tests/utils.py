@@ -1,9 +1,10 @@
 """Utilities functions for tests."""
 import copy
 from datetime import datetime, time, timedelta
+from multiprocessing import Pool
 
 from integrade import api, config, injector
-from integrade.tests import urls
+from integrade.tests import aws_utils, urls
 from integrade.utils import gen_password, uuid4
 
 
@@ -57,6 +58,26 @@ def create_user_account(user=None):
     """, **locals())
 
     return user
+
+
+def delete_cloudtrails(cloudtrails_to_delete=None):
+    """Delete cloudtrails.
+
+    The cloudtrails_to_delete param must be a list of tuples of (aws_profile,
+    cloudtrail_name).
+    """
+    if cloudtrails_to_delete:
+        with Pool() as p:
+            p.map(
+                aws_utils.delete_cloudtrail, cloudtrails_to_delete)
+
+
+def drop_account_data():
+    """Drop all account data from the cloudigrade's database."""
+    injector.run_remote_python("""
+    from account.models import Account
+    Account.objects.all().delete()
+    """)
 
 
 def get_auth(user=None):

@@ -4,10 +4,9 @@ from multiprocessing import Pool
 
 import pytest
 
-from integrade import injector
+from integrade.tests import utils
 from integrade.tests.aws_utils import (
     delete_bucket_and_cloudtrail,
-    delete_cloudtrail,
     terminate_instance,
 )
 
@@ -26,12 +25,7 @@ def drop_account_data():
     other tests. For that reason, mark any test using this fixture with
     "@pytest.mark.serial_only".
     """
-    py_script = """
-    from account.models import Account
-    Account.objects.all().delete()
-    """
-
-    injector.run_remote_python(py_script)
+    utils.drop_account_data()
 
 
 @pytest.fixture()
@@ -91,10 +85,7 @@ def cloudtrails_to_delete():
 
     yield cloudtrails_to_delete
 
-    if cloudtrails_to_delete:
-        with Pool() as p:
-            p.map(
-                delete_cloudtrail, cloudtrails_to_delete)
+    utils.delete_cloudtrails(cloudtrails_to_delete)
 
 
 @pytest.fixture()
