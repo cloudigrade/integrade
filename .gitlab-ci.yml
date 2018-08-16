@@ -187,7 +187,7 @@ API All Manually:
   <<: *api_all
   after_script:
     - python scripts/aws_reaper.py --env-cloudtrail-only
-  
+
 API Quick:
   stage: Test Cloudigrade API
   when: on_success
@@ -195,7 +195,7 @@ API Quick:
     - master
   <<: *before_script
   script:
-    - export TEST_MODULES="$(git diff-tree --no-commit-id --name-only -r master..HEAD integrade/tests/api)"
+    - export TEST_MODULES="$(git diff-tree --diff-filter=d --no-commit-id --name-only -r master..HEAD integrade/tests/api)"
     - if [[ "${TEST_MODULES}" ]]; then echo "${TEST_MODULES}" | xargs py.test -vvv --force-flaky -m 'not run_first'; fi
 
 UI Quick:
@@ -203,7 +203,7 @@ UI Quick:
   when: on_success
   <<: *before_script
   script:
-    - export TEST_MODULES="$(git diff-tree --no-commit-id --name-only -r master..HEAD integrade/tests/ui)"
+    - export TEST_MODULES="$(git diff-tree --diff-filter=d --no-commit-id --name-only -r master..HEAD integrade/tests/ui)"
     - if [[ "${TEST_MODULES}" ]]; then echo "${TEST_MODULES}" | xargs py.test -vvv --force-flaky -m 'not run_first' ${DRIVER_CHROME}; fi
   services:
     - name: selenium/standalone-chrome
