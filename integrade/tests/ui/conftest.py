@@ -1,5 +1,6 @@
 """Collection of fixtures representing reusable UI steps for UI tests."""
 import logging
+import time
 
 import pytest
 
@@ -9,6 +10,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from widgetastic.browser import Browser
 
 from integrade.config import get_config
+from integrade.injector import inject_aws_cloud_account, inject_instance_data
 from integrade.tests.utils import create_user_account, get_auth
 from integrade.utils import base_url
 
@@ -23,6 +25,43 @@ from ...utils import gen_password, uuid4
 
 logger = logging.getLogger(__name__)
 USER = None
+CLOUD_ACCOUNT_NAME = 'my_cloud_account'
+
+
+@pytest.fixture
+def cloud_account(ui_user, drop_account_data):
+    """Create a cloud account, return the auth object and account details."""
+    return inject_aws_cloud_account(ui_user['id'], name=CLOUD_ACCOUNT_NAME)
+
+
+@pytest.fixture
+def cloud_account_data(selenium, cloud_account):
+    """Create a factory to create cloud account data.
+
+    This fixture creates a factory (a function) which will insert data into a
+    newly created cloud account. Repeated calls will insert the data into the
+    same cloud account. Data is inserted with a given image tag and a series
+    of instance events, given in either `datetime` objects or day offsets from
+    the current time.
+
+    Create one instance with a RHEL image that was powered on 5 days ago:
+
+        cloud_account_data("rhel", [5])
+
+    Create three instances from a single non-RHEL, non-OpenShift image that
+    ran for two weeks in September:
+
+        image_id = "my_image_id"
+        start = datetime(2018, 9, 1)
+        stop = datetime(2018, 9, 14)
+        for i in range(3):
+            cloud_account_data("", [start, stop], ec2_ami_id=image_id)
+    """
+    def factory(tag, events, **kwargs):
+        inject_instance_data(cloud_account['id'], tag, events, **kwargs)
+        selenium.refresh()
+        time.sleep(1)
+    return factory
 
 
 @pytest.fixture()

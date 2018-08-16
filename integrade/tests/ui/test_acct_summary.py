@@ -9,52 +9,10 @@
 :upstream: yes
 """
 import datetime
-import time
 
 import pytest
 
-from integrade.injector import (
-    inject_aws_cloud_account,
-    inject_instance_data,
-)
-
 from .utils import find_element_by_text
-
-
-@pytest.fixture
-def cloud_account(ui_user, drop_account_data, cloudtrails_to_delete):
-    """Create a cloud account, return the auth object and account details."""
-    return inject_aws_cloud_account(ui_user['id'])
-
-
-@pytest.fixture
-def cloud_account_data(selenium, cloud_account):
-    """Create a factory to create cloud account data.
-
-    This fixture creates a factory (a function) which will insert data into a
-    newly created cloud account. Repeated calls will insert the data into the
-    same cloud account. Data is inserted with a given image tag and a series
-    of instance events, given in either `datetime` objects or day offsets from
-    the current time.
-
-    Create one instance with a RHEL image that was powered on 5 days ago:
-
-        cloud_account_data("rhel", [5])
-
-    Create three instances from a single non-RHEL, non-OpenShift image that
-    ran for two weeks in September:
-
-        image_id = "my_image_id"
-        start = datetime(2018, 9, 1)
-        stop = datetime(2018, 9, 14)
-        for i in range(3):
-            cloud_account_data("", [start, stop], ec2_ami_id=image_id)
-    """
-    def factory(tag, events, **kwargs):
-        inject_instance_data(cloud_account['id'], tag, events, **kwargs)
-        selenium.refresh()
-        time.sleep(1)
-    return factory
 
 
 def test_empty(cloud_account_data, selenium, ui_acct_list):
