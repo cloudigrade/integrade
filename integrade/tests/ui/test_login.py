@@ -56,7 +56,6 @@ def test_login_valid_username(selenium, ui_loginpage, ui_user):
 
     # Username field becomes valid with an e-mail address entered as username
     assert browser.execute_script(CHECK_VALID)
-    assert 0, ui_user
 
 
 def test_incorrect_login(selenium, ui_loginpage, ui_user):
