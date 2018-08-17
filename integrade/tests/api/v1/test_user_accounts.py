@@ -8,8 +8,11 @@
 :testtype: functional
 :upstream: yes
 """
+import random
+
 from integrade import api
 from integrade.config import get_config
+from integrade.injector import inject_aws_cloud_account
 from integrade.tests import urls
 from integrade.tests.utils import create_user_account, get_auth
 from integrade.utils import gen_password, uuid4
@@ -127,8 +130,20 @@ def test_user_list(drop_account_data):
     assert get_config()['super_user_name'] in usernames
 
     new_user = create_user_account()
-    response = client.get(urls.USER_LIST)
-    new_user_list = [user for user in response.json()
+    account_number = random.randint(2, 5)
+    for _ in range(account_number):
+        inject_aws_cloud_account(new_user['id'])
+    response = client.get(urls.USER_LIST).json()
+
+    for user in response:
+        assert 'accounts' in user, user
+        assert 'challenged_images' in user, user
+
+        if user['id'] == new_user['id']:
+            assert user['accounts'] == account_number
+            assert user['challenged_images'] == 0
+
+    new_user_list = [user for user in response
                      if user not in pre_user_list]
     new_user_ids = [user['id'] for user in new_user_list]
 
