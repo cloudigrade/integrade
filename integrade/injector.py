@@ -61,8 +61,8 @@ def direct_count_images(acct_id=None):
         from account.models import AwsMachineImage
 
         if acct_id:
-            acct = Account.objects.get(id=acct_id)
-            return AwsMachineImage.objects.filter(account=acct).count()
+            return AwsMachineImage.objects.filter(
+                instanceevent__instance__account__user_id=acct_id).count()
         else:
             return AwsMachineImage.objects.all().count()
         """, **locals())
@@ -76,8 +76,8 @@ def clear_images(acct_id=None):
         from account.models import AwsMachineImage
 
         if acct_id:
-            acct = Account.objects.get(id=acct_id)
-            images = AwsMachineImage.objects.filter(account=acct)
+            images = AwsMachineImage.objects.filter(
+                instanceevent__instance__account__user_id=acct_id)
         else:
             images = AwsMachineImage.objects.all()
         images.delete()
@@ -124,6 +124,7 @@ def inject_instance_data(
     acct_id, image_type, events,
     instance_id=None,
     ec2_ami_id=None,
+    owner_aws_account_id=None,
 ):
     """Inject instance and image data for tests.
 
@@ -151,7 +152,7 @@ def inject_instance_data(
         ec2_ami_id=ec2_ami_id,
 
         defaults=dict(
-            account=acct,
+            owner_aws_account_id=owner_aws_account_id or acct.aws_account_id,
             status=AwsMachineImage.INSPECTED,
             rhel_detected=True if 'rhel' in image_type else False,
             openshift_detected=True if 'openshift' in image_type else False,
