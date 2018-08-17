@@ -80,6 +80,14 @@ def drop_account_data():
     """)
 
 
+def drop_image_data():
+    """Drop all image data from the cloudigrade's database."""
+    injector.run_remote_python("""
+    from account.models import AwsMachineImage
+    AwsMachineImage.objects.all().delete()
+    """)
+
+
 def get_auth(user=None):
     """Get authentication for given user to use with requests.
 
