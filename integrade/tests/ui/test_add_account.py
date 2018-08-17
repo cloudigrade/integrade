@@ -209,7 +209,7 @@ def test_add_account(mistake,
 
     # We don't see the welcome screen anymore
     assert find_element_by_text(selenium, 'Welcome to Cloud Meter') is None
-    assert find_element_by_text(selenium, 'My Account') is not None
+    assert find_element_by_text(selenium, acct_name) is not None
 
     # The account exists in the API
     r = c.get(urls.CLOUD_ACCOUNT).json()
