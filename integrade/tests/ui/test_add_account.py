@@ -198,7 +198,7 @@ def test_add_account(mistake,
 
     try:
         wait = WebDriverWait(selenium, 90)
-        wait.until(wait_for_page_text('%swascreated' % acct_name))
+        wait.until(wait_for_page_text('%s was created' % acct_name))
     except TimeoutException:
         duplicate_error = 'aws account with this account arn already exists.'
         if duplicate_error in selenium.page_source:
