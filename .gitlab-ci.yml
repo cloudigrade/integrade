@@ -155,6 +155,23 @@ Automatically Teardown Cloudigrade:
   variables:
     ENVIRONMENT_SLUG: ${CI_PROJECT_NAME}-${CI_ENVIRONMENT_SLUG}
 
+.quick_before_script: &quick_before_script
+  before_script:
+    - export TEST_MODULES="$(git diff-tree --diff-filter=d --no-commit-id --name-only -r master..HEAD ${TEST_PATH})"
+    - if [[ -z "${TEST_MODULES}" ]]; then exit 0 ; fi
+    - python --version
+    - oc version
+    - export CLOUDIGRADE_BASE_URL="${ENVIRONMENT_SLUG}.review.gitlab.cloudigra.de"
+    - export DEPLOYMENT_PREFIX="${ENVIRONMENT_SLUG}"
+    - oc login ${OPENSHIFT_URL} --token ${GITLAB_CI_SA_TOKEN}
+    - source scripts/oc-auth.sh
+    - export DRIVER_CHROME="--driver Remote --capability browserName chrome --host selenium --port 4444"
+    - make install-dev
+  environment:
+    name: review/$CI_COMMIT_REF_NAME
+    url: http://${CI_PROJECT_NAME}-${CI_ENVIRONMENT_SLUG}.review.gitlab.cloudigra.de
+    on_stop: Teardown Cloudigrade
+
 Inspection:
   stage: Test Cloudigrade Inspection
   only:
@@ -193,17 +210,23 @@ API Quick:
   when: on_success
   except:
     - master
-  <<: *before_script
+  <<: *quick_before_script
+  variables:
+    ENVIRONMENT_SLUG: ${CI_PROJECT_NAME}-${CI_ENVIRONMENT_SLUG}
+    TEST_PATH: integrade/tests/api/v1/
   script:
-    - export TEST_MODULES="$(git diff-tree --diff-filter=d --no-commit-id --name-only -r master..HEAD integrade/tests/api)"
     - if [[ "${TEST_MODULES}" ]]; then echo "${TEST_MODULES}" | xargs py.test -vvv --force-flaky -m 'not run_first'; fi
 
 UI Quick:
   stage: Test Cloudigrade UI
   when: on_success
-  <<: *before_script
+  except:
+    - master
+  <<: *quick_before_script
+  variables:
+    ENVIRONMENT_SLUG: ${CI_PROJECT_NAME}-${CI_ENVIRONMENT_SLUG}
+    TEST_PATH: integrade/tests/ui
   script:
-    - export TEST_MODULES="$(git diff-tree --diff-filter=d --no-commit-id --name-only -r master..HEAD integrade/tests/ui)"
     - if [[ "${TEST_MODULES}" ]]; then echo "${TEST_MODULES}" | xargs py.test -vvv --force-flaky -m 'not run_first' ${DRIVER_CHROME}; fi
   services:
     - name: selenium/standalone-chrome
