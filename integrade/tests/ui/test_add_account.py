@@ -198,13 +198,20 @@ def test_add_account(mistake,
 
     try:
         wait = WebDriverWait(selenium, 90)
-        wait.until(wait_for_page_text('%s was created' % acct_name))
+        wait.until(wait_for_page_text('%swascreated' % acct_name))
     except TimeoutException:
         duplicate_error = 'aws account with this account arn already exists.'
         if duplicate_error in selenium.page_source:
             # Retry after waiting and clearing accounts
             sleep(60)
 
+    find_element_by_text(dialog, 'Close').click()
+
+    # We don't see the welcome screen anymore
+    assert find_element_by_text(selenium, 'Welcome to Cloud Meter') is None
+    assert find_element_by_text(selenium, 'My Account') is not None
+
+    # The account exists in the API
     r = c.get(urls.CLOUD_ACCOUNT).json()
     accounts = [a for a in r['results'] if a['user_id'] == ui_user['id']]
     assert acct_name == accounts[0]['name']
