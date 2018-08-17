@@ -30,49 +30,6 @@ from .utils import (
 logger = logging.getLogger(__name__)
 
 
-@pytest.fixture
-def ui_addacct_page1(selenium, ui_dashboard):
-    """Open the Add Account dialog."""
-    browser, login = ui_dashboard
-
-    btn_add_account = find_element_by_text(selenium, 'Add Account')
-    btn_add_account.click()
-
-    dialog = selenium.find_element_by_css_selector('[role=dialog]')
-
-    return {
-        'dialog': dialog,
-        'dialog_next': find_element_by_text(dialog, 'Next'),
-    }
-
-
-@pytest.fixture
-def ui_addacct_page2(selenium, ui_addacct_page1):
-    """Navigate to the second page of the Add Account dialog."""
-    profile_name = 'My Account'
-    dialog = ui_addacct_page1['dialog']
-
-    fill_input_by_label(selenium, dialog, 'Account Name', profile_name)
-    ui_addacct_page1['dialog_next'].click()
-
-    return ui_addacct_page1
-
-
-@pytest.fixture
-def ui_addacct_page3(selenium, ui_addacct_page2):
-    """Navigate to the 3rd page of the dialog, with the ARN field."""
-    dialog = ui_addacct_page2['dialog']
-    dialog_next = ui_addacct_page2['dialog_next']
-
-    dialog_next.click()
-
-    dialog_add = find_element_by_text(dialog, 'Add')
-    assert dialog_add.get_attribute('disabled')
-
-    ui_addacct_page2['dialog_add'] = dialog_add
-    return ui_addacct_page2
-
-
 @pytest.mark.skip(reason='http://gitlab.com/cloudigrade/frontigrade/issues/50')
 def test_fill_name_and_clear(selenium, ui_addacct_page1, ui_user):
     """The account name's validity is always reflected in the Next button state.

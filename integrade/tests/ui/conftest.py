@@ -12,7 +12,11 @@ from integrade.config import get_config
 from integrade.tests.utils import create_user_account, get_auth
 from integrade.utils import base_url
 
-from .utils import wait_for_page_text
+from .utils import (
+    fill_input_by_label,
+    find_element_by_text,
+    wait_for_page_text,
+)
 from .views import LoginView
 from ...utils import gen_password, uuid4
 
@@ -112,3 +116,46 @@ def ui_acct_list(selenium, ui_loginpage, ui_user):
     wait.until(wait_for_page_text('Accounts'))
 
     return browser, login
+
+
+@pytest.fixture
+def ui_addacct_page1(selenium, ui_dashboard):
+    """Open the Add Account dialog."""
+    browser, login = ui_dashboard
+
+    btn_add_account = find_element_by_text(selenium, 'Add Account')
+    btn_add_account.click()
+
+    dialog = selenium.find_element_by_css_selector('[role=dialog]')
+
+    return {
+        'dialog': dialog,
+        'dialog_next': find_element_by_text(dialog, 'Next'),
+    }
+
+
+@pytest.fixture
+def ui_addacct_page2(selenium, ui_addacct_page1):
+    """Navigate to the second page of the Add Account dialog."""
+    profile_name = 'My Account'
+    dialog = ui_addacct_page1['dialog']
+
+    fill_input_by_label(selenium, dialog, 'Account Name', profile_name)
+    ui_addacct_page1['dialog_next'].click()
+
+    return ui_addacct_page1
+
+
+@pytest.fixture
+def ui_addacct_page3(selenium, ui_addacct_page2):
+    """Navigate to the 3rd page of the dialog, with the ARN field."""
+    dialog = ui_addacct_page2['dialog']
+    dialog_next = ui_addacct_page2['dialog_next']
+
+    dialog_next.click()
+
+    dialog_add = find_element_by_text(dialog, 'Add')
+    assert dialog_add.get_attribute('disabled')
+
+    ui_addacct_page2['dialog_add'] = dialog_add
+    return ui_addacct_page2

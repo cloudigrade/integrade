@@ -95,7 +95,7 @@ def inject_aws_cloud_account(user_id, name=None, aws_account_number=None):
     """
     if aws_account_number is None:
         aws_account_number = str(randint(100000000000, 999999999999))
-    arn = f'arn:aws:iam:{aws_account_number}:role/mock-arn'
+    arn = f'arn:aws:iam::{aws_account_number}:role/mock-arn'
     if name is None:
         name = aws_account_number
     return run_remote_python("""
@@ -106,7 +106,7 @@ def inject_aws_cloud_account(user_id, name=None, aws_account_number=None):
         'user_id': user_id,
         'account_arn': arn,
         'name': name,
-              }
+    }
 
     acct, new = AwsAccount.objects.get_or_create(**kwargs)
 
