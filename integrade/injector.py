@@ -144,17 +144,21 @@ def inject_instance_data(
         ec2_ami_id = str(randint(100000, 999999999999))
     run_remote_python("""
     from datetime import date, timedelta
+    import json
+
     from account.models import Account, AwsInstance, AwsInstanceEvent
     from account.models import AwsMachineImage
 
     acct = Account.objects.get_or_create(id=acct_id)[0]
+    rhel_detected = True if 'rhel' in image_type else False
     image1 = AwsMachineImage.objects.get_or_create(
         ec2_ami_id=ec2_ami_id,
 
         defaults=dict(
             owner_aws_account_id=owner_aws_account_id or acct.aws_account_id,
             status=AwsMachineImage.INSPECTED,
-            rhel_detected=True if 'rhel' in image_type else False,
+            inspection_json=json.dumps(
+                {"rhel_release_files_found": rhel_detected}),
             openshift_detected=True if 'openshift' in image_type else False,
 
             platform='none',
