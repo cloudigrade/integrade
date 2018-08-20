@@ -1,6 +1,6 @@
 """Utilities functions for tests."""
 import copy
-from datetime import datetime, time, timedelta
+from datetime import datetime, time, timedelta, timezone
 from multiprocessing import Pool
 
 from integrade import api, config, injector
@@ -135,3 +135,11 @@ def get_time_range(offset=0):
     end = datetime.combine(tomorrow, time(4, 0, 0))
     start = end - timedelta(days=30)
     return start.strftime(fmt), end.strftime(fmt)
+
+
+def utc_dt(*args, **kwargs):
+    """Wrap datetime construction to force result to UTC.
+
+    :returns: datetime.datetime instance with its timezone set to UTC.
+    """
+    return datetime(*args, **kwargs).replace(tzinfo=timezone.utc)
