@@ -201,9 +201,13 @@ def test_add_account(mistake,
         wait.until(wait_for_page_text('%s was created' % acct_name))
     except TimeoutException:
         duplicate_error = 'aws account with this account arn already exists.'
+        # Retry after waiting and clearing accounts
         if duplicate_error in selenium.page_source:
-            # Retry after waiting and clearing accounts
             sleep(60)
+        pytest.fail(
+            'Could not create cloud account, or did not see valid '
+            'message to indicate successful creation.'
+        )
 
     find_element_by_text(dialog, 'Close').click()
 
