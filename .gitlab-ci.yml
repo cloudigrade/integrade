@@ -33,6 +33,7 @@ Deploy Cloudigrade:
     GIT_STRATEGY: none
   before_script:
     - oc login ${OPENSHIFT_URL} --token ${GITLAB_CI_SA_TOKEN}
+    - oc project ${OPENSHIFT_PROJECT}
     - git clone https://gitlab.com/cloudigrade/shiftigrade.git
     - cd shiftigrade
   script:
@@ -94,6 +95,7 @@ Deploy Cloudigrade:
     GIT_STRATEGY: none
   before_script:
     - oc login ${OPENSHIFT_URL} --token ${GITLAB_CI_SA_TOKEN}
+    - oc project ${OPENSHIFT_PROJECT}
     - git clone https://gitlab.com/cloudigrade/shiftigrade.git
     - cd shiftigrade
   script:
@@ -146,6 +148,7 @@ Automatically Teardown Cloudigrade:
     - export CLOUDIGRADE_BASE_URL="${ENVIRONMENT_SLUG}.review.gitlab.cloudigra.de"
     - export DEPLOYMENT_PREFIX="${ENVIRONMENT_SLUG}"
     - oc login ${OPENSHIFT_URL} --token ${GITLAB_CI_SA_TOKEN}
+    - oc project ${OPENSHIFT_PROJECT}
     - source scripts/oc-auth.sh
     - export DRIVER_CHROME="--driver Remote --capability browserName chrome --host selenium --port 4444"
   environment:
@@ -164,6 +167,7 @@ Automatically Teardown Cloudigrade:
     - export CLOUDIGRADE_BASE_URL="${ENVIRONMENT_SLUG}.review.gitlab.cloudigra.de"
     - export DEPLOYMENT_PREFIX="${ENVIRONMENT_SLUG}"
     - oc login ${OPENSHIFT_URL} --token ${GITLAB_CI_SA_TOKEN}
+    - oc project ${OPENSHIFT_PROJECT}
     - source scripts/oc-auth.sh
     - export DRIVER_CHROME="--driver Remote --capability browserName chrome --host selenium --port 4444"
     - make install-dev
