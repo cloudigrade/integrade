@@ -84,7 +84,11 @@ def clear_images(acct_id=None):
         """, **locals())
 
 
-def inject_aws_cloud_account(user_id, name=None, aws_account_number=None):
+def inject_aws_cloud_account(user_id,
+                             name=None,
+                             aws_account_number=None,
+                             acct_age=100,
+                             ):
     """Mock an aws account for the user specified.
 
     Mocked AWS accounts dont point to a real AWS account! No cloudtrail
@@ -99,6 +103,7 @@ def inject_aws_cloud_account(user_id, name=None, aws_account_number=None):
     if name is None:
         name = aws_account_number
     return run_remote_python("""
+    import datetime
     from account.models import AwsAccount
 
     kwargs = {
@@ -109,6 +114,9 @@ def inject_aws_cloud_account(user_id, name=None, aws_account_number=None):
     }
 
     acct, new = AwsAccount.objects.get_or_create(**kwargs)
+    days_ago = datetime.timedelta(days=acct_age)
+    acct.created_at = datetime.datetime.now() - days_ago
+    acct.save()
 
     return {
         'id' : acct.id,
@@ -184,6 +192,7 @@ def inject_instance_data(
             machineimage=image1,
             instance=instance1,
             occurred_at=when,
+            created_at=when,
         )
         on = not on
     """, **locals())

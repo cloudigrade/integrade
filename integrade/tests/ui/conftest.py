@@ -25,7 +25,7 @@ from ...utils import gen_password, uuid4
 
 logger = logging.getLogger(__name__)
 USER = None
-CLOUD_ACCOUNT_NAME = 'my_cloud_account'
+CLOUD_ACCOUNT_NAME = 'First Account'
 
 
 @pytest.fixture
@@ -60,7 +60,7 @@ def cloud_account_data(selenium, cloud_account):
     def factory(tag, events, **kwargs):
         inject_instance_data(cloud_account['id'], tag, events, **kwargs)
         selenium.refresh()
-        time.sleep(1)
+        time.sleep(0.35)
     return factory
 
 

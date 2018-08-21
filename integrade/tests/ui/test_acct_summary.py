@@ -9,14 +9,31 @@
 :upstream: yes
 """
 import datetime
+import time
 
 import pytest
 
-from .utils import find_element_by_text
+from .utils import (
+    fill_input_by_placeholder,
+    find_element_by_text,
+)
+from ...injector import (
+    inject_aws_cloud_account,
+    inject_instance_data,
+)
 
 
 def test_empty(cloud_account_data, selenium, ui_acct_list):
-    """Accounts should show 0 images and instances when empty for period."""
+    """Account summaries should shown 0 images and instances without data.
+
+    :id: d23e7196-3139-4017-8d46-6d430c5c4f84
+    :description: Looking at account summaries for a date range after creation
+        but without any observed instances should show 0 counts.
+    :steps:
+        1) Add a cloud account
+    :expectedresults:
+        Both images and instance should show 0 counts
+    """
     assert find_element_by_text(selenium, '0 Images')
     assert find_element_by_text(selenium, '0 Instances')
 
@@ -25,7 +42,20 @@ def test_empty(cloud_account_data, selenium, ui_acct_list):
     'start', (45, 31, 30, 29, 28, 15))
 def test_running_start_times(start, cloud_account_data, selenium,
                              ui_acct_list):
-    """At various start times instances should be counted for the period."""
+    """Instances left running from various days ago should count today.
+
+    :id: e3f8972d-d1dc-4a59-950f-d7a5ad1491a5
+    :description: An instance and its image should be counted if it was started
+        in the past and has not yet been stopped. This should be counted if it
+        started prior to the 30 day window, at cusps of the month filter, and
+        within the 30 day range.
+    :steps:
+        1) Add a cloud account
+        2) Create instance data as begun at a certain day in the past
+    :expectedresults:
+        - Confirm the instance and its image is counted once within the default
+          date filter
+    """
     cloud_account_data('', [start])
     assert find_element_by_text(selenium, '1 Images')
     assert find_element_by_text(selenium, '1 Instances')
@@ -34,14 +64,48 @@ def test_running_start_times(start, cloud_account_data, selenium,
 @pytest.mark.parametrize(
     'tag', ('', 'rhel', 'openshift', 'rhel,openshift'))
 def test_running_tags(tag, cloud_account_data, selenium, ui_acct_list):
-    """Tags should not affect counts."""
+    """Tags on images should not affect image or instance counts in summaryies.
+
+    :id: e9ea3960-051d-47cd-a23b-013ad8deb243
+    :description: The presence of tags should not affect image or instance
+        counts, but should be reflected in the summaries themselves.
+    :steps:
+        1) Add a cloud account
+        2) Create images and instances with no tag, each tag, and both tags
+    :expectedresults:
+        - The image and instance counts should always be 1
+        - The RHEL label should be 1 when the image has the rhel tag
+        - The RHOCP label should be 1 when the image has the openshift tag
+        - Both labels should be 1 when an image has both tags
+    """
     cloud_account_data(tag, [10])
     assert find_element_by_text(selenium, '1 Images')
     assert find_element_by_text(selenium, '1 Instances')
 
+    # No spaces because there are not spaces between the DOM nodes, even tho
+    # they are rendered separately.
+    if 'rhel' in tag:
+        assert find_element_by_text(selenium, '1RHEL')
+    else:
+        assert find_element_by_text(selenium, '0RHEL')
+    if 'openshift' in tag:
+        assert find_element_by_text(selenium, '1RHOCP')
+    else:
+        assert find_element_by_text(selenium, '0RHOCP')
+
 
 def test_reused_image(cloud_account_data, selenium, ui_acct_list):
-    """Multiple instances uses one image should be refelcted properly."""
+    """An image used in multiple instance should only count once in summary.
+
+    :id: 87a32f9c-da2c-4834-81d5-696b50433bf8
+    :description: Multiple instances using the same image should not cause
+        those images to be counted multiple times.
+    :steps:
+        1) Add a cloud account
+        2) Create data for three instances with the same AMI ID
+    :expectedresults:
+        There should be 3 instances and only 1 instance
+    """
     cloud_account_data('', [10], ec2_ami_id='image1')
     cloud_account_data('', [10], ec2_ami_id='image1')
     cloud_account_data('', [10], ec2_ami_id='image1')
@@ -52,9 +116,126 @@ def test_reused_image(cloud_account_data, selenium, ui_acct_list):
 
 @pytest.mark.skip(reason='http://gitlab.com/cloudigrade/frontigrade/issues/67')
 def test_last_event_time(cloud_account_data, selenium, ui_acct_list):
-    """Multiple instances using a single image should be reflected properly."""
+    """Account summaries show the date and time of the last observed event.
+
+    :id: c6d5c52c-0640-4409-8b43-7beb600217d7
+    :description: Each account should display including the time when the last
+        instance was observed being powered on or off.
+    :steps:
+        1) Add a cloud account
+        2) Inject instance and image data with a known event time powering on
+        3) View the dashboard to observe the date shown
+    :expectedresults:
+        - The date should be the same date as the known power on event
+    """
     when = datetime.datetime(2018, 8, 10, 9, 51)
     expected = 'Created 9:51AM, August 10th 2018'
 
     cloud_account_data('', [when], ec2_ami_id='image1')
     assert find_element_by_text(selenium, expected), selenium.page_source
+
+
+def test_account_name_filter(
+    cloud_account_data, selenium, ui_user, ui_acct_list
+):
+    """Account summary list can be filtered by name.
+
+    :id: e8c290d0-481d-46c8-9da6-540ec4f8dc24
+    :description: The filter should show matching accounts in the summary list.
+    :steps:
+        1) Add two cloud account with a known and different names
+        2) Enter a word in one account name, but not both, and apply the filter
+        3) Click the link to clear the filters
+    :expectedresults:
+        The matching account should still be listed, the other account should
+        not. When clearing the filter, both accounts should appear again.
+    """
+    acct2 = inject_aws_cloud_account(ui_user['id'], 'Second Account')
+
+    for i in range(3):
+        cloud_account_data('', [40, 39], ec2_ami_id='image2')
+        cloud_account_data('', [10], ec2_ami_id='image1')
+
+    inject_instance_data(acct2['id'], '', [10], ec2_ami_id='image1')
+    selenium.refresh()
+    time.sleep(1)
+
+    assert find_element_by_text(selenium, 'First Account')
+    assert find_element_by_text(selenium, 'Second Account')
+
+    input = fill_input_by_placeholder(
+        selenium, None,
+        'Filter by Name', 'Second')
+    input.send_keys('\n')
+    assert not find_element_by_text(selenium, 'First Account')
+    assert find_element_by_text(selenium, 'Second Account')
+
+    input = fill_input_by_placeholder(
+        selenium, None,
+        'Filter by Name', 'First')
+    input.send_keys('\n')
+    time.sleep(0.25)
+    assert find_element_by_text(selenium, 'First Account')
+    assert not find_element_by_text(selenium, 'Second Account')
+
+    find_element_by_text(selenium, 'Clear All Filters').click()
+    time.sleep(0.25)
+    assert find_element_by_text(selenium, 'First Account')
+    assert find_element_by_text(selenium, 'Second Account')
+
+
+def test_account_date_filter(
+    cloud_account_data, selenium, ui_user, ui_acct_list
+):
+    """The date dropdown should select and filter by previous months.
+
+    :id: 4eacca3e-c1a1-4de1-a874-bf730cd5596b
+    :description: The default date filter of "Last 30 Days" is a dropdown that
+        lists the 12 previous months, each of which can be selected to filter
+        the account summary list to results from that month.
+    :steps:
+        1) Create a cloud account with images and instances that ran for 1 day
+           in a previous month on a day that is not within the last 30 days.
+        2) Confirm these do not show up in the default 30 days filter.
+        3) Click the dropdown and select the month in which the events were
+           created.
+        4) Confirm the account list now reflects the appropriate counts.
+    :expectedresults:
+        The counts shown in the account summary should reflect images and
+        instances as they were counted within the time frame of the selected
+        date filter.
+    """
+    day = datetime.timedelta(days=1)
+    first = datetime.date.today().replace(day=1)
+    end_of_last = first - day
+    start_of_last = end_of_last.replace(day=1)
+    end_of_two_months_ago = start_of_last - day
+    start = end_of_two_months_ago.replace(day=1)
+    end = start + datetime.timedelta(days=1)
+    month_label = start.strftime('%Y %B')
+
+    for i in range(3):
+        cloud_account_data('', [start, end], ec2_ami_id='image2')
+
+    assert find_element_by_text(selenium, '0 Images')
+    assert find_element_by_text(selenium, '0 Instances')
+
+    find_element_by_text(selenium, 'Last 30 Days', n=2).click()
+    find_element_by_text(selenium, month_label).click()
+    time.sleep(0.25)
+
+    assert find_element_by_text(selenium, '1 Images')
+    assert find_element_by_text(selenium, '3 Instances')
+
+    long_ago = datetime.date.today() - datetime.timedelta(days=120)
+    long_ago_label = long_ago.strftime('%Y %B')
+    find_element_by_text(selenium, month_label, n=2).click()
+    find_element_by_text(selenium, long_ago_label).click()
+    time.sleep(0.25)
+
+    assert find_element_by_text(selenium, 'N/A Images')
+    assert find_element_by_text(selenium, 'N/A Instances')
+    # No spaces because there are not spaces between the DOM nodes, even tho
+    # they are rendered separately.
+    assert find_element_by_text(selenium, 'N/ARHEL')
+    assert find_element_by_text(selenium, 'N/ARHOCP')
