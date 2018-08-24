@@ -111,7 +111,9 @@ def test_hours_image(events, cloud_account_data, selenium,
     account.click()
     time.sleep(1)
     assert find_element_by_text(selenium, ec2_ami_id, exact=False)
-    assert find_element_by_text(selenium, f'{hours} Hours', exact=False)
+    hours_el = find_element_by_text(selenium, f'Hours', exact=False)
+    assert find_element_by_text(selenium, f'{hours} Hours', exact=False), \
+        f'seen: {hours_el.get_attribute("innerText")}, expected: {hours} Hours'
 
 
 tag_names = ['No Tag', 'RHEL', 'Openshift', 'RHEL and Openshift']

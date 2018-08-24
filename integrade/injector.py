@@ -33,7 +33,7 @@ def run_remote_python(script, **kwargs):
                                  ' -o jsonpath="{.items[*].metadata.name}" -l'
                                  f' name={container_name})'
                                  ' scl enable rh-python36'
-                                 ' -- python manage.py shell'],
+                                 ' -- python -W ignore manage.py shell'],
                                 stdout=subprocess.PIPE,
                                 input=script,
                                 timeout=60

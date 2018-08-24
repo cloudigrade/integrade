@@ -54,7 +54,7 @@ def get_time_lapsed_in_past_30_days(start, end):
         return int(hours), int(spare_min)
     elif end > 30:
         end = 30
-    hours = (start - end) * 24 + utc_offset_hours
+    hours = (start - end) * 24
 
     return int(max(0, hours)), 0
 
