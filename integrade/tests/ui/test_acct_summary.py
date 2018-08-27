@@ -9,9 +9,14 @@
 :upstream: yes
 """
 import datetime
+import random
 import time
 
+from dateutil.relativedelta import relativedelta
+
 import pytest
+
+from integrade.tests import utils
 
 from .utils import (
     fill_input_by_placeholder,
@@ -21,6 +26,19 @@ from ...injector import (
     inject_aws_cloud_account,
     inject_instance_data,
 )
+
+
+def sum_usage(usage):
+    """Sum up the total number of seconds from an usage list.
+
+    :param usage: A list with an even number of items where each pair indicates
+        instances' turn on and turn off events.
+    :returns: the total number of seconds that an instance was running.
+    """
+    total_seconds = 0
+    for start, end in zip(usage[0::2], usage[1::2]):
+        total_seconds += (end - start).total_seconds()
+    return total_seconds
 
 
 def test_empty(cloud_account_data, selenium, ui_acct_list):
@@ -239,3 +257,155 @@ def test_account_date_filter(
     # they are rendered separately.
     assert find_element_by_text(selenium, 'N/ARHEL')
     assert find_element_by_text(selenium, 'N/ARHOCP')
+
+
+def test_summary_cards(cloud_account_data, selenium, ui_acct_list):
+    """Ensure the summary cards provide the summary usage information.
+
+    :id: 53aeef62-79a8-4576-8cc5-b9dcc66d61b8
+    :description: Test that the summary cards on the top of the accounts page
+        show the summary usage information. The usage information must be the
+        usage on the selected month and should only include RHEL and/or
+        OpenShift usage.
+    :steps:
+        1) Create a cloud account with images and instances that ran across 3
+           different months: 2 months ago, 1 month ago and the current month.
+           Make sure to include usage from non RHEL and OpenShift, that should
+           not be shown on the report.
+        2) Select the past month as the usage period. Confirm the usage is
+           reported as expected.
+        3) Do the same for 2 months ago as the usage period. Confirm the usage
+           is reported as expected.
+    :expectedresults:
+        The usage report should count only RHEL and OpenShift hours. Any usage
+        from a non RHEL or OpenShift image should not be considered.
+    """
+    now = utils.utc_now()
+    one_month = relativedelta(months=1)
+    last_month = now - one_month
+    month_after = last_month + one_month
+    month_before = last_month - one_month
+    last_day = utils.days_in_month(last_month.year, last_month.month)
+    rhel_runtime = 0
+    openshift_runtime = 0
+    plain_ami_id = str(random.randint(100000, 999999999999))
+    rhel_ami_id = str(random.randint(100000, 999999999999))
+    openshift_ami_id = str(random.randint(100000, 999999999999))
+    rhel_openshift_ami_id = str(random.randint(100000, 999999999999))
+
+    cloud_account_data(
+        '',
+        [
+            utils.utc_dt(2018, last_month.month, 9, 3, 0, 0),
+            utils.utc_dt(2018, last_month.month, 11, 3, 0, 0),
+        ],
+        ec2_ami_id=plain_ami_id,
+    )
+
+    usage = [
+        utils.utc_dt(2018, last_month.month, 11, 7, 0, 0),
+        utils.utc_dt(2018, last_month.month, 13, 5, 0, 0),
+    ]
+    cloud_account_data('openshift', usage, ec2_ami_id=openshift_ami_id)
+    openshift_runtime += sum_usage(usage)
+
+    usage = [
+        utils.utc_dt(2018, last_month.month, 1, 4, 0, 0),
+        utils.utc_dt(2018, last_month.month, last_day, 21, 0, 0),
+    ]
+    cloud_account_data('openshift', usage, ec2_ami_id=openshift_ami_id)
+    openshift_runtime += sum_usage(usage)
+
+    usage = [
+        utils.utc_dt(month_before.year, month_before.month, 22, 3, 0, 0),
+        utils.utc_dt(month_before.year, month_before.month, 27, 3, 0, 0),
+        utils.utc_dt(2018, last_month.month, 8, 5, 0, 0),
+        utils.utc_dt(2018, last_month.month, 10, 5, 0, 0),
+        utils.utc_dt(2018, last_month.month, 11, 5, 0, 0),
+        utils.utc_dt(2018, last_month.month, 11, 6, 0, 0),
+        utils.utc_dt(2018, last_month.month, 11, 7, 0, 0),
+        utils.utc_dt(2018, last_month.month, 11, 8, 0, 0),
+        utils.utc_dt(2018, last_month.month, 11, 9, 0, 0),
+        utils.utc_dt(2018, last_month.month, 11, 10, 0, 0),
+        utils.utc_dt(month_after.year, month_after.month, 20, 5, 0, 0),
+        utils.utc_dt(month_after.year, month_after.month, 23, 5, 0, 0),
+    ]
+    cloud_account_data('rhel', usage, ec2_ami_id=rhel_ami_id)
+    rhel_runtime += sum_usage(usage[2:10])
+
+    usage = [
+        utils.utc_dt(2018, last_month.month, 31, 5, 0, 0),
+        utils.utc_dt(2018, last_month.month, 31, 6, 0, 0),
+        utils.utc_dt(2018, last_month.month, 31, 7, 0, 0),
+        utils.utc_dt(2018, last_month.month, 31, 8, 0, 0),
+        utils.utc_dt(2018, last_month.month, 31, 9, 0, 0),
+        utils.utc_dt(2018, last_month.month, 31, 10, 0, 0),
+    ]
+    cloud_account_data('rhel', usage, ec2_ami_id=rhel_ami_id)
+    rhel_runtime += sum_usage(usage)
+
+    usage = [
+        utils.utc_dt(2018, last_month.month, 12, 0, 0, 0),
+        utils.utc_dt(2018, last_month.month, 12, 6, 0, 0),
+        utils.utc_dt(2018, last_month.month, 12, 7, 0, 0),
+        utils.utc_dt(2018, last_month.month, 12, 8, 0, 0),
+        utils.utc_dt(2018, last_month.month, 12, 9, 0, 0),
+        utils.utc_dt(2018, last_month.month, 12, 23, 0, 0),
+    ]
+    cloud_account_data('rhel', usage, ec2_ami_id=rhel_ami_id)
+    rhel_runtime += sum_usage(usage)
+
+    usage = [
+        utils.utc_dt(2018, last_month.month, 9, 9, 0, 0),
+        utils.utc_dt(2018, last_month.month, 14, 9, 0, 0),
+    ]
+    cloud_account_data(
+        'rhel,openshift', usage, ec2_ami_id=rhel_openshift_ami_id)
+    openshift_runtime += sum_usage(usage)
+    rhel_runtime += sum_usage(usage)
+
+    # Convert runtime from seconds to hours
+    rhel_runtime = int(rhel_runtime / 3600)
+    openshift_runtime = int(openshift_runtime / 3600)
+
+    month_label = last_month.strftime('%Y %B')
+    find_element_by_text(selenium, 'Last 30 Days', n=2).click()
+    find_element_by_text(selenium, month_label).click()
+    time.sleep(1)
+
+    assert find_element_by_text(selenium, '4RHEL Instances')
+    assert find_element_by_text(selenium, '3RHOCP Instances')
+    assert find_element_by_text(
+        selenium,
+        f'{rhel_runtime}Red Hat Enterprise Linux Hours'
+    )
+    assert find_element_by_text(
+        selenium,
+        f'{openshift_runtime}Red Hat OpenShift Container Platform Hours'
+    )
+
+    assert find_element_by_text(selenium, '4 Images')
+    assert find_element_by_text(selenium, '7 Instances')
+    assert find_element_by_text(selenium, '4RHEL')
+    assert find_element_by_text(selenium, '3RHOCP')
+
+    month_before_label = month_before.strftime('%Y %B')
+    find_element_by_text(selenium, month_label, n=2).click()
+    find_element_by_text(selenium, month_before_label).click()
+    time.sleep(1)
+
+    assert find_element_by_text(selenium, '1RHEL Instances')
+    assert find_element_by_text(selenium, '0RHOCP Instances')
+    assert find_element_by_text(
+        selenium,
+        '120Red Hat Enterprise Linux Hours'
+    )
+    assert find_element_by_text(
+        selenium,
+        '0Red Hat OpenShift Container Platform Hours'
+    )
+
+    assert find_element_by_text(selenium, '1 Images')
+    assert find_element_by_text(selenium, '1 Instances')
+    assert find_element_by_text(selenium, '1RHEL')
+    assert find_element_by_text(selenium, '0RHOCP')

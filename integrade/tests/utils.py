@@ -1,4 +1,5 @@
 """Utilities functions for tests."""
+import calendar
 import copy
 from datetime import datetime, time, timedelta, timezone
 from multiprocessing import Pool
@@ -143,3 +144,19 @@ def utc_dt(*args, **kwargs):
     :returns: datetime.datetime instance with its timezone set to UTC.
     """
     return datetime(*args, **kwargs).replace(tzinfo=timezone.utc)
+
+
+def utc_now(*args, **kwargs):
+    """Return the datetime.now forcing result to UTC.
+
+    :returns: datetime.datetime instance with its timezone set to UTC.
+    """
+    return datetime.now().replace(tzinfo=timezone.utc)
+
+
+def days_in_month(year, month):
+    """Return the number of days on a given month.
+
+    :returns: An integer with the number of days a given month has.
+    """
+    return calendar.monthrange(year, month)[1]
