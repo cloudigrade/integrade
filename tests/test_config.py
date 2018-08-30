@@ -48,11 +48,11 @@ def test_get_config(ssl, protocol):
             os.environ['CLOUDIGRADE_ROLE_CUSTOMER1'] = '{}:{}:{}'.format(
                 uuid4(), account_number, uuid4())
             os.environ['DEPLOYMENT_PREFIX'] = deployment_prefix
-            os.environ['AWS_S3_BUCKET_NAME'] = deployment_prefix
             os.environ['AWS_ACCESS_KEY_ID_CUSTOMER1'] = uuid4()
             os.environ['USE_HTTPS'] = use_https
             os.environ['SSL_VERIFY'] = 'True' if ssl else 'False'
             cfg = config.get_config()
+            bucket_name = f'{deployment_prefix}-cloudigrade-s3'
             assert cfg['superuser_token'] == token
             assert cfg['base_url'] == 'example.com'
             assert cfg['scheme'] == protocol
@@ -63,7 +63,7 @@ def test_get_config(ssl, protocol):
             assert cfg['aws_profiles'][0]['cloudtrail_name'] == (
                 f'{deployment_prefix}{account_number}'
             )
-            assert cfg['cloudigrade_s3_bucket'] == deployment_prefix
+            assert cfg['cloudigrade_s3_bucket'] == bucket_name
 
 
 def test_negative_get_config_missing():

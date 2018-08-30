@@ -41,6 +41,7 @@ setup(
     install_requires=[
         'awscli',
         'boto3',
+        'click',
         'flaky',
         'pytest',
         'pytest-selenium',

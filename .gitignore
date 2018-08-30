@@ -1,3 +1,6 @@
+# aws image config
+integrade/aws_image_config.yaml
+
 # Pytest cache
 .pytest_cache/
 

@@ -164,13 +164,13 @@ Automatically Teardown Cloudigrade:
     - if [[ -z "${TEST_MODULES}" ]]; then exit 0 ; fi
     - python --version
     - oc version
+    - make install-dev
     - export CLOUDIGRADE_BASE_URL="${ENVIRONMENT_SLUG}.review.gitlab.cloudigra.de"
     - export DEPLOYMENT_PREFIX="${ENVIRONMENT_SLUG}"
     - oc login ${OPENSHIFT_URL} --token ${GITLAB_CI_SA_TOKEN}
     - oc project ${OPENSHIFT_PROJECT}
     - source scripts/oc-auth.sh
     - export DRIVER_CHROME="--driver Remote --capability browserName chrome --host selenium --port 4444"
-    - make install-dev
   environment:
     name: review/$CI_COMMIT_REF_NAME
     url: http://${CI_PROJECT_NAME}-${CI_ENVIRONMENT_SLUG}.review.gitlab.cloudigra.de
@@ -219,7 +219,10 @@ API Quick:
     ENVIRONMENT_SLUG: ${CI_PROJECT_NAME}-${CI_ENVIRONMENT_SLUG}
     TEST_PATH: integrade/tests/api/v1/
   script:
-    - if [[ "${TEST_MODULES}" ]]; then echo "${TEST_MODULES}" | xargs py.test -vvv --force-flaky -m 'not run_first'; fi
+    - export AWS_S3_BUCKET_NAME="${ENVIRONMENT_SLUG}-cloudigrade-s3"
+    - cp .aws_image_config.yaml integrade/aws_image_config.yaml
+    - export XDG_CONFIG_HOME=$PWD
+    - if [[ "${TEST_MODULES}" ]]; then echo "${TEST_MODULES}" | xargs py.test -vvv --force-flaky; fi
 
 UI Quick:
   stage: Test Cloudigrade UI
@@ -231,7 +234,7 @@ UI Quick:
     ENVIRONMENT_SLUG: ${CI_PROJECT_NAME}-${CI_ENVIRONMENT_SLUG}
     TEST_PATH: integrade/tests/ui
   script:
-    - if [[ "${TEST_MODULES}" ]]; then echo "${TEST_MODULES}" | xargs py.test -vvv --force-flaky -m 'not run_first' ${DRIVER_CHROME}; fi
+    - if [[ "${TEST_MODULES}" ]]; then echo "${TEST_MODULES}" | xargs py.test -vvv --force-flaky ${DRIVER_CHROME}; fi
   services:
     - name: selenium/standalone-chrome
       alias: selenium

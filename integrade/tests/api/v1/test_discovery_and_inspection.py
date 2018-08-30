@@ -13,69 +13,244 @@ import json
 import operator
 import os
 import random
+import sys
+from collections import namedtuple
 from datetime import datetime, timezone
 from time import sleep
 from urllib.parse import urlparse
 
 import boto3
 
+import click
+
 import pytest
 
 from integrade import api, config, exceptions
+from integrade.exceptions import MissingConfigurationError
 from integrade.tests import aws_utils, urls
 from integrade.tests.aws_utils import aws_image_config_needed
 from integrade.tests.constants import AWS_ACCOUNT_TYPE
-from integrade.tests.utils import get_auth
+from integrade.tests.utils import drop_account_data, get_auth
 
-cloudigrade_bucket_needed = pytest.mark.skipif(
-        config.get_config()['cloudigrade_s3_bucket'] == '',
-        reason='Cloudigrade s3 bucket name missing.'
-        )
+ImageData = namedtuple(
+    'ImageData',
+    'image_type image_name source_image instance_id'
+)
+"""Object to assist in passing around data shared by tests using an image."""
+
+BadEvent = namedtuple('BadEvent', 'name data gzipped')
+"""Object for describing what type of bad event data to place in s3 bucket."""
+
+power_on_events = [
+    'RunInstances',
+    'StartInstances',
+    'StartInstance'
+]
+"""List of possible power on events for use in mock cloudtrail event data."""
 
 
-def create_event(instance_id, aws_profile, event_type, time=None):
-    """Create an event and place it in the cloudigrade s3 bucket."""
+bad_events = [
+    BadEvent('textfile', b'bad!', False),
+    BadEvent('badjson', b'"{}', True),
+    BadEvent('badinstanceid', None, True),
+    BadEvent('badawsaccount', None, True),
+]
+"""List of types of bad events that in the past have caused bugs."""
+
+power_off_events = [
+    'TerminateInstances',
+    'StopInstances',
+    'TerminateInstanceInAutoScalingGroup'
+]
+"""List of possible power off events for use in mock cloudtrail event data."""
+
+image_test_matrix = [
+    ('owned', 'rhel-extra-detection-methods', 'inspected'),
+    ('owned', 'rhel-openshift-extra-detection-methods', 'inspected'),
+    ('owned', 'centos', 'inspected'),
+    ('owned', 'centos-openshift', 'inspected'),
+    ('owned', 'rhel', 'inspected'),
+    ('owned', 'rhel-openshift', 'inspected'),
+    ('community', 'ubuntu', 'inspected'),
+    ('community', 'windows', 'inspected'),
+    ('community', 'gentoo', 'inspected'),
+    ('community', 'fedora', 'inspected'),
+    ('community', 'opensuse', 'inspected'),
+    ('marketplace', 'rhel', 'inspected'),
+    ('marketplace', 'ubuntu', 'inspected'),
+    ('marketplace', 'windows', 'inspected'),
+    ('private-shared', 'rhel', 'inspected'),
+    ('private-shared', 'centos', 'inspected'),
+    ('private-shared', 'centos-openshift', 'inspected'),
+    ('private-shared', 'ubuntu-openshift', 'inspected'),
+    ('private-shared', 'centos', 'inspected'),
+]
+"""List of images categorized by ownership as well as expected terminal status.
+Could be expanded in the future to include images we expect errors for.
+To add images here, the corresponding information must be present in the aws
+config file. See the README.md in the root integrade directory for more
+information."""
+
+IMAGE_TO_TEST = random.choice(image_test_matrix)
+POWER_ON_EVENT_TO_TEST = random.choice(power_on_events)
+POWER_OFF_EVENT_TO_TEST = random.choice(power_off_events)
+BAD_EVENT_TO_TEST = random.choice(bad_events)
+
+
+@pytest.fixture(params=power_on_events,
+                ids=power_on_events)
+def power_on_event(request):
+    """Provide power on event to test."""
+    if request.param == POWER_ON_EVENT_TO_TEST:
+        return request.param
+    else:
+        pytest.skip(f'Testing only {POWER_ON_EVENT_TO_TEST}')
+
+
+@pytest.fixture(params=power_off_events,
+                ids=power_off_events)
+def power_off_event(request):
+    """Provide power off event to test."""
+    if request.param == POWER_OFF_EVENT_TO_TEST:
+        return request.param
+    else:
+        pytest.skip(f'Testing only {POWER_OFF_EVENT_TO_TEST}')
+
+
+@pytest.fixture(params=bad_events,
+                ids=[e.name for e in bad_events])
+def bad_event(request):
+    """Provide bad event to place in s3 bucket to test."""
+    if request.param == BAD_EVENT_TO_TEST:
+        return request.param
+    else:
+        pytest.skip(f'Testing only {BAD_EVENT_TO_TEST}')
+
+
+@pytest.fixture(params=[config.get_config()['aws_profiles'][0]],
+                ids=operator.itemgetter('name'), scope='module')
+def aws_profile(request):
+    """Provide the aws profile to use to test."""
+    return request.param
+
+
+@pytest.fixture(
+    params=[IMAGE_TO_TEST],
+    ids=[''],
+    scope='module'
+)
+def image_fixture(request, aws_profile):
+    """Power on an instance for use in module and terminate it after tests."""
+    aws_profile_name = aws_profile['name']
+    # Create some instances to detect on creation, random choice from every
+    # configured image type (private, owned, marketplace, community)
+    image_type, image_name, expected_state = request.param
+    source_image = [
+        image for image in aws_profile['images'][image_type]
+        if image['name'] == image_name
+    ][0]
+    # Run an instance
+    instance_id = aws_utils.run_instances_by_name(
+        aws_profile_name, image_type, image_name, count=1)[0]
+
+    yield ImageData(image_type, image_name, source_image, instance_id)
+
+    # Terminate the instance after the module completes
+    aws_utils.terminate_instance((aws_profile_name, instance_id))
+
+
+def get_s3_bucket_name():
+    """Get the cloudigrade bucket name and raise an exception if not found."""
     bucket_name = config.get_config()['cloudigrade_s3_bucket']
     if not bucket_name:
-        pytest.skip(
-            reason='Need to know the name of cloudigrade\'s s3'
-            ' bucket to mock events!')
+        raise MissingConfigurationError(
+            'Need to know the name of cloudigrade\'s s3'
+            ' bucket to mock events!'
+        )
+    return bucket_name
+
+
+def create_event(instance_id, aws_profile, event_type, time=None,
+                 data=None, gzipped=True):
+    """Create an event and place it in the cloudigrade s3 bucket."""
+    bucket_name = get_s3_bucket_name()
     s3 = boto3.resource('s3')
     cloudi_bucket = s3.Bucket(bucket_name)
     if not time:
         time = datetime.now(timezone.utc).astimezone().isoformat()
     # create event
-    mock_cloudtrail_event = {
-        'Records': [
-            {
-                'userIdentity': {
-                    'accountId': aws_profile['account_number']},
-                'awsRegion': os.environ.get('AWS_DEFAULT_REGION', 'us-east-1'),
-                'eventSource': 'ec2.amazonaws.com',
-                'eventName': event_type,
-                'eventTime': time,
-                'responseElements': {
-                    'instancesSet': {
-                        'items': [
-                            {
-                               'instanceId': instance_id
-                            }
-                        ]
+    if data is None:
+        mock_cloudtrail_event = {
+            'Records': [
+                {
+                    'userIdentity': {
+                        'accountId': aws_profile['account_number']},
+                    'awsRegion': os.environ.get('AWS_DEFAULT_REGION',
+                                                'us-east-1'),
+                    'eventSource': 'ec2.amazonaws.com',
+                    'eventName': event_type,
+                    'eventTime': time,
+                    'responseElements': {
+                        'instancesSet': {
+                            'items': [
+                                {
+                                    'instanceId': instance_id
+                                }
+                            ]
+                        }
                     }
                 }
-            }
-        ]
-    }
+            ]
+        }
+        data = bytes(json.dumps(mock_cloudtrail_event), encoding='utf-8')
     aws_profile_name = aws_profile['name']
-    gzip_file = f'{aws_profile_name}-{event_type}-{instance_id}.json.gz'
-    with gzip.open(gzip_file, 'wb') as f:
-        f.write(bytes(json.dumps(mock_cloudtrail_event), encoding='utf-8'))
-    path = f'AWSLogs/mock_events/{gzip_file}'
-    cloudi_bucket.upload_file(gzip_file, path)
-    os.remove(gzip_file)
+    upload_file = f'{aws_profile_name}-{event_type}-{instance_id}.json.gz'
+    if gzipped:
+        with gzip.open(upload_file, 'wb') as f:
+            f.write(data)
+    else:
+        with open(upload_file, 'wb') as f:
+            f.write(data)
+    path = f'AWSLogs/mock_events/{upload_file}'
+    cloudi_bucket.upload_file(upload_file, path)
+    os.remove(upload_file)
 
 
-def wait_for_inspection(source_image, auth, timeout=2400):
+def wait_for_cloudigrade_instance(
+        instance_id, auth, timeout=120, sleep_period=5):
+    """Wait for image to be inspected and assert on findings.
+
+    :param instance_id: The ec2 instance id you expect to find.
+    :param auth: the auth object for using with the server to authenticate as
+        the user in question.
+
+    :raises: AssertionError if the image is not inspected or if the results do
+        not match the expected results for product identification.
+    """
+    # Wait, keeping track of what images are inspected
+    client = api.Client(authenticate=False, response_handler=api.json_handler)
+    timepassed = 0
+    sys.stdout.write('\n')
+    with click.progressbar(
+            length=timeout,
+            label=f'Waiting for instance {instance_id} to appear in'
+            ' cloudigrade'
+    ) as bar:
+        while True:
+            list_instances = client.get(urls.INSTANCE, auth=auth)
+            found_instances = [instance['ec2_instance_id']
+                               for instance in list_instances['results']]
+            if instance_id in found_instances:
+                break
+            sleep(sleep_period)
+            timepassed += sleep_period
+            bar.update(timeout / timepassed)
+            if timepassed >= timeout:
+                break
+
+
+def wait_for_inspection(
+        source_image, expected_state, auth, timeout=1200, sleep_period=30):
     """Wait for image to be inspected and assert on findings.
 
     :param source_image: Dictionary with the following information about
@@ -95,26 +270,52 @@ def wait_for_inspection(source_image, auth, timeout=2400):
     # Wait, keeping track of what images are inspected
     client = api.Client(authenticate=False, response_handler=api.json_handler)
     source_image_id = source_image['image_id']
-    while True:
-        status = client.get(urls.IMAGE,
-                            params={'ec2_ami_id': source_image_id},
-                            auth=auth)['results'][0]['status']
-        if status in ['pending', 'preparing', 'inspecting']:
-            sleep(60)
-            timeout -= 60
-        if status == 'inspected' or timeout < 0:
-            break
+    timepassed = 0
+    sys.stdout.write('\n')
+    status = 'ABSENT'
+    with click.progressbar(
+            length=timeout,
+            label=f'Waiting for inspection of {source_image["image_id"]}'
+    ) as bar:
+        while True:
+            server_info = client.get(urls.IMAGE, auth=auth)
+            if server_info:
+                server_info = [
+                    image for image in server_info['results'] if
+                    image['ec2_ami_id'] == source_image_id
+                ]
+                if server_info:
+                    server_info = server_info[0]
+                    status = server_info['status']
+            if status == 'error' and expected_state != 'error':
+                break
+            if status in ['pending', 'preparing', 'inspecting', 'ABSENT']:
+                sleep(sleep_period)
+                timepassed += sleep_period
+                bar.update(timeout / timepassed)
+            if status == expected_state:
+                break
+            if timepassed >= timeout:
+                break
+    # assert the image did reach expected state before timeout
+    assert status == expected_state
 
-    # assert the image did get inspected before the timeout
-    assert status == 'inspected'
-
-    server_info = client.get(urls.IMAGE,
-                             params={'ec2_ami_id': source_image_id},
-                             auth=auth)['results'][0]
-    is_rhel = server_info['rhel']
-    is_openshift = server_info['openshift']
-    assert is_rhel == source_image.get('is_rhel', False)
-    assert is_openshift == source_image.get('is_openshift', False)
+    fact_keys = [
+        'rhel',
+        'openshift',
+        'rhel_enabled_repos_found',
+        'rhel_product_certs_found',
+        'rhel_release_files_found',
+        'rhel_signed_packages_found'
+    ]
+    for key in fact_keys:
+        server_result = server_info[key]
+        known_fact = source_image.get(key)
+        if known_fact:
+            assert server_result == known_fact, \
+                f'Server result for {key} was {server_result}. This does\n' \
+                f'not match expected result {known_fact} for image id\n' \
+                f'{source_image["image_id"]} named {source_image["name"]}\n'
 
 
 def wait_for_instance_event(
@@ -122,55 +323,54 @@ def wait_for_instance_event(
         event_type,
         auth,
         aws_profile_name,
-        timeout=2400):
+        timeout=1200,
+        sleep_period=30):
     """Wait until an event of the type specified occurs for the instance.
 
     :raises: integrade.exceptions.EventTimeoutError if no such event is found
         in the time allowed.
     """
     client = api.Client(authenticate=False, response_handler=api.json_handler)
-    while True:
-        events = client.get('/api/v1/event/', auth=auth).get('results')
-        for event in events:
-            if event.get('event_type') == event_type:
-                instance_url = event.get('instance')
-                instance_path = urlparse(instance_url).path
-                this_instance_id = client.get(
-                    instance_path, auth=auth).get('ec2_instance_id')
-                if this_instance_id == instance_id:
-                    return
-        sleep(60)
-        timeout -= 60
-        if timeout < 0:
-            break
+    timepassed = 0
+    sys.stdout.write('\n')
+    with click.progressbar(
+            length=timeout,
+            label=f'Waiting for {event_type} event') as bar:
+        while True:
+            events = client.get('/api/v1/event/', auth=auth).get('results')
+            for event in events:
+                if event.get('event_type') == event_type:
+                    instance_url = event.get('instance')
+                    instance_path = urlparse(instance_url).path
+                    this_instance_id = client.get(
+                        instance_path, auth=auth).get('ec2_instance_id')
+                    if this_instance_id == instance_id:
+                        return
+            sleep(sleep_period)
+            timepassed += sleep_period
+            bar.update(timeout / timepassed)
+            if timepassed >= timeout:
+                break
     raise exceptions.EventTimeoutError(
         f'Timed out while waiting for {event_type} event for instance'
         f' with instance id {instance_id} for the aws profile'
         f' {aws_profile_name}')
 
 
-image_to_test = [random.choice([
-    ('owned', 'centos'),
-    ('community', 'ubuntu'),
-])]
-
-
-@pytest.mark.run_first
+@pytest.mark.inspection
 @aws_image_config_needed
 @pytest.mark.serial_only
-@pytest.mark.parametrize('image_to_run', image_to_test, ids=[
-                         '{}-{}'.format(item[0], item[1])
-                         for item in image_to_test]
+@pytest.mark.parametrize('test_case', image_test_matrix,
+                         ids=[
+                             '{}-{}'.format(item[0], item[1])
+                             for item in image_test_matrix],
                          )
-@pytest.mark.parametrize('aws_profile',
-                         [config.get_config()['aws_profiles'][0]],
-                         ids=operator.itemgetter('name'))
-def test_find_running_instances(drop_account_data,
-                                cloudtrails_to_delete,
-                                image_to_run,
-                                instances_to_terminate,
-                                aws_profile
-                                ):
+def test_find_running_instances(
+        test_case,
+        aws_profile,
+        cloudtrails_to_delete,
+        image_fixture,
+):
     """Ensure instances are discovered on account creation.
 
     :id: 741a0fad-45a8-4aab-9daa-11adad458d34
@@ -192,26 +392,21 @@ def test_find_running_instances(drop_account_data,
             the images includes inspection state information.
         3) The images are eventually inspected.
     """
+    image_type, image_name, expected_state = test_case
+    source_image = image_fixture.source_image
+    source_image_id = source_image['image_id']
+    instance_id = image_fixture.instance_id
+    if image_name != image_fixture.image_name \
+            or image_type != image_fixture.image_type:
+        pytest.skip(f'Only testing {IMAGE_TO_TEST}')
+    drop_account_data()
+
     auth = get_auth()
     client = api.Client(authenticate=False, response_handler=api.json_handler)
     aws_profile_name = aws_profile['name']
     aws_utils.delete_cloudtrail(
         (aws_profile_name, aws_profile['cloudtrail_name']))
     aws_utils.clean_cloudigrade_queues()
-    # Create some instances to detect on creation, random choice from every
-    # configured image type (private, owned, marketplace, community)
-    image_type, image_name = image_to_run
-    source_image = [
-        image for image in aws_profile['images'][image_type]
-        if image['name'] == image_name
-    ][0]
-    source_image_id = source_image['image_id']
-    # Run an instance
-    instance_id = aws_utils.run_instances_by_name(
-        aws_profile_name, image_type, image_name, count=1)[0]
-
-    # Add new instances to list of instances to terminate after test
-    instances_to_terminate.append((aws_profile_name, instance_id))
 
     # Create cloud account on cloudigrade
     cloud_account = {
@@ -232,6 +427,7 @@ def test_find_running_instances(drop_account_data,
 
     # Look for instances that should have been discovered
     # upon account creation.
+    wait_for_cloudigrade_instance(instance_id, auth)
     list_instances = client.get(urls.INSTANCE, auth=auth)
     found_instances = [instance['ec2_instance_id']
                        for instance in list_instances['results']]
@@ -245,45 +441,19 @@ def test_find_running_instances(drop_account_data,
     list_images = client.get(urls.IMAGE, auth=auth)
     found_images = [image['ec2_ami_id'] for image in list_images['results']]
     assert source_image_id in found_images
-    wait_for_inspection(source_image, auth)
+    wait_for_inspection(source_image, expected_state, auth)
 
 
-power_on_event_to_test = [random.choice([
-    'RunInstances',
-    'StartInstances',
-    # see https://gitlab.com/cloudigrade/cloudigrade/issues/447
-    # 'StartInstance'
-])]
-
-power_off_event_to_test = [random.choice([
-    'TerminateInstances',
-    'StopInstances',
-    # see https://gitlab.com/cloudigrade/cloudigrade/issues/447
-    # 'TerminateInstanceInAutoScalingGroup'
-])]
-
-
-@pytest.mark.run_first
+@pytest.mark.inspection
 @aws_image_config_needed
-@cloudigrade_bucket_needed
 @pytest.mark.serial_only
-@pytest.mark.parametrize('power_off_event', power_off_event_to_test)
-@pytest.mark.parametrize('power_on_event', power_on_event_to_test)
-@pytest.mark.parametrize('image_to_run', image_to_test, ids=[
-                         '{}-{}'.format(item[0], item[1])
-                         for item in image_to_test]
-                         )
-@pytest.mark.parametrize('aws_profile',
-                         [config.get_config()['aws_profiles'][0]],
-                         ids=operator.itemgetter('name'))
 def test_on_off_events(
     aws_profile,
     cloudtrails_to_delete,
     power_on_event,
     power_off_event,
-    image_to_run,
-    instances_to_terminate,
-    drop_account_data,
+    bad_event,
+    image_fixture,
 ):
     """Ensure power on and power off events continue to be discovered.
 
@@ -295,42 +465,50 @@ def test_on_off_events(
             instance to reference.
         2) Send a POST with the cloud account information to 'api/v1/account/'
         3) Mock a power on event in the cloudigrade s3 bucket
-        6) Keep checking '/api/v1/event/' until a 'power_on' event is found.
-        7) Mock a power off event in the cloudigrade s3 bucket
-        8) Keep checking '/api/v1/event/' until a 'power_off' event is found.
+        4) Mock a bad event in the cloudigrade bucket to make sure it is
+            resilient to bad data also in the bucket.
+        5) Keep checking '/api/v1/event/' until a 'power_on' event is found.
+        6) Mock a power off event in the cloudigrade s3 bucket
+        7) Keep checking '/api/v1/event/' until a 'power_off' event is found.
     :expectedresults:
         1) The server returns a 201 response with the information
             of the created account.
         2) We get 200 responses for our GET requests to the `/api/v1/event`
             endpoint.
-        3) The events are eventually recorded.
+        3) The power on events are eventually recorded.
+        4) The bad events are ignored.
+        5) The power on events events eventually recorded.
     """
+    drop_account_data()
+
+    # check and make sure the instance is not running
+    client = aws_utils.aws_session(aws_profile['name']).client('ec2')
+    reservations = client.describe_instances(Filters=[{
+        'Name': 'instance-state-name',
+        'Values': [
+            'running',
+        ]}]).get('Reservations', [])
+    running_instances = []
+    for reservation in reservations:
+        running_instances.extend([inst['InstanceId']
+                                  for inst in reservation.get(
+                                      'Instances', [])])
+    # if it is running, go ahead and stop it so it does not provide
+    # a "power_on" event on cloud account registration and circumvent
+    # what we are trying to test.
+    if image_fixture.instance_id in running_instances:
+        client.stop_instances(InstanceIds=[image_fixture.instance_id])
+
     auth = get_auth()
     client = api.Client(authenticate=False, response_handler=api.json_handler)
     aws_profile_name = aws_profile['name']
     # Make sure we are working with a clean slate and cloudigrade
     # does not get data from previous registration.
-    # see
-    # https://gitlab.com/cloudigrade/cloudigrade/issues/452#unrecognized-aws-account
     aws_utils.delete_cloudtrail(
         (aws_profile_name, aws_profile['cloudtrail_name']))
     aws_utils.clean_cloudigrade_queues()
-    image_type, image_name = image_to_run
-    source_image = [
-        image for image in aws_profile['images'][image_type]
-        if image['name'] == image_name
-    ][0]
-    # Run an instance
-    instance_id = aws_utils.run_instances_by_name(
-        aws_profile_name, image_type, image_name, count=1)[0]
-    # Let it run for a short while and then stop it, we just
-    # need for it to have existed for some amount of time to
-    # create events for it in the future.
-    sleep(30)
-    aws_utils.stop_instance((aws_profile_name, instance_id))
-    # Add new instances to list of instances to terminate after test
-    instances_to_terminate.append((aws_profile_name, instance_id))
-
+    instance_id = image_fixture.instance_id
+    bad_event_instance_id = image_fixture.instance_id
     # Create cloud account on cloudigrade
     cloud_account = {
         'account_arn': aws_profile['arn'],
@@ -349,6 +527,18 @@ def test_on_off_events(
     )
 
     create_event(instance_id, aws_profile, event_type=power_on_event)
+    if bad_event.name == 'badawsaccount':
+        aws_profile['account_number'] = 123
+    elif bad_event.name == 'badinstanceid':
+        bad_event_instance_id = 'i-123'
+    for _ in range(random.randint(1, 10)):
+        create_event(
+            bad_event_instance_id,
+            aws_profile,
+            event_type='BadEvent',
+            data=bad_event.data,
+            gzipped=bad_event.gzipped
+        )
 
     wait_for_instance_event(
         instance_id,
@@ -364,5 +554,3 @@ def test_on_off_events(
         auth,
         aws_profile_name
     )
-
-    wait_for_inspection(source_image, auth)

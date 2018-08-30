@@ -2,56 +2,52 @@
   private-shared:
     - name: 'rhel'
       image_id: 'ami-065d0be9883aa064a'
-      is_rhel: True
-      is_openshift: False
-    - name: 'rhel-openshift'
-      image_id: 'ami-0b9fd764645f13510'
-      is_rhel: True
-      is_openshift: True
+      rhel: True
+      openshift: False
     - name: 'ubuntu'
       image_id: 'ami-0b817f1f3a9927361'
-      is_rhel: False
-      is_openshift: False
+      rhel: False
+      openshift: False
     - name: 'ubuntu-openshift'
       image_id: 'ami-0ce8a57ac2c5cb5df'
-      is_rhel: False
-      is_openshift: True
+      rhel: False
+      openshift: True
     - name: 'centos'
       image_id: 'ami-0c522838bc12ae928'
-      is_rhel: False
-      is_openshift: False
+      rhel: False
+      openshift: False
     - name: 'centos-openshift'
       image_id: 'ami-0f94fa2a144c74cf1'
-      is_rhel: False
-      is_openshift: True
+      rhel: False
+      openshift: True
 
 .marketplace: &marketplace
   marketplace:
     - name: 'rhel'
       image_id: 'ami-a8d369c0' # rhel 7
-      is_rhel: False # we don't want to bill for it
-      is_openshift: False
+      rhel: False # we don't want to bill for it
+      openshift: False
     - name: 'ubuntu' # ubuntu 16.04
       image_id: 'ami-077b0e78'
-      is_rhel: False # we don't want to bill for it
-      is_openshift: False
+      rhel: False
+      openshift: False
     - name: 'windows'
       image_id: 'ami-9e4d0ce1' # windows server image
-      is_rhel: False
-      is_openshift: False
+      rhel: False
+      openshift: False
       is_windows: True
 
 .community: &community
   community:
     - name: 'ubuntu'
       image_id: 'ami-759bc50a'
-    - name: 'windows server 2016'
+    - name: 'windows' # windows server 2016
       image_id: 'ami-0327667c'
     - name: 'opensuse'
       image_id: 'ami-2b170941'
-    - name: 'fedora-28'
+    - name: 'fedora' # fedora 28
       image_id: 'ami-0011ab01eb7fb4fbc'
-    - name: 'gentoo-pygoscelis-papua'
+    - name: 'gentoo' #pygoscelis-papua
       image_id: 'ami-036e776a'
 
 profiles:
@@ -61,20 +57,42 @@ profiles:
         owned:
           - name: 'rhel'
             image_id: 'ami-0d2e46db3ba19f204'
-            is_rhel: True
-            is_openshift: False
-          - name: 'rhel-openshift'
+            rhel: True
+            openshift: False
+          - name: 'rhel-lvm-openshift'
             image_id: 'ami-09c521cbc20a78b49'
-            is_rhel: True
-            is_openshift: True
+            rhel: True
+            openshift: True
+            lvm: True
+          - name: 'rhel-openshift'
+            image_id: 'ami-06e6c8cae9052b490'
+            rhel: True
+            openshift: True
           - name: 'centos'
             image_id: 'ami-0bf18d6709ff12ee8'
-            is_rhel: False
-            is_openshift: False
+            rhel: False
+            openshift: False
           - name: 'centos-openshift'
             image_id: 'ami-0f75a482c0696dc99'
-            is_rhel: False
-            is_openshift: True
+            rhel: False
+            openshift: True
+          - name: 'rhel-extra-detection-methods'
+            image_id: 'ami-065ce0f0a4db0cda9'
+            rhel: True
+            openshift: False
+            rhel_enabled_repos_found: True
+            rhel_product_certs_found: True
+            rhel_release_files_found: True
+            rhel_signed_packages_found: True
+          - name: 'rhel-openshift-extra-detection-methods'
+            image_id: 'ami-0a0c971e6f4a04a60'
+            rhel: True
+            openshift: True
+            rhel_enabled_repos_found: True
+            rhel_product_certs_found: True
+            rhel_release_files_found: True
+            rhel_signed_packages_found: True
+
 
         <<: *private_shared
         <<: *marketplace
@@ -87,20 +105,25 @@ profiles:
         owned:
           - name: 'rhel'
             image_id: 'ami-09f630ec35588bec4'
-            is_rhel: True
-            is_openshift: False
-          - name: 'rhel-openshift'
+            rhel: True
+            openshift: False
+          - name: 'rhel-lvm-openshift'
             image_id: 'ami-053b2eeaaa6d13a24'
-            is_rhel: True
-            is_openshift: True
+            rhel: True
+            openshift: True
+            lvm: True
+          - name: 'rhel-openshift'
+            image_id: 'ami-079f9656a5a955224'
+            rhel: True
+            openshift: True
           - name: 'centos'
             image_id: 'ami-0f4ef4df59416d9ab'
-            is_rhel: False
-            is_openshift: False
+            rhel: False
+            openshift: False
           - name: 'centos-openshift'
             image_id: 'ami-067e15718a7a1ed0a'
-            is_rhel: False
-            is_openshift: True
+            rhel: False
+            openshift: True
 
         <<: *private_shared
         <<: *marketplace
@@ -112,20 +135,25 @@ profiles:
         owned:
           - name: 'rhel'
             image_id: 'ami-0cc60ebed1322e404'
-            is_rhel: True
-            is_openshift: False
-          - name: 'rhel-openshift'
+            rhel: True
+            openshift: False
+          - name: 'rhel-lvm-openshift'
             image_id: 'ami-031dca721cd450709'
-            is_rhel: True
-            is_openshift: True
+            rhel: True
+            openshift: True
+            lvm: True
+          - name: 'rhel-openshift'
+            image_id: 'ami-074b1944c79ab14ae'
+            rhel: True
+            openshift: True
           - name: 'centos'
             image_id: 'ami-0eedc6c884d81c6ed'
-            is_rhel: False
-            is_openshift: False
+            rhel: False
+            openshift: False
           - name: 'centos-openshift'
             image_id: 'ami-0f51fd32846a3ff4d'
-            is_rhel: False
-            is_openshift: True
+            rhel: False
+            openshift: True
 
         <<: *private_shared
         <<: *marketplace

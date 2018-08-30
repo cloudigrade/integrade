@@ -38,14 +38,10 @@ def test_get_expected_hours_in_past_30_days():
     assert spare_min == 0
     assert events == [6, 4, 2, 1]
 
-    # assert that when we cross the 30 day mark, the timezone is accounted for
-    # because the browser makes the request in UTC of local midnight.
-    # e.g., midnight in EST is 4 AM in UTC
-
-    # offset is in seconds, convert to hours
-    utc_offset = (time.localtime().tm_gmtoff) / (60 * 60)
+    # assert that when we cross the 30 day mark, we only get time
+    # in period
     hours, spare_min, events = get_expected_hours_in_past_30_days([40, 29])
-    assert hours == (24 + utc_offset)
+    assert hours == 24
     assert spare_min == 0
     assert events == [40, 29]
 

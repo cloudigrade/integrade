@@ -6,7 +6,10 @@ else
     CONTAINER_NAME="cloudigrade-api"
 fi
 
-POD="$(oc get pods -o jsonpath='{.items[*].metadata.name}' -l name="${CONTAINER_NAME}")"
+# we print out just the first running pod, which
+# helps if there is a terminating pod kicking around or if we are
+# running with multiple api pods
+POD="$(oc get pods -o jsonpath='{.items[*].metadata.name}' --show-all=false -l name=${CONTAINER_NAME} | awk '{ print $1 }')"
 
 if [[ ! "${POD}" ]]; then
     echo "Not able to find any pod for ${CONTAINER_NAME}."

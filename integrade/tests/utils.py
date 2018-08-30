@@ -77,6 +77,11 @@ def drop_account_data():
     """Drop all account data from the cloudigrade's database."""
     injector.run_remote_python("""
     from account.models import Account
+    from account.models import AwsMachineImage, AwsMachineImageCopy
+    # Must delete AwsMachineImageCopy first because they reference
+    # AwsMachineImage objects
+    AwsMachineImageCopy.objects.all().delete()
+    AwsMachineImage.objects.all().delete()
     Account.objects.all().delete()
     """)
 
@@ -84,7 +89,10 @@ def drop_account_data():
 def drop_image_data():
     """Drop all image data from the cloudigrade's database."""
     injector.run_remote_python("""
-    from account.models import AwsMachineImage
+    from account.models import AwsMachineImage, AwsMachineImageCopy
+    # Must delete AwsMachineImageCopy first because they reference
+    # AwsMachineImage objects
+    AwsMachineImageCopy.objects.all().delete()
     AwsMachineImage.objects.all().delete()
     """)
 

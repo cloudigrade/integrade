@@ -36,9 +36,13 @@ def get_config():
         deployment_prefix = os.environ.get('DEPLOYMENT_PREFIX', '')
         _CONFIG['cloudigrade_s3_bucket'] = os.environ.get(
                 'AWS_S3_BUCKET_NAME', '')
+        if not _CONFIG['cloudigrade_s3_bucket'] and deployment_prefix:
+            _CONFIG['cloudigrade_s3_bucket'] = \
+                    f'{deployment_prefix}-cloudigrade-s3'
         # pull all customer roles out of environ
 
-        def is_role(string): return string.startswith('CLOUDIGRADE_ROLE_')
+        def is_role(string):
+            return string.startswith('CLOUDIGRADE_ROLE_')
 
         def profile_name(string): return string.replace(
             'CLOUDIGRADE_ROLE_', '')
