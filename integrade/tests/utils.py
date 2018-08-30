@@ -129,13 +129,16 @@ def get_auth(user=None):
     return api.TokenAuth(json_response['auth_token'])
 
 
-def get_time_range(offset=0):
+def get_time_range(offset=0, formatted=True):
     """Create start/end time for parameters to account report API."""
     fmt = '%Y-%m-%dT%H:%MZ'
     tomorrow = datetime.now().date() + timedelta(days=1 + offset)
     end = datetime.combine(tomorrow, time(4, 0, 0))
     start = end - timedelta(days=30)
-    return start.strftime(fmt), end.strftime(fmt)
+    if formatted:
+        return start.strftime(fmt), end.strftime(fmt)
+    else:
+        return start, end
 
 
 def utc_dt(*args, **kwargs):

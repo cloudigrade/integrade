@@ -8,6 +8,9 @@
 :testtype: functional
 :upstream: yes
 """
+from collections import namedtuple
+from datetime import datetime, timedelta
+
 import pytest
 
 from integrade import api
@@ -55,55 +58,56 @@ def test_list_accounts_empty():
     assert account['openshift_instances'] == 0, repr(account)
 
 
-def test_past_without_instances():
-    """Test accounts with instances only after the filter period.
+class InstanceTagParams(namedtuple('InstanceTagParams',
+                                   'name '
+                                   'image_type '
+                                   'exp_inst '
+                                   'exp_images '
+                                   'exp_rhel '
+                                   'exp_openshift '
+                                   'start '
+                                   'end '
+                                   'offset ',
+                                   )):
+    """Configuration parameters for scenarios of instance types and times.
 
-    :id: 72aaa6e2-2c60-4e71-bb47-3644bd6beb71
-    :description: Test that an account with instances that were created prior
-        to the current report end date.
-    :steps:
-        1) Add a cloud account
-        2) Inject instance data for today
-        3) GET from the account report endpoint for 30 days ago
-    :expectedresults:
-        - The account is in the response and matches the created account
-        - Instances, images, RHEL, and Openshift all have None counts
+    Parameters:
+    name : str
+        The name of the parameter, visible in test results for identification
+    image_type : str
+        An empty string or series of comma-separated tags (rhel or openshift)
+    exp_inst : int | None
+    exp_images : int | None
+    exp_rhel : int | None
+    exp_openshift : int | None
+        The numbers of instances, images, RHEL, and OpenShift expected to be
+        seen
+    start : int
+    end : int | None
+        The start and end times the instance was run. The end time can be None,
+        in which case the instance was started and is still running at this
+        time.
+    offset : int
+        An offset for the date range used to fetch data. If 0, fetch the last
+        30 days. If -30, fetch (roughly) "last month"
+
     """
-    user = utils.create_user_account()
-    auth = utils.get_auth(user)
-    acct = inject_aws_cloud_account(user['id'])
-    client = api.Client(authenticate=False)
-
-    start, end = utils.get_time_range(-30)
-    params = {
-        'start': start,
-        'end': end,
-    }
-    response = client.get(urls.REPORT_ACCOUNTS, params=params, auth=auth)
-
-    account = response.json()['cloud_account_overviews'][0]
-
-    assert account['cloud_account_id'] == acct['aws_account_id']
-    assert account['images'] is None, repr(account)
-    assert account['instances'] is None, repr(account)
-    assert account['rhel_instances'] is None, repr(account)
-    assert account['openshift_instances'] is None, repr(account)
 
 
 @pytest.mark.parametrize('conf', [
     # No tagged images, started today and 2 weeks ago
-    ('', 1, 1, 0, 0, 0, None, 0),
-    ('', 1, 1, 0, 0, 15, None, 0),
+    InstanceTagParams('untagged today', '', 1, 1, 0, 0, 0, None, 0),
+    InstanceTagParams('untagged 2 weeks', '', 1, 1, 0, 0, 15, None, 0),
     # No tagged images, started and stopped last month
-    ('', 0, 0, 0, 0, 60, 30, 0),
+    InstanceTagParams('untagged last month', '', 0, 0, 0, 0, 60, 30, 0),
     # Tagged images started today
-    ('rhel', 1, 1, 1, 0, 0, None, 0),
-    ('openshift', 1, 1, 0, 1, 0, None, 0),
-    ('windows', 1, 1, 0, 0, 0, None, 0),
-    ('rhel,openshift', 1, 1, 1, 1, 0, None, 0),
-    # Instances created after window
-    ('', None, None, None, None, 0, None, -30),
-])
+    InstanceTagParams('rhel today', 'rhel', 1, 1, 1, 0, 0, None, 0),
+    InstanceTagParams('openshift today', 'openshift',
+                      1, 1, 0, 1, 0, None, 0),
+    InstanceTagParams('windows today', 'windows', 1, 1, 0, 0, 0, None, 0),
+    InstanceTagParams('rhel+openshift today', 'rhel,openshift',
+                      1, 1, 1, 1, 0, None, 0),
+], ids=lambda p: p.name)
 def test_list_account_tagging(conf):
     """Test instance events generate usage summary results for correct tags.
 
@@ -121,7 +125,7 @@ def test_list_account_tagging(conf):
     auth = utils.get_auth(user)
     acct = inject_aws_cloud_account(user['id'])
     image_type, exp_inst, exp_images, exp_rhel, exp_openshift, \
-        start, end, offset = conf
+        start, end, offset = conf[1:]
 
     client = api.Client(authenticate=False)
 
@@ -144,6 +148,83 @@ def test_list_account_tagging(conf):
     assert account['instances'] == exp_inst, repr(account)
     assert account['rhel_instances'] == exp_rhel, repr(account)
     assert account['openshift_instances'] == exp_openshift, repr(account)
+
+
+class FutureParam(namedtuple('FutureParam', 'acct_age unknown')):
+    """Configuration parameters for future instance scenarios.
+
+    Parameters:
+    acct_age : int
+        The number of days old the account is
+    unknown : bool
+        True if we expect null/None responses because instance and image counts
+        are unknown for the account in the current date range.
+
+    """
+
+
+@pytest.mark.parametrize('param', [
+    # We assume to know the information if the account existed during any
+    # part of the date range
+    FutureParam(100, False),
+    FutureParam(30, False),
+    # But not if it was created after
+    FutureParam(29, True),
+])
+def test_future_instances(param):
+    """Test instance events generate usage summary results for correct tags.
+
+    :id: f3c84697-a40c-40d9-846d-117e2647e9d3
+    :description: Test combinations of image tags, start/end events, and the
+        resulting counts from the summary report API.
+    :steps:
+        1) Add a cloud account
+        2) Insert instance, image, and event data
+        3) GET from the account report endpoint
+    :expectedresults:
+        - The instance, image, RHEL, and Openshift counts match the expectation
+    """
+    user = utils.create_user_account()
+    auth = utils.get_auth(user)
+    acct = inject_aws_cloud_account(user['id'], acct_age=param.acct_age)
+    start, end = 0, None
+
+    client = api.Client(authenticate=False)
+
+    events = [start]
+    if end:
+        events.append(end)
+    inject_instance_data(acct['id'], '', events)
+
+    # Set date range for 30 days in the past
+    start, end = utils.get_time_range(-30)
+    params = {
+        'start': start,
+        'end': end,
+    }
+    response = client.get(urls.REPORT_ACCOUNTS, params=params, auth=auth)
+
+    account = response.json()['cloud_account_overviews'][0]
+    acct_creation = datetime.today() - timedelta(days=param.acct_age)
+
+    start, end = utils.get_time_range(-30, formatted=False)
+    if acct_creation < start:
+        info = 'Account created before start of window'
+    elif acct_creation > end:
+        info = 'Account newer than window'
+    else:
+        info = 'Account created during window'
+
+    assert account['cloud_account_id'] == acct['aws_account_id']
+
+    if param.unknown:
+        exp = None
+    else:
+        exp = 0
+    assert account['images'] == exp, info
+    assert account['instances'] == exp, info
+    assert account['rhel_instances'] == exp, info
+    assert account['openshift_instances'] == exp, info
 
 
 @pytest.mark.parametrize('impersonate', (False, True))
