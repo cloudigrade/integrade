@@ -35,6 +35,7 @@ def run_remote_python(script, **kwargs):
                                  ' scl enable rh-python36'
                                  ' -- python -W ignore manage.py shell'],
                                 stdout=subprocess.PIPE,
+                                stderr=subprocess.PIPE,
                                 input=script,
                                 timeout=60
                                 )
@@ -150,7 +151,7 @@ def inject_instance_data(
         instance_id = str(randint(100000, 999999999999))
     if ec2_ami_id is None:
         ec2_ami_id = str(randint(100000, 999999999999))
-    run_remote_python("""
+    return run_remote_python("""
     from datetime import date, timedelta
     import json
 
@@ -195,4 +196,9 @@ def inject_instance_data(
             created_at=when,
         )
         on = not on
+
+    return {
+        'image_id': image1.id,
+        'instance_id': instance1.id,
+    }
     """, **locals())
