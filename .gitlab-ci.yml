@@ -140,6 +140,12 @@ Automatically Teardown Cloudigrade:
   when: always
   <<: *teardown_cloudigrade
 
+.junit_report: &junit_report
+  artifacts:
+    when: always
+    reports:
+      junit: report.xml
+
 .before_script: &before_script
   before_script:
     - python --version
@@ -181,15 +187,16 @@ Inspection:
   only:
     - master
   <<: *before_script
+  <<: *junit_report
   script:
     - export AWS_S3_BUCKET_NAME="${ENVIRONMENT_SLUG}-cloudigrade-s3"
     - cp .aws_image_config.yaml integrade/aws_image_config.yaml
     - export XDG_CONFIG_HOME=$PWD
-    - py.test -vvv --force-flaky -m 'run_first' integrade/tests/api
+    - py.test --junitxml=report.xml -vvv --force-flaky -m 'run_first' integrade/tests/api
 
 .api_all: &api_all
   script:
-    - py.test -vvv --force-flaky -m 'not run_first' integrade/tests/api
+    - py.test --junitxml=report.xml -vvv --force-flaky -m 'not run_first' integrade/tests/api
 
 API All Automatically:
   stage: Test Cloudigrade API
@@ -198,6 +205,7 @@ API All Automatically:
   when: always
   <<: *before_script
   <<: *api_all
+  <<: *junit_report
 
 API All Manually:
   stage: Test Cloudigrade API
@@ -206,6 +214,7 @@ API All Manually:
   when: manual
   <<: *before_script
   <<: *api_all
+  <<: *junit_report
   after_script:
     - python scripts/aws_reaper.py --env-cloudtrail-only
 
@@ -215,6 +224,7 @@ API Quick:
   except:
     - master
   <<: *quick_before_script
+  <<: *junit_report
   variables:
     ENVIRONMENT_SLUG: ${CI_PROJECT_NAME}-${CI_ENVIRONMENT_SLUG}
     TEST_PATH: integrade/tests/api/v1/
@@ -222,7 +232,7 @@ API Quick:
     - export AWS_S3_BUCKET_NAME="${ENVIRONMENT_SLUG}-cloudigrade-s3"
     - cp .aws_image_config.yaml integrade/aws_image_config.yaml
     - export XDG_CONFIG_HOME=$PWD
-    - if [[ "${TEST_MODULES}" ]]; then echo "${TEST_MODULES}" | xargs py.test -vvv --force-flaky; fi
+    - if [[ "${TEST_MODULES}" ]]; then echo "${TEST_MODULES}" | xargs py.test --junitxml=report.xml -vvv --force-flaky; fi
 
 UI Quick:
   stage: Test Cloudigrade UI
@@ -230,11 +240,12 @@ UI Quick:
   except:
     - master
   <<: *quick_before_script
+  <<: *junit_report
   variables:
     ENVIRONMENT_SLUG: ${CI_PROJECT_NAME}-${CI_ENVIRONMENT_SLUG}
     TEST_PATH: integrade/tests/ui
   script:
-    - if [[ "${TEST_MODULES}" ]]; then echo "${TEST_MODULES}" | xargs py.test -vvv --force-flaky ${DRIVER_CHROME}; fi
+    - if [[ "${TEST_MODULES}" ]]; then echo "${TEST_MODULES}" | xargs py.test --junitxml=report.xml -vvv --force-flaky ${DRIVER_CHROME}; fi
   services:
     - name: selenium/standalone-chrome
       alias: selenium
@@ -243,8 +254,9 @@ UI All Manually:
   stage: Test Cloudigrade UI
   when: manual
   <<: *before_script
+  <<: *junit_report
   script:
-    - py.test -vvv --force-flaky ${DRIVER_CHROME} integrade/tests/ui
+    - py.test --junitxml=report.xml -vvv --force-flaky ${DRIVER_CHROME} integrade/tests/ui
   services:
     - name: selenium/standalone-chrome
       alias: selenium
@@ -256,8 +268,9 @@ UI Chrome:
   only:
     - master
   <<: *before_script
+  <<: *junit_report
   script:
-    - py.test -vvv --force-flaky ${DRIVER_CHROME} integrade/tests/ui
+    - py.test --junitxml=report.xml -vvv --force-flaky ${DRIVER_CHROME} integrade/tests/ui
   services:
     - name: selenium/standalone-chrome
       alias: selenium
@@ -267,8 +280,9 @@ UI Firefox:
   only:
     - master
   <<: *before_script
+  <<: *junit_report
   script:
-    - py.test -vvv --force-flaky --driver Remote --capability browserName firefox --host selenium --port 4444 integrade/tests/ui
+    - py.test --junitxml=report.xml -vvv --force-flaky --driver Remote --capability browserName firefox --host selenium --port 4444 integrade/tests/ui
   services:
     - name: selenium/standalone-firefox
       alias: selenium
@@ -278,8 +292,9 @@ UI Microsoft Edge:
   only:
     - master
   <<: *before_script
+  <<: *junit_report
   script:
-    - py.test -vvv --force-flaky --driver SauceLabs --capability browserName MicrosoftEdge integrade/tests/ui
+    - py.test --junitxml=report.xml -vvv --force-flaky --driver SauceLabs --capability browserName MicrosoftEdge integrade/tests/ui
 
 # Cleans up customer accounts between test runs
 Test Cleanup:
