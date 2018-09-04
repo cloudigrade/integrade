@@ -144,7 +144,10 @@ Automatically Teardown Cloudigrade:
   artifacts:
     when: always
     reports:
-      junit: report.xml
+      junit: "${REPORT_NAME}.xml"
+    name: "${REPORT_NAME}"
+    paths:
+      - "${REPORT_NAME}.xml"
 
 .before_script: &before_script
   before_script:
@@ -161,8 +164,6 @@ Automatically Teardown Cloudigrade:
     name: review/$CI_COMMIT_REF_NAME
     url: http://${CI_PROJECT_NAME}-${CI_ENVIRONMENT_SLUG}.review.gitlab.cloudigra.de
     on_stop: Teardown Cloudigrade
-  variables:
-    ENVIRONMENT_SLUG: ${CI_PROJECT_NAME}-${CI_ENVIRONMENT_SLUG}
 
 .quick_before_script: &quick_before_script
   before_script:
@@ -188,15 +189,18 @@ Inspection:
     - master
   <<: *before_script
   <<: *junit_report
+  variables:
+    ENVIRONMENT_SLUG: ${CI_PROJECT_NAME}-${CI_ENVIRONMENT_SLUG}
+    REPORT_NAME: inspect
   script:
     - export AWS_S3_BUCKET_NAME="${ENVIRONMENT_SLUG}-cloudigrade-s3"
     - cp .aws_image_config.yaml integrade/aws_image_config.yaml
     - export XDG_CONFIG_HOME=$PWD
-    - py.test --junitxml=report.xml -vvv --force-flaky -m 'inspection' integrade/tests/api
+    - py.test --junitxml="${REPORT_NAME}.xml" -vvv --force-flaky -m 'inspection' integrade/tests/api
 
 .api_all: &api_all
   script:
-    - py.test --junitxml=report.xml -vvv --force-flaky -m 'not inspection' integrade/tests/api
+    - py.test --junitxml="${REPORT_NAME}.xml" -vvv --force-flaky -m 'not inspection' integrade/tests/api
 
 API All Automatically:
   stage: Test Cloudigrade API
@@ -206,6 +210,9 @@ API All Automatically:
   <<: *before_script
   <<: *api_all
   <<: *junit_report
+  variables:
+    ENVIRONMENT_SLUG: ${CI_PROJECT_NAME}-${CI_ENVIRONMENT_SLUG}
+    REPORT_NAME: api_all
 
 API All Manually:
   stage: Test Cloudigrade API
@@ -215,6 +222,9 @@ API All Manually:
   <<: *before_script
   <<: *api_all
   <<: *junit_report
+  variables:
+    ENVIRONMENT_SLUG: ${CI_PROJECT_NAME}-${CI_ENVIRONMENT_SLUG}
+    REPORT_NAME: api_all
   after_script:
     - python scripts/aws_reaper.py --env-cloudtrail-only
 
@@ -228,11 +238,12 @@ API Quick:
   variables:
     ENVIRONMENT_SLUG: ${CI_PROJECT_NAME}-${CI_ENVIRONMENT_SLUG}
     TEST_PATH: integrade/tests/api/v1/
+    REPORT_NAME: api_quick
   script:
     - export AWS_S3_BUCKET_NAME="${ENVIRONMENT_SLUG}-cloudigrade-s3"
     - cp .aws_image_config.yaml integrade/aws_image_config.yaml
     - export XDG_CONFIG_HOME=$PWD
-    - if [[ "${TEST_MODULES}" ]]; then echo "${TEST_MODULES}" | xargs py.test --junitxml=report.xml -vvv --force-flaky; fi
+    - if [[ "${TEST_MODULES}" ]]; then echo "${TEST_MODULES}" | xargs py.test --junitxml="${REPORT_NAME}.xml" -vvv --force-flaky; fi
 
 UI Quick:
   stage: Test Cloudigrade UI
@@ -244,8 +255,9 @@ UI Quick:
   variables:
     ENVIRONMENT_SLUG: ${CI_PROJECT_NAME}-${CI_ENVIRONMENT_SLUG}
     TEST_PATH: integrade/tests/ui
+    REPORT_NAME: ui_quick
   script:
-    - if [[ "${TEST_MODULES}" ]]; then echo "${TEST_MODULES}" | xargs py.test --junitxml=report.xml -vvv --force-flaky ${DRIVER_CHROME}; fi
+    - if [[ "${TEST_MODULES}" ]]; then echo "${TEST_MODULES}" | xargs py.test --junitxml="${REPORT_NAME}.xml" -vvv --force-flaky ${DRIVER_CHROME}; fi
   services:
     - name: selenium/standalone-chrome
       alias: selenium
@@ -255,8 +267,11 @@ UI All Manually:
   when: manual
   <<: *before_script
   <<: *junit_report
+  variables:
+    ENVIRONMENT_SLUG: ${CI_PROJECT_NAME}-${CI_ENVIRONMENT_SLUG}
+    REPORT_NAME: ui_all
   script:
-    - py.test --junitxml=report.xml -vvv --force-flaky ${DRIVER_CHROME} integrade/tests/ui
+    - py.test --junitxml="${REPORT_NAME}.xml" -vvv --force-flaky ${DRIVER_CHROME} integrade/tests/ui
   services:
     - name: selenium/standalone-chrome
       alias: selenium
@@ -269,8 +284,11 @@ UI Chrome:
     - master
   <<: *before_script
   <<: *junit_report
+  variables:
+    ENVIRONMENT_SLUG: ${CI_PROJECT_NAME}-${CI_ENVIRONMENT_SLUG}
+    REPORT_NAME: ui_chrome
   script:
-    - py.test --junitxml=report.xml -vvv --force-flaky ${DRIVER_CHROME} integrade/tests/ui
+    - py.test --junitxml="${REPORT_NAME}.xml" -vvv --force-flaky ${DRIVER_CHROME} integrade/tests/ui
   services:
     - name: selenium/standalone-chrome
       alias: selenium
@@ -281,8 +299,11 @@ UI Firefox:
     - master
   <<: *before_script
   <<: *junit_report
+  variables:
+    ENVIRONMENT_SLUG: ${CI_PROJECT_NAME}-${CI_ENVIRONMENT_SLUG}
+    REPORT_NAME: ui_firefox
   script:
-    - py.test --junitxml=report.xml -vvv --force-flaky --driver Remote --capability browserName firefox --host selenium --port 4444 integrade/tests/ui
+    - py.test --junitxml="${REPORT_NAME}.xml" -vvv --force-flaky --driver Remote --capability browserName firefox --host selenium --port 4444 integrade/tests/ui
   services:
     - name: selenium/standalone-firefox
       alias: selenium
@@ -293,13 +314,18 @@ UI Microsoft Edge:
     - master
   <<: *before_script
   <<: *junit_report
+  variables:
+    ENVIRONMENT_SLUG: ${CI_PROJECT_NAME}-${CI_ENVIRONMENT_SLUG}
+    REPORT_NAME: ui_edge
   script:
-    - py.test --junitxml=report.xml -vvv --force-flaky --driver SauceLabs --capability browserName MicrosoftEdge integrade/tests/ui
+    - py.test --junitxml="${REPORT_NAME}.xml" -vvv --force-flaky --driver SauceLabs --capability browserName MicrosoftEdge integrade/tests/ui
 
 # Cleans up customer accounts between test runs
 Test Cleanup:
   stage: Teardown Cloudigrade
   <<: *before_script
+  variables:
+    ENVIRONMENT_SLUG: ${CI_PROJECT_NAME}-${CI_ENVIRONMENT_SLUG}
   script:
     - python scripts/aws_reaper.py --env-cloudtrail-only
   when: always
