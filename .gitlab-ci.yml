@@ -192,11 +192,11 @@ Inspection:
     - export AWS_S3_BUCKET_NAME="${ENVIRONMENT_SLUG}-cloudigrade-s3"
     - cp .aws_image_config.yaml integrade/aws_image_config.yaml
     - export XDG_CONFIG_HOME=$PWD
-    - py.test --junitxml=report.xml -vvv --force-flaky -m 'run_first' integrade/tests/api
+    - py.test --junitxml=report.xml -vvv --force-flaky -m 'inspection' integrade/tests/api
 
 .api_all: &api_all
   script:
-    - py.test --junitxml=report.xml -vvv --force-flaky -m 'not run_first' integrade/tests/api
+    - py.test --junitxml=report.xml -vvv --force-flaky -m 'not inspection' integrade/tests/api
 
 API All Automatically:
   stage: Test Cloudigrade API
