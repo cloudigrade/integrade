@@ -24,7 +24,7 @@ else
 
     oc rsh -c "${CONTAINER_NAME}" "${POD}" scl enable rh-python36 -- python manage.py createsuperuser --no-input --username "${CLOUDIGRADE_USER}" --email="${CLOUDIGRADE_USER}@example.com"
 
-    export CLOUDIGRADE_TOKEN=$(oc rsh -c "${CONTAINER_NAME}" "${POD}" scl enable rh-python36 -- python manage.py drf_create_token "${CLOUDIGRADE_USER}" 2>/dev/null | sed -e ':a;N;$!ba;s/.*token \(.*\) for.*/\1/')
+    export CLOUDIGRADE_TOKEN=$(oc rsh -c "${CONTAINER_NAME}" "${POD}" scl enable rh-python36 -- python manage.py drf_create_token "${CLOUDIGRADE_USER}" 2>/dev/null | sed -e 's/.*token \(.*\) for.*/\1/')
 cat << EOF | oc rsh -c "${CONTAINER_NAME}" "${POD}" scl enable rh-python36 -- python manage.py shell
 from django.contrib.auth.models import User
 user = User.objects.get(email="$CLOUDIGRADE_USER@example.com")

@@ -100,12 +100,12 @@ def images_data():
             else:
                 raise ValueError('Not a valid image type.')
 
-            inject_instance_data(
+            image['id'] = inject_instance_data(
                 account['id'],
                 image_type,
                 [random.randint(0, 20)],
                 ec2_ami_id=image['ec2_ami_id'],
-            )
+            )['image_id']
 
     return user1, user2, auth1, auth2, images1, images2
 
@@ -206,3 +206,69 @@ def test_list_specific_image(images_data):
         client.response_handler = old_handler
         assert response.status_code == 404
         assert response.json()['detail'] == 'Not found.'
+
+
+@pytest.mark.parametrize('superuser', [True, False], ids=['super', 'regular'])
+@pytest.mark.parametrize('method', ['put', 'patch'])
+def test_challenge_image(superuser, method):
+    """Test if a challenge flags for RHEL and OS can be changed.
+
+    :id: ec5fe0b6-9852-48db-a2ba-98d01aeaac28
+    :description: Try to change challenge flags on an image and ensure that
+        change is reflected afterwards.
+    :steps:
+        1. Create an image in a known account and make sure the challenge
+           flags are false by default.
+        2. Use both PUT and PATCH forms of the image endpoint to set a flag to
+           true
+    :expectedresults:
+        The image data now reflects this change.
+    """
+    cfg = config.get_config()
+    user = utils.create_user_account()
+    auth = utils.get_auth(user)
+
+    client = api.Client(authenticate=False)
+    account = inject_aws_cloud_account(
+            user['id'],
+            name=uuid4(),
+        )
+    image_type = ''
+    ec2_ami_id = str(random.randint(100000, 999999999999))
+
+    image_id = inject_instance_data(
+        account['id'],
+        image_type,
+        [random.randint(0, 20)],
+        ec2_ami_id=ec2_ami_id,
+    )['image_id']
+
+    if superuser:
+        auth = api.TokenAuth(cfg.get('superuser_token'))
+
+    image_url = urljoin(urls.IMAGE, str(image_id)) + '/'
+
+    # Ensure the image owner can fetch it
+    response = client.get(image_url, auth=auth).json()
+
+    assert response['rhel_challenged'] is False
+    assert response['openshift_challenged'] is False
+
+    for tag in ('rhel', 'openshift'):
+        if method == 'put':
+            response[f'{tag}_challenged'] = True
+            response = client.put(image_url, response, auth=auth).json()
+        elif method == 'patch':
+            data = {
+                'resourcetype': 'AwsMachineImage',
+                f'{tag}_challenged': True,
+            }
+            response = client.patch(image_url, data, auth=auth).json()
+        else:
+            pytest.fail(f'Unknown method "{method}"')
+        assert response[f'{tag}_challenged'] is True
+
+    # # Ensure any other user can't fetch it
+    response = client.get(image_url, auth=auth)
+    assert response.status_code == 200
+    assert response.json()[f'{tag}_challenged']
