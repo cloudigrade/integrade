@@ -49,17 +49,66 @@ def get_element_depth(element):
     return depth
 
 
-def find_element_by_text(driver, text,
-                         fail_hard=False,
-                         n=0,
-                         exact=True,
-                         timeout=0.1):
+def get_el_text(e):
+    """Get the inner text of a WebElement and cache for quicker re-lookup."""
+    try:
+        try:
+            return e.__innerText
+        except AttributeError:
+            text = ' '.join(e.get_attribute('innerText').split())
+            e.__innerText = text
+            return e.__innerText
+    except StaleElementReferenceException:
+        return ''
+
+
+def find_element_by_text(driver, text, *args, **kwargs):
     """Find an element which contains the given text.
+
+    If multiple results are found, return them ordered
+    counting from the most specific to least.
+
+    "Specific" is defined by the length and depth of the
+    matched element. The shorter the overall text of the
+    element and the greater depth in the DOM the more
+    specific it is considered. (length is only applicable
+    when exact=False, otherwise only depth defines the
+    specificity)
 
     parameters:
     - driver            Selenium or Element instance to locate under
     - text              Text to search for on the page
     - fail_hard=False   If True, raise exception on failure to locate
+    - exact=True        Only locate elements that exactly match the text. If
+                        False, locate elements which contain the text somewhere
+                        in their content. (See n parameter description for the
+                        affects on specificity)
+    - timeout=0.1       Time to spend re-checking for text to appear on page.
+                        Larger values behave as a "wait for..." search for the
+                        text.
+
+    """
+    fail_hard = kwargs.pop('fail_hard', False)
+    elements = find_elements_by_text(driver, text, *args, **kwargs)
+    elements.sort(key=lambda e: (len(get_el_text(e)), -get_element_depth(e)))
+
+    if fail_hard and not elements:
+        raise ValueError(
+            'Did not find in page: %r\n%s' %
+            (text, driver.page_source)
+        )
+    elif elements:
+        return elements[0]
+
+
+def find_elements_by_text(driver, text,
+                          exact=True,
+                          timeout=0.1):
+    """Find an element which contains the given text.
+
+    parameters:
+    - driver            Selenium or Element instance to locate under
+    - text              Text to search for on the page
     - n=0               If multiple results are found, return the N'th one
                         counting from the most specific to least.
                         "Specific" is defined by the length and depth of the
@@ -79,35 +128,20 @@ def find_element_by_text(driver, text,
     """
     start = time.time()
     end = start + timeout
+    elements = []
     while time.time() < end:
-        def t(e):
-            try:
-                try:
-                    return e.__innerText
-                except AttributeError:
-                    text = ' '.join(e.get_attribute('innerText').split())
-                    e.__innerText = text
-                    return e.__innerText
-            except StaleElementReferenceException:
-                return ''
         elements = [
             e for e in
             driver.find_elements_by_xpath('//*[contains(.,\'%s\')]' % text)
-            if (text == t(e) if exact else text in t(e))
+            if (text == get_el_text(e) if exact else text in get_el_text(e))
         ]
-        if elements:
-            elements.sort(key=lambda e: (len(t(e)), -get_element_depth(e)))
-            return elements[n]
-    if fail_hard:
-        raise ValueError(
-            'Did not find in page: %r\n%s' %
-            (text, driver.page_source)
-        )
+    return elements
 
 
 def fill_input_by_label(driver, element, label, value):
     """Click on a field label and enter text to the associated input."""
-    find_element_by_text(element or driver, label).click()
+    elements = find_elements_by_text(element or driver, label)
+    elements[-1].click()
     input = driver.execute_script('return document.activeElement')
     input.clear()
     input.send_keys(value)

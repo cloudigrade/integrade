@@ -30,6 +30,9 @@ from .utils import (
 logger = logging.getLogger(__name__)
 
 
+ACCT_CREATE_TIMEOUT = 5
+
+
 @pytest.mark.skip(reason='http://gitlab.com/cloudigrade/frontigrade/issues/50')
 def test_fill_name_and_clear(selenium, ui_addacct_page1, ui_user):
     """The account name's validity is always reflected in the Next button state.
@@ -56,7 +59,7 @@ def test_fill_name_and_clear(selenium, ui_addacct_page1, ui_user):
 
 
 @pytest.mark.parametrize('options', [
-    ('It', 'It', 'Enter minimum of 3 characters for account name', True),
+    ('', '', '', True),
     ('x'*300, 'x'*256, None, False)
 ])
 def test_account_name_required(options, selenium, ui_addacct_page1, ui_user):
@@ -194,16 +197,16 @@ def test_add_account(mistake,
         find_element_by_text(dialog, 'Back').click()
         fill_input_by_label(selenium, dialog, 'ARN', acct_arn_good)
 
-    find_element_by_text(dialog, 'Add', timeout=1000).click()
+    find_element_by_text(dialog, 'Add', timeout=1).click()
 
     try:
-        wait = WebDriverWait(selenium, 90)
+        wait = WebDriverWait(selenium, ACCT_CREATE_TIMEOUT)
         wait.until(wait_for_page_text('%s was created' % acct_name))
     except TimeoutException:
         duplicate_error = 'aws account with this account arn already exists.'
         # Retry after waiting and clearing accounts
         if duplicate_error in selenium.page_source:
-            sleep(60)
+            sleep(10)
         pytest.fail(
             'Could not create cloud account, or did not see valid '
             'message to indicate successful creation.'

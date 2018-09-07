@@ -21,6 +21,7 @@ from integrade.tests import utils
 from .utils import (
     fill_input_by_placeholder,
     find_element_by_text,
+    find_elements_by_text,
 )
 from ...injector import (
     inject_aws_cloud_account,
@@ -238,16 +239,16 @@ def test_account_date_filter(
     assert find_element_by_text(selenium, '0 Images')
     assert find_element_by_text(selenium, '0 Instances')
 
-    find_element_by_text(selenium, 'Last 30 Days', n=2).click()
+    find_elements_by_text(selenium, 'Last 30 Days')[2].click()
     find_element_by_text(selenium, month_label).click()
     time.sleep(0.25)
 
     assert find_element_by_text(selenium, '1 Images')
     assert find_element_by_text(selenium, '3 Instances')
 
-    long_ago = datetime.date.today() - datetime.timedelta(days=120)
+    long_ago = datetime.date.today() - datetime.timedelta(days=180)
     long_ago_label = long_ago.strftime('%Y %B')
-    find_element_by_text(selenium, month_label, n=2).click()
+    find_elements_by_text(selenium, month_label)[2].click()
     find_element_by_text(selenium, long_ago_label).click()
     time.sleep(0.25)
 
@@ -369,7 +370,7 @@ def test_summary_cards(cloud_account_data, selenium, ui_acct_list):
     openshift_runtime = int(openshift_runtime / 3600)
 
     month_label = last_month.strftime('%Y %B')
-    find_element_by_text(selenium, 'Last 30 Days', n=2).click()
+    find_elements_by_text(selenium, 'Last 30 Days')[2].click()
     find_element_by_text(selenium, month_label).click()
     time.sleep(1)
 
@@ -390,7 +391,7 @@ def test_summary_cards(cloud_account_data, selenium, ui_acct_list):
     assert find_element_by_text(selenium, '3RHOCP')
 
     month_before_label = month_before.strftime('%Y %B')
-    find_element_by_text(selenium, month_label, n=2).click()
+    find_elements_by_text(selenium, month_label)[2].click()
     find_element_by_text(selenium, month_before_label).click()
     time.sleep(1)
 

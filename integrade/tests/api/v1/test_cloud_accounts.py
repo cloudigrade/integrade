@@ -8,6 +8,7 @@
 :testtype: functional
 :upstream: yes
 """
+from time import time
 from urllib.parse import urljoin
 
 import pytest
@@ -55,12 +56,15 @@ def test_create_cloud_account(drop_account_data, cloudtrails_to_delete):
         'name': uuid4(),
         'resourcetype': 'AwsAccount'
     }
+    start = time()
     create_response = client.post(
         urls.CLOUD_ACCOUNT,
         payload=cloud_account,
         auth=auth
     )
+    end = time()
     create_data = create_response.json()
+    assert end - start < 5
     assert create_response.status_code == 201
     assert create_data['account_arn'] == acct_arn
     assert create_data['aws_account_id'] == aws_profile['account_number']
