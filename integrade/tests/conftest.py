@@ -5,10 +5,17 @@ from multiprocessing import Pool
 import pytest
 
 from integrade.tests import utils
+from integrade.tests.api.v1.test_login import test_superuser_login
 from integrade.tests.aws_utils import (
     delete_bucket_and_cloudtrail,
     terminate_instance,
 )
+
+
+@pytest.fixture(scope='session', autouse=True)
+def check_superuser():
+    """Ensure that we have a valid superuser for the test run."""
+    test_superuser_login()
 
 
 @pytest.fixture()

@@ -68,7 +68,7 @@ def customer_aws_reaper(
     to help reduce any detritus we leave behind on AWS during daily testing on
     the accounts used by automation as customers.
     """
-    cfg = config.get_config()
+    cfg = config.get_config(create_superuser=False)
     for profile in cfg['aws_profiles']:
         aws_utils.delete_cloudtrail(
             (profile['name'], profile['cloudtrail_name']))

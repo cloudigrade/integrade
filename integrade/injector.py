@@ -202,3 +202,25 @@ def inject_instance_data(
         'instance_id': instance1.id,
     }
     """, **locals())
+
+
+def make_super_user(username, password):
+    """Use manange.py to create a superuser and return an auth token."""
+    return run_remote_python("""
+        from django.contrib.auth import get_user_model;
+        from rest_framework.authtoken.models import Token
+        User = get_user_model();
+        email = '{0}@example.com'.format(username)
+        if User.objects.filter(username=username).exists():
+            super_user = User.objects.get_by_natural_key(username)
+            super_user.set_password(password)
+            super_user.save()
+        else:
+            super_user = User.objects.create_superuser(
+                            username,
+                            email,
+                            password
+                            )
+        token = Token.objects.get_or_create(user=super_user)
+        return str(token[0])
+            """, **locals())

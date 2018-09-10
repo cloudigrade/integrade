@@ -134,11 +134,6 @@ Teardown Cloudigrade:
   when: manual
   <<: *teardown_cloudigrade
 
-Teardown Failed Cloudigrade Deploy:
-  stage: Deploy Cloudigrade
-  when: on_failure
-  <<: *teardown_cloudigrade
-
 Automatically Teardown Cloudigrade:
   stage: Teardown Cloudigrade
   only:
@@ -164,7 +159,6 @@ Automatically Teardown Cloudigrade:
     - export DEPLOYMENT_PREFIX="${ENVIRONMENT_SLUG}"
     - oc login ${OPENSHIFT_URL} --token ${GITLAB_CI_SA_TOKEN}
     - oc project ${OPENSHIFT_PROJECT}
-    - source scripts/oc-auth.sh
     - export DRIVER_CHROME="--driver Remote --capability browserName chrome --host selenium --port 4444"
   environment:
     name: review/$CI_COMMIT_REF_NAME
@@ -182,7 +176,6 @@ Automatically Teardown Cloudigrade:
     - export DEPLOYMENT_PREFIX="${ENVIRONMENT_SLUG}"
     - oc login ${OPENSHIFT_URL} --token ${GITLAB_CI_SA_TOKEN}
     - oc project ${OPENSHIFT_PROJECT}
-    - source scripts/oc-auth.sh
     - export DRIVER_CHROME="--driver Remote --capability browserName chrome --host selenium --port 4444"
   environment:
     name: review/$CI_COMMIT_REF_NAME
@@ -232,6 +225,7 @@ API All Manually:
     ENVIRONMENT_SLUG: ${CI_PROJECT_NAME}-${CI_ENVIRONMENT_SLUG}
     REPORT_NAME: api_all
   after_script:
+    - export CLOUDIGRADE_BASE_URL="${ENVIRONMENT_SLUG}.review.gitlab.cloudigra.de"
     - python scripts/aws_reaper.py --env-cloudtrail-only
 
 API Quick:
@@ -282,6 +276,7 @@ UI All Manually:
     - name: selenium/standalone-chrome
       alias: selenium
   after_script:
+    - export CLOUDIGRADE_BASE_URL="${ENVIRONMENT_SLUG}.review.gitlab.cloudigra.de"
     - python scripts/aws_reaper.py --env-cloudtrail-only
 
 UI Chrome:

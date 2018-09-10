@@ -6,7 +6,7 @@ from xdg import BaseDirectory
 
 import yaml
 
-from integrade import exceptions
+from integrade import exceptions, injector, utils
 
 
 # `get_config` uses this as a cache. It is intentionally a global. This design
@@ -16,7 +16,7 @@ _CONFIG = None
 _AWS_CONFIG = None
 
 
-def get_config():
+def get_config(create_superuser=True):
     """Return a copy of the global config dictionary.
 
     This method makes use of a cache. If the cache is empty, the configuration
@@ -28,11 +28,21 @@ def get_config():
     global _CONFIG  # pylint:disable=global-statement
     if _CONFIG is None:
         _CONFIG = {}
+        super_username = os.environ.get(
+                'CLOUDIGRADE_USER', utils.uuid4()
+                )
+        _CONFIG['super_user_name'] = super_username
+        super_password = os.environ.get(
+                'CLOUDIGRADE_PASSWORD', utils.gen_password()
+                )
+        _CONFIG['super_user_password'] = super_password
+        token = os.environ.get('CLOUDIGRADE_TOKEN', False)
+        if not token and create_superuser:
+            token = injector.make_super_user(super_username, super_password)
+        _CONFIG['superuser_token'] = token
         _CONFIG['api_version'] = os.environ.get(
             'CLOUDIGRADE_API_VERSION', 'v1')
         _CONFIG['base_url'] = os.environ.get('CLOUDIGRADE_BASE_URL', '')
-        _CONFIG['super_user_name'] = os.environ.get('CLOUDIGRADE_USER')
-        _CONFIG['super_user_password'] = os.environ.get('CLOUDIGRADE_PASSWORD')
         deployment_prefix = os.environ.get('DEPLOYMENT_PREFIX', '')
         _CONFIG['cloudigrade_s3_bucket'] = os.environ.get(
                 'AWS_S3_BUCKET_NAME', '')
@@ -87,7 +97,6 @@ def get_config():
                 'Could not find $CLOUDIGRADE_BASE_URL set in in'
                 ' your environment.'
             )
-        _CONFIG['superuser_token'] = os.environ.get('CLOUDIGRADE_TOKEN', None)
         if os.environ.get('USE_HTTPS', 'false').lower() == 'true':
             _CONFIG['scheme'] = 'https'
         else:

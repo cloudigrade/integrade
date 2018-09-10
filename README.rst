@@ -79,8 +79,6 @@ Integrade can be configured to test any instance of cloudigrade. The
 **REQUIRED** environment variables are::
 
     CLOUDIGRADE_BASE_URL # base url without http/https prefix
-    CLOUDIGRADE_TOKEN    # This is the token of the super user created for
-                         # cloudigrade
 
 To run tests that require AWS accounts (and API access to these), configure any
 number of accounts with the following sets of environment varibles::
@@ -94,6 +92,13 @@ There can be any number of these "profiles". The only requirement is that the se
 
 The **OPTIONAL** environment variables are::
 
+    CLOUDIGRADE_USER     # Super username on cloudigrade. Integrade assumes
+                         # that the email is {username}@example.com
+    CLOUDIGRADE_PASSWORD # Password for above user.
+    CLOUDIGRADE_TOKEN    # You may provide an authentication token for a super
+                         # user you have allready created. You should
+                         # also provide the username and password with the two
+                         # variables above.
     CLOUDIGRADE_API_VERSION # defaults to 'v1'
     USE_HTTPS  # defaults to False so communication is done over http.
                #  Set to True to use https.
@@ -155,24 +160,22 @@ No matter which OpenShift cluster cloudigrade is running in, given that your
 ``oc`` binary is logged into it, you can collect the necessary
 ``CLOUDIGRADE_BASE_URL`` by inspecting the output of ``oc status``. If this
 environment variable is not set, by default we assume the test environment,
-``test.cloudigra.de``. To create the necessary super user and retreive a token
-for that user, you can source the script located in ``scripts/oc-auth.sh``
-which will set ``CLOUDIGRADE_USER`` to a unique name using ``uuidgen`` and
-create a superuser with that name, and then retreive an authentication token
-and set the ``CLOUDIGRADE_TOKEN`` with that value. It is important to remember
-that ``source scripts/oc-auth.sh`` will set the environment variables in you
-current shell but ``bash scripts/oc-auth.sh`` will not.
+``test.cloudigra.de``. 
 
-Example use of ``scripts/oc-auth.sh`` to configure Integrade and run the tests
-against the test environment::
-
-    source scripts/oc-auth.sh
-    make test-api
+If you want to create a super user with a custom set username and password,
+you can do that and retrieve a token for that user, you can source the script
+located in ``scripts/oc-auth.sh`` which will set ``CLOUDIGRADE_USER`` to a
+unique name using ``uuidgen`` and create a superuser with that name, and then
+retreive an authentication token and set the ``CLOUDIGRADE_TOKEN`` with that
+value. It is important to remember that ``source scripts/oc-auth.sh`` will set
+the environment variables in you current shell but ``bash scripts/oc-auth.sh``
+will not. This is ENTIRELY OPTIONAL and only useful if you want to set the
+super user username and password yourself. Otherwise integrade will create one
+on the fly.
 
 If you want to test a different instance of cloudigrade, just make sure to
 export ``CLOUDIGRADE_BASE_URL`` to the correct value and log your ``oc`` client
 into the correct openshift instance.
-
 
 If you desire to serve ``cloudigrade`` with the development server instead of
 on OpenShift locally or on the test environment, you can use the ``make user``
