@@ -6,8 +6,8 @@ stages:
   - Test Cloudigrade Inspection
   - Test Cloudigrade API
   - Test Cloudigrade UI
-  - Teardown Cloudigrade
   - Cleanup
+  - Teardown Cloudigrade
 
 Test Integrade:
   stage: Test Integrade
@@ -24,6 +24,7 @@ Test Integrade:
 Deploy Cloudigrade:
   stage: Deploy Cloudigrade
   image: registry.gitlab.com/cloudigrade/images/deploy-container:latest
+  retry: 1
   environment:
     name: review/$CI_COMMIT_REF_NAME
     url: http://${CI_PROJECT_NAME}-${CI_ENVIRONMENT_SLUG}.review.gitlab.cloudigra.de
@@ -131,6 +132,11 @@ Teardown Cloudigrade:
   except:
     - master
   when: manual
+  <<: *teardown_cloudigrade
+
+Teardown Failed Cloudigrade Deploy:
+  stage: Deploy Cloudigrade
+  when: on_failure
   <<: *teardown_cloudigrade
 
 Automatically Teardown Cloudigrade:
@@ -282,6 +288,7 @@ UI Chrome:
   stage: Test Cloudigrade UI
   only:
     - master
+  when: always
   <<: *before_script
   <<: *junit_report
   variables:
@@ -297,6 +304,7 @@ UI Firefox:
   stage: Test Cloudigrade UI
   only:
     - master
+  when: always
   <<: *before_script
   <<: *junit_report
   variables:
@@ -312,6 +320,7 @@ UI Microsoft Edge:
   stage: Test Cloudigrade UI
   only:
     - master
+  when: always
   <<: *before_script
   <<: *junit_report
   variables:
@@ -322,7 +331,7 @@ UI Microsoft Edge:
 
 # Cleans up customer accounts between test runs
 Test Cleanup:
-  stage: Teardown Cloudigrade
+  stage: Cleanup
   <<: *before_script
   variables:
     ENVIRONMENT_SLUG: ${CI_PROJECT_NAME}-${CI_ENVIRONMENT_SLUG}
