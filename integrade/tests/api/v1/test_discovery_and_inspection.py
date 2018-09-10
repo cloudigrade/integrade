@@ -217,7 +217,7 @@ def create_event(instance_id, aws_profile, event_type, time=None,
 
 
 def wait_for_cloudigrade_instance(
-        instance_id, auth, timeout=120, sleep_period=5):
+        instance_id, auth, timeout=300, sleep_period=15):
     """Wait for image to be inspected and assert on findings.
 
     :param instance_id: The ec2 instance id you expect to find.
@@ -241,12 +241,12 @@ def wait_for_cloudigrade_instance(
             found_instances = [instance['ec2_instance_id']
                                for instance in list_instances['results']]
             if instance_id in found_instances:
-                break
+                return found_instances
             sleep(sleep_period)
             timepassed += sleep_period
             bar.update(timeout / timepassed)
             if timepassed >= timeout:
-                break
+                return found_instances
 
 
 def wait_for_inspection(
@@ -427,10 +427,7 @@ def test_find_running_instances(
 
     # Look for instances that should have been discovered
     # upon account creation.
-    wait_for_cloudigrade_instance(instance_id, auth)
-    list_instances = client.get(urls.INSTANCE, auth=auth)
-    found_instances = [instance['ec2_instance_id']
-                       for instance in list_instances['results']]
+    found_instances = wait_for_cloudigrade_instance(instance_id, auth)
     assert instance_id in found_instances
 
     # No need for the instance to run any longer
