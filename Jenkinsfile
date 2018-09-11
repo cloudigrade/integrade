@@ -22,6 +22,8 @@ pipeline {
                 pysh 'pip install -r .jenkins-requirements.txt'
                 pysh 'PIPELINE_BRANCH_NAME=master PROJECT_ID=7449621 DEPLOY_JOB_NAME="Deploy Cloudigrade" python scripts/run_pipeline_and_get_artifacts.py'
                 junit allowEmptyResults: true, testResults: '*.xml'
+                archiveArtifacts allowEmptyArchive: true, artifacts: '*.log'
+                pysh 'make clean'
               } // withCredentials
           } // withPythonEnv
         } // Run GitLab Pipeline

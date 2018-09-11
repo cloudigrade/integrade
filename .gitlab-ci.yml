@@ -141,7 +141,7 @@ Automatically Teardown Cloudigrade:
   when: always
   <<: *teardown_cloudigrade
 
-.junit_report: &junit_report
+.archive_results: &archive_results
   artifacts:
     when: always
     reports:
@@ -149,6 +149,9 @@ Automatically Teardown Cloudigrade:
     name: "${REPORT_NAME}"
     paths:
       - "${REPORT_NAME}.xml"
+      - "${REPORT_NAME}-api.log"
+      - "${REPORT_NAME}-celery-worker.log"
+      - "${REPORT_NAME}-celery-beat.log"
 
 .before_script: &before_script
   before_script:
@@ -182,12 +185,16 @@ Automatically Teardown Cloudigrade:
     url: http://${CI_PROJECT_NAME}-${CI_ENVIRONMENT_SLUG}.review.gitlab.cloudigra.de
     on_stop: Teardown Cloudigrade
 
+.api_all: &api_all
+  script:
+    - py.test --junitxml="${REPORT_NAME}.xml" -vvv --force-flaky -m 'not inspection' integrade/tests/api
+
 Inspection:
   stage: Test Cloudigrade Inspection
   only:
     - master
   <<: *before_script
-  <<: *junit_report
+  <<: *archive_results
   variables:
     ENVIRONMENT_SLUG: ${CI_PROJECT_NAME}-${CI_ENVIRONMENT_SLUG}
     REPORT_NAME: inspect
@@ -196,10 +203,8 @@ Inspection:
     - cp .aws_image_config.yaml integrade/aws_image_config.yaml
     - export XDG_CONFIG_HOME=$PWD
     - py.test --junitxml="${REPORT_NAME}.xml" -vvv --force-flaky -m 'inspection' integrade/tests/api
-
-.api_all: &api_all
-  script:
-    - py.test --junitxml="${REPORT_NAME}.xml" -vvv --force-flaky -m 'not inspection' integrade/tests/api
+  after_script:
+    - python scripts/aws_reaper.py --env-cloudtrail-only
 
 API All Automatically:
   stage: Test Cloudigrade API
@@ -208,10 +213,12 @@ API All Automatically:
   when: always
   <<: *before_script
   <<: *api_all
-  <<: *junit_report
+  <<: *archive_results
   variables:
     ENVIRONMENT_SLUG: ${CI_PROJECT_NAME}-${CI_ENVIRONMENT_SLUG}
     REPORT_NAME: api_all
+  after_script:
+    - python scripts/aws_reaper.py --env-cloudtrail-only
 
 API All Manually:
   stage: Test Cloudigrade API
@@ -220,7 +227,7 @@ API All Manually:
   when: manual
   <<: *before_script
   <<: *api_all
-  <<: *junit_report
+  <<: *archive_results
   variables:
     ENVIRONMENT_SLUG: ${CI_PROJECT_NAME}-${CI_ENVIRONMENT_SLUG}
     REPORT_NAME: api_all
@@ -234,7 +241,7 @@ API Quick:
   except:
     - master
   <<: *quick_before_script
-  <<: *junit_report
+  <<: *archive_results
   variables:
     ENVIRONMENT_SLUG: ${CI_PROJECT_NAME}-${CI_ENVIRONMENT_SLUG}
     TEST_PATH: integrade/tests/api/v1/
@@ -251,7 +258,7 @@ UI Quick:
   except:
     - master
   <<: *quick_before_script
-  <<: *junit_report
+  <<: *archive_results
   variables:
     ENVIRONMENT_SLUG: ${CI_PROJECT_NAME}-${CI_ENVIRONMENT_SLUG}
     TEST_PATH: integrade/tests/ui
@@ -266,7 +273,7 @@ UI All Manually:
   stage: Test Cloudigrade UI
   when: manual
   <<: *before_script
-  <<: *junit_report
+  <<: *archive_results
   variables:
     ENVIRONMENT_SLUG: ${CI_PROJECT_NAME}-${CI_ENVIRONMENT_SLUG}
     REPORT_NAME: ui_all
@@ -285,7 +292,7 @@ UI Chrome:
     - master
   when: always
   <<: *before_script
-  <<: *junit_report
+  <<: *archive_results
   variables:
     ENVIRONMENT_SLUG: ${CI_PROJECT_NAME}-${CI_ENVIRONMENT_SLUG}
     REPORT_NAME: ui_chrome
@@ -301,7 +308,7 @@ UI Firefox:
     - master
   when: always
   <<: *before_script
-  <<: *junit_report
+  <<: *archive_results
   variables:
     ENVIRONMENT_SLUG: ${CI_PROJECT_NAME}-${CI_ENVIRONMENT_SLUG}
     REPORT_NAME: ui_firefox
@@ -317,7 +324,7 @@ UI Microsoft Edge:
     - master
   when: always
   <<: *before_script
-  <<: *junit_report
+  <<: *archive_results
   variables:
     ENVIRONMENT_SLUG: ${CI_PROJECT_NAME}-${CI_ENVIRONMENT_SLUG}
     REPORT_NAME: ui_edge

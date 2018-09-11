@@ -13,6 +13,7 @@ help:
 	@echo "                    test coverage"
 	@echo "  test-api          to run functional tests against cloudigrade"
 	@echo "                    api endpoints"
+	@echo "  clean             Remove all saved logs and cached python files"
 
 all: lint test-coverage
 
@@ -30,6 +31,14 @@ test:
 
 test-api:
 	py.test $(PYTEST_OPTIONS) integrade/tests/api/v1
+
+clean:
+	rm -f *.log
+	rm -f *.xml
+	PYCLEAN_PLACES=${PYCLEAN_PLACES:-'.'}
+	find ${PYCLEAN_PLACES} -type f -name "*.py[co]" -delete
+	find ${PYCLEAN_PLACES} -type d -name "__pycache__" -delete
+
 
 UI_DRIVER ?= Chrome 
 UI_BROWSER ?= Chrome

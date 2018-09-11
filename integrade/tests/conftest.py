@@ -1,5 +1,6 @@
 """Pytest customizations and fixtures for cloudigrade tests."""
 import os
+import subprocess
 from multiprocessing import Pool
 
 import pytest
@@ -16,6 +17,18 @@ from integrade.tests.aws_utils import (
 def check_superuser():
     """Ensure that we have a valid superuser for the test run."""
     test_superuser_login()
+
+
+@pytest.fixture(scope='session', autouse=True)
+def capture_logs():
+    """Capture logs from openshift after test session."""
+    yield
+    if os.environ.get('SAVE_CLOUDIGRADE_LOGS'):
+        subprocess.run(['scripts/save-openshift-logs.sh'],
+                       stdout=subprocess.PIPE,
+                       stderr=subprocess.PIPE,
+                       timeout=60
+                       )
 
 
 @pytest.fixture()

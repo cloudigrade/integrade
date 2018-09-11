@@ -103,7 +103,13 @@ The **OPTIONAL** environment variables are::
     USE_HTTPS  # defaults to False so communication is done over http.
                #  Set to True to use https.
     SSL_VERIFY # defaults to False. If "True" make client verify certificate
+    SAVE_CLOUDIGRADE_LOGS # if set to any truthy value, logs from cloudigrade
+                          # api, celery worker, and celery beat will be saved
+                          # to local disk after each test session.
 
+If ``SAVE_CLOUDIGRADE_LOGS`` is set, three logs will be saved to disk after
+test run, one for the api pod, one for the celery worker pod, and the third
+for the celery beat pod.
 
 Additionally, there is an **OPTIONAL** config file you can install in your
 ``$XDG_CONFIG_HOME/integrade/aws_image_config.yaml``. An example file is

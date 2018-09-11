@@ -1,3 +1,6 @@
+# logs from openshift
+*.log
+
 # aws image config
 integrade/aws_image_config.yaml
 
