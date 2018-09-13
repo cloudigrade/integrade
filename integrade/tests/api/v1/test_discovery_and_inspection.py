@@ -73,7 +73,6 @@ image_test_matrix = [
     ('owned', 'rhel-openshift', 'inspected'),
     ('community', 'ubuntu', 'inspected'),
     ('community', 'windows', 'inspected'),
-    ('community', 'gentoo', 'inspected'),
     ('community', 'fedora', 'inspected'),
     ('community', 'opensuse', 'inspected'),
     ('marketplace', 'rhel', 'inspected'),

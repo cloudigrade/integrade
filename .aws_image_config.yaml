@@ -47,8 +47,6 @@
       image_id: 'ami-2b170941'
     - name: 'fedora' # fedora 28
       image_id: 'ami-0011ab01eb7fb4fbc'
-    - name: 'gentoo' #pygoscelis-papua
-      image_id: 'ami-036e776a'
 
 profiles:
   DEV07CUSTOMER:
