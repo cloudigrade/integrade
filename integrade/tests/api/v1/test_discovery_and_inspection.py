@@ -15,7 +15,9 @@ import os
 import random
 import sys
 from collections import namedtuple
+from copy import deepcopy
 from datetime import datetime, timezone
+from pprint import pformat
 from time import sleep
 from urllib.parse import urlparse
 
@@ -213,6 +215,7 @@ def create_event(instance_id, aws_profile, event_type, time=None,
     path = f'AWSLogs/mock_events/{upload_file}'
     cloudi_bucket.upload_file(upload_file, path)
     os.remove(upload_file)
+    return data
 
 
 def wait_for_cloudigrade_instance(
@@ -286,6 +289,7 @@ def wait_for_inspection(
                 if server_info:
                     server_info = server_info[0]
                     status = server_info['status']
+                    inspection_json = pformat(server_info['inspection_json'])
             if status == 'error' and expected_state != 'error':
                 break
             if status in ['pending', 'preparing', 'inspecting', 'ABSENT']:
@@ -297,7 +301,8 @@ def wait_for_inspection(
             if timepassed >= timeout:
                 break
     # assert the image did reach expected state before timeout
-    assert status == expected_state
+    assert status == expected_state, f'\nState was {status} and inspection ' \
+                                     f' json was:\n{inspection_json}'
 
     fact_keys = [
         'rhel',
@@ -322,6 +327,7 @@ def wait_for_instance_event(
         event_type,
         auth,
         aws_profile_name,
+        event,
         timeout=1200,
         sleep_period=30):
     """Wait until an event of the type specified occurs for the instance.
@@ -350,10 +356,11 @@ def wait_for_instance_event(
             bar.update(timeout / timepassed)
             if timepassed >= timeout:
                 break
+    event = pformat(event)
     raise exceptions.EventTimeoutError(
-        f'Timed out while waiting for {event_type} event for instance'
-        f' with instance id {instance_id} for the aws profile'
-        f' {aws_profile_name}')
+        f'\nTimed out while waiting for {event_type} event for instance'
+        f'\nwith instance id {instance_id} for the aws profile'
+        f'\n{aws_profile_name}. The event data was:\n{event}')
 
 
 @pytest.mark.inspection
@@ -505,6 +512,7 @@ def test_on_off_events(
     aws_utils.clean_cloudigrade_queues()
     instance_id = image_fixture.instance_id
     bad_event_instance_id = image_fixture.instance_id
+    bad_event_aws_profile = deepcopy(aws_profile)
     # Create cloud account on cloudigrade
     cloud_account = {
         'account_arn': aws_profile['arn'],
@@ -522,15 +530,18 @@ def test_on_off_events(
         (aws_profile['name'], aws_profile['cloudtrail_name'])
     )
 
-    create_event(instance_id, aws_profile, event_type=power_on_event)
+    power_on_event = create_event(
+        instance_id,
+        aws_profile,
+        event_type=power_on_event)
     if bad_event.name == 'badawsaccount':
-        aws_profile['account_number'] = 123
+        bad_event_aws_profile['account_number'] = 123
     elif bad_event.name == 'badinstanceid':
         bad_event_instance_id = 'i-123'
     for _ in range(random.randint(1, 10)):
         create_event(
             bad_event_instance_id,
-            aws_profile,
+            bad_event_aws_profile,
             event_type='BadEvent',
             data=bad_event.data,
             gzipped=bad_event.gzipped
@@ -540,13 +551,18 @@ def test_on_off_events(
         instance_id,
         'power_on',
         auth,
-        aws_profile_name
+        aws_profile_name,
+        power_on_event
     )
 
-    create_event(instance_id, aws_profile, event_type=power_off_event)
+    power_off_event = create_event(
+        instance_id,
+        aws_profile,
+        event_type=power_off_event)
     wait_for_instance_event(
         instance_id,
         'power_off',
         auth,
-        aws_profile_name
+        aws_profile_name,
+        power_off_event
     )
