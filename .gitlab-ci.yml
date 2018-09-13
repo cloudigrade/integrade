@@ -345,6 +345,10 @@ Nightly Cleanup:on-schedule:
   stage: Cleanup
   only:
     - schedules
+  # will only run on the scheduled pipeline,
+  # 'always' in this context means it will run
+  # even if prior stages fail
+  when: always
   before_script:
     - python --version
     - oc version
