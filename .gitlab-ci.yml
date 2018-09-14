@@ -1,4 +1,8 @@
 image: registry.gitlab.com/cloudigrade/images/test-container
+variables:
+  ENVIRONMENT_SLUG: ${CI_PROJECT_NAME}-${CI_ENVIRONMENT_SLUG}
+  CLOUDIGRADE_BASE_URL: "${ENVIRONMENT_SLUG}.review.gitlab.cloudigra.de"
+
 
 stages:
   - Test Integrade
@@ -30,7 +34,6 @@ Deploy Cloudigrade:
     url: http://${CI_PROJECT_NAME}-${CI_ENVIRONMENT_SLUG}.review.gitlab.cloudigra.de
     on_stop: Teardown Cloudigrade
   variables:
-    ENVIRONMENT_SLUG: ${CI_PROJECT_NAME}-${CI_ENVIRONMENT_SLUG}
     GIT_STRATEGY: none
   before_script:
     - oc login ${OPENSHIFT_URL} --token ${GITLAB_CI_SA_TOKEN}
@@ -92,7 +95,6 @@ Deploy Cloudigrade:
 .teardown_cloudigrade: &teardown_cloudigrade
   image: registry.gitlab.com/cloudigrade/images/deploy-container:latest
   variables:
-    ENVIRONMENT_SLUG: ${CI_PROJECT_NAME}-${CI_ENVIRONMENT_SLUG}
     GIT_STRATEGY: none
   before_script:
     - oc login ${OPENSHIFT_URL} --token ${GITLAB_CI_SA_TOKEN}
@@ -158,7 +160,6 @@ Automatically Teardown Cloudigrade:
     - python --version
     - oc version
     - make install-dev
-    - export CLOUDIGRADE_BASE_URL="${ENVIRONMENT_SLUG}.review.gitlab.cloudigra.de"
     - export DEPLOYMENT_PREFIX="${ENVIRONMENT_SLUG}"
     - oc login ${OPENSHIFT_URL} --token ${GITLAB_CI_SA_TOKEN}
     - oc project ${OPENSHIFT_PROJECT}
@@ -175,7 +176,6 @@ Automatically Teardown Cloudigrade:
     - python --version
     - oc version
     - make install-dev
-    - export CLOUDIGRADE_BASE_URL="${ENVIRONMENT_SLUG}.review.gitlab.cloudigra.de"
     - export DEPLOYMENT_PREFIX="${ENVIRONMENT_SLUG}"
     - oc login ${OPENSHIFT_URL} --token ${GITLAB_CI_SA_TOKEN}
     - oc project ${OPENSHIFT_PROJECT}
@@ -196,7 +196,6 @@ Inspection:
   <<: *before_script
   <<: *archive_results
   variables:
-    ENVIRONMENT_SLUG: ${CI_PROJECT_NAME}-${CI_ENVIRONMENT_SLUG}
     REPORT_NAME: inspect
   script:
     - export AWS_S3_BUCKET_NAME="${ENVIRONMENT_SLUG}-cloudigrade-s3"
@@ -215,7 +214,6 @@ API All Automatically:
   <<: *api_all
   <<: *archive_results
   variables:
-    ENVIRONMENT_SLUG: ${CI_PROJECT_NAME}-${CI_ENVIRONMENT_SLUG}
     REPORT_NAME: api_all
   after_script:
     - python scripts/aws_reaper.py --env-cloudtrail-only
@@ -229,10 +227,8 @@ API All Manually:
   <<: *api_all
   <<: *archive_results
   variables:
-    ENVIRONMENT_SLUG: ${CI_PROJECT_NAME}-${CI_ENVIRONMENT_SLUG}
     REPORT_NAME: api_all
   after_script:
-    - export CLOUDIGRADE_BASE_URL="${ENVIRONMENT_SLUG}.review.gitlab.cloudigra.de"
     - python scripts/aws_reaper.py --env-cloudtrail-only
 
 API Quick:
@@ -243,7 +239,6 @@ API Quick:
   <<: *quick_before_script
   <<: *archive_results
   variables:
-    ENVIRONMENT_SLUG: ${CI_PROJECT_NAME}-${CI_ENVIRONMENT_SLUG}
     TEST_PATH: integrade/tests/api/v1/
     REPORT_NAME: api_quick
   script:
@@ -260,7 +255,6 @@ UI Quick:
   <<: *quick_before_script
   <<: *archive_results
   variables:
-    ENVIRONMENT_SLUG: ${CI_PROJECT_NAME}-${CI_ENVIRONMENT_SLUG}
     TEST_PATH: integrade/tests/ui
     REPORT_NAME: ui_quick
   script:
@@ -275,7 +269,6 @@ UI All Manually:
   <<: *before_script
   <<: *archive_results
   variables:
-    ENVIRONMENT_SLUG: ${CI_PROJECT_NAME}-${CI_ENVIRONMENT_SLUG}
     REPORT_NAME: ui_all
   script:
     - py.test --junitxml="${REPORT_NAME}.xml" -vvv --force-flaky ${DRIVER_CHROME} integrade/tests/ui
@@ -283,7 +276,6 @@ UI All Manually:
     - name: selenium/standalone-chrome
       alias: selenium
   after_script:
-    - export CLOUDIGRADE_BASE_URL="${ENVIRONMENT_SLUG}.review.gitlab.cloudigra.de"
     - python scripts/aws_reaper.py --env-cloudtrail-only
 
 UI Chrome:
@@ -294,7 +286,6 @@ UI Chrome:
   <<: *before_script
   <<: *archive_results
   variables:
-    ENVIRONMENT_SLUG: ${CI_PROJECT_NAME}-${CI_ENVIRONMENT_SLUG}
     REPORT_NAME: ui_chrome
   script:
     - py.test --junitxml="${REPORT_NAME}.xml" -vvv --force-flaky ${DRIVER_CHROME} integrade/tests/ui
@@ -310,7 +301,6 @@ UI Firefox:
   <<: *before_script
   <<: *archive_results
   variables:
-    ENVIRONMENT_SLUG: ${CI_PROJECT_NAME}-${CI_ENVIRONMENT_SLUG}
     REPORT_NAME: ui_firefox
   script:
     - py.test --junitxml="${REPORT_NAME}.xml" -vvv --force-flaky --driver Remote --capability browserName firefox --host selenium --port 4444 integrade/tests/ui
@@ -326,7 +316,6 @@ UI Microsoft Edge:
   <<: *before_script
   <<: *archive_results
   variables:
-    ENVIRONMENT_SLUG: ${CI_PROJECT_NAME}-${CI_ENVIRONMENT_SLUG}
     REPORT_NAME: ui_edge
   script:
     - py.test --junitxml="${REPORT_NAME}.xml" -vvv --force-flaky --driver SauceLabs --capability browserName MicrosoftEdge integrade/tests/ui
@@ -335,8 +324,6 @@ UI Microsoft Edge:
 Test Cleanup:
   stage: Cleanup
   <<: *before_script
-  variables:
-    ENVIRONMENT_SLUG: ${CI_PROJECT_NAME}-${CI_ENVIRONMENT_SLUG}
   script:
     - python scripts/aws_reaper.py --env-cloudtrail-only
   when: always
