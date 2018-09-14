@@ -17,6 +17,7 @@ from integrade.tests.utils import create_user_account
 from integrade.utils import uuid4
 
 
+@pytest.mark.smoketest
 def test_login_logout():
     """Test that we can login, make requests and logout to the server.
 

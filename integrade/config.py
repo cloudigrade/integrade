@@ -16,7 +16,7 @@ _CONFIG = None
 _AWS_CONFIG = None
 
 
-def get_config(create_superuser=True):
+def get_config(create_superuser=True, need_base_url=True):
     """Return a copy of the global config dictionary.
 
     This method makes use of a cache. If the cache is empty, the configuration
@@ -92,7 +92,7 @@ def get_config(create_superuser=True):
                 if not profile['access_key_id']:
                     missing_config_errors.append(
                         f'Could not find AWS access key id for {profile_name}')
-        if _CONFIG['base_url'] == '':
+        if _CONFIG['base_url'] == '' and need_base_url:
             missing_config_errors.append(
                 'Could not find $CLOUDIGRADE_BASE_URL set in in'
                 ' your environment.'

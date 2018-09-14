@@ -1,8 +1,4 @@
 image: registry.gitlab.com/cloudigrade/images/test-container
-variables:
-  ENVIRONMENT_SLUG: ${CI_PROJECT_NAME}-${CI_ENVIRONMENT_SLUG}
-  CLOUDIGRADE_BASE_URL: "${ENVIRONMENT_SLUG}.review.gitlab.cloudigra.de"
-
 
 stages:
   - Test Integrade
@@ -41,17 +37,19 @@ Deploy Cloudigrade:
     - git clone https://gitlab.com/cloudigrade/shiftigrade.git
     - cd shiftigrade
   script:
-    - export CLOUDTRAIL_EVENT_URL="https://sqs.${AWS_DEFAULT_REGION}.amazonaws.com/${AWS_ACCOUNT_NUMBER}/${ENVIRONMENT_SLUG}-cloudigrade-cloudtrail-sqs"
-    - export DB_SECRETS_FILE_NAME="${ENVIRONMENT_SLUG}-db"
-    - export DEPLOYMENT_PREFIX="${ENVIRONMENT_SLUG}"
-    - export DJANGO_DATABASE_HOST="${ENVIRONMENT_SLUG}-db.${OPENSHIFT_PROJECT}.svc"
+    - export DEPLOYMENT_PREFIX=${CI_PROJECT_NAME}-${CI_ENVIRONMENT_SLUG}
+    - export CLOUDIGRADE_BASE_URL="${DEPLOYMENT_PREFIX}.review.gitlab.cloudigra.de"
+    - export CLOUDTRAIL_EVENT_URL="https://sqs.${AWS_DEFAULT_REGION}.amazonaws.com/${AWS_ACCOUNT_NUMBER}/${DEPLOYMENT_PREFIX}-cloudigrade-cloudtrail-sqs"
+    - export DB_SECRETS_FILE_NAME="${DEPLOYMENT_PREFIX}-db"
+    - export DEPLOYMENT_PREFIX="${DEPLOYMENT_PREFIX}"
+    - export DJANGO_DATABASE_HOST="${DEPLOYMENT_PREFIX}-db.${OPENSHIFT_PROJECT}.svc"
     - export DJANGO_SECRET_KEY="${CI_COMMIT_SHA}"  # TODO: generate a proper secret key
-    - export GITLAB_DEPLOYMENT="${ENVIRONMENT_SLUG}"
-    - export HOUNDIGRADE_ECS_CLUSTER_NAME="${ENVIRONMENT_SLUG}-houndigrade"
+    - export GITLAB_DEPLOYMENT="${DEPLOYMENT_PREFIX}"
+    - export HOUNDIGRADE_ECS_CLUSTER_NAME="${DEPLOYMENT_PREFIX}-houndigrade"
     - export HOUNDIGRADE_AWS_AUTOSCALING_GROUP_NAME="${HOUNDIGRADE_ECS_CLUSTER_NAME}-asg"
     - export HOUNDIGRADE_LAUNCH_CONFIG_NAME="${HOUNDIGRADE_ECS_CLUSTER_NAME}-lc"
     - export EC2_HOST_NAME="${HOUNDIGRADE_ECS_CLUSTER_NAME}-host"
-    - export AWS_S3_BUCKET_NAME="${ENVIRONMENT_SLUG}-cloudigrade-s3"
+    - export AWS_S3_BUCKET_NAME="${DEPLOYMENT_PREFIX}-cloudigrade-s3"
 
     - cd ansible
     - >
@@ -80,17 +78,17 @@ Deploy Cloudigrade:
     - >
       oc process openshift//postgresql-ephemeral \
         -p NAMESPACE=openshift \
-        -p DATABASE_SERVICE_NAME=${ENVIRONMENT_SLUG}-db \
+        -p DATABASE_SERVICE_NAME=${DEPLOYMENT_PREFIX}-db \
         -p POSTGRESQL_DATABASE=postgres \
         -p POSTGRESQL_VERSION=9.6 \
       | oc apply -f -
-    - oc rollout status dc/${ENVIRONMENT_SLUG}-db
+    - oc rollout status dc/${DEPLOYMENT_PREFIX}-db
 
     - kontemplate template ocp/review.yaml | oc apply -f -
-    - oc rollout status "dc/${ENVIRONMENT_SLUG}cloudigrade-api"
-    - oc rollout status "dc/${ENVIRONMENT_SLUG}cloudigrade-celery-beat"
-    - oc rollout status "dc/${ENVIRONMENT_SLUG}cloudigrade-celery-worker"
-    - oc rollout status "dc/${ENVIRONMENT_SLUG}frontigrade"
+    - oc rollout status "dc/${DEPLOYMENT_PREFIX}cloudigrade-api"
+    - oc rollout status "dc/${DEPLOYMENT_PREFIX}cloudigrade-celery-beat"
+    - oc rollout status "dc/${DEPLOYMENT_PREFIX}cloudigrade-celery-worker"
+    - oc rollout status "dc/${DEPLOYMENT_PREFIX}frontigrade"
 
 .teardown_cloudigrade: &teardown_cloudigrade
   image: registry.gitlab.com/cloudigrade/images/deploy-container:latest
@@ -102,11 +100,13 @@ Deploy Cloudigrade:
     - git clone https://gitlab.com/cloudigrade/shiftigrade.git
     - cd shiftigrade
   script:
-    - oc delete bc,cm,dc,is,routes,secrets,svc -l gitlab-deployment="${ENVIRONMENT_SLUG}"
-    - oc delete dc,svc,secret "${ENVIRONMENT_SLUG}-db"
+    - export DEPLOYMENT_PREFIX=${CI_PROJECT_NAME}-${CI_ENVIRONMENT_SLUG}
+    - export CLOUDIGRADE_BASE_URL="${DEPLOYMENT_PREFIX}.review.gitlab.cloudigra.de"
+    - oc delete bc,cm,dc,is,routes,secrets,svc -l gitlab-deployment="${DEPLOYMENT_PREFIX}"
+    - oc delete dc,svc,secret "${DEPLOYMENT_PREFIX}-db"
 
-    - export DEPLOYMENT_PREFIX="${ENVIRONMENT_SLUG}"
-    - export HOUNDIGRADE_ECS_CLUSTER_NAME="${ENVIRONMENT_SLUG}-houndigrade"
+    - export DEPLOYMENT_PREFIX="${DEPLOYMENT_PREFIX}"
+    - export HOUNDIGRADE_ECS_CLUSTER_NAME="${DEPLOYMENT_PREFIX}-houndigrade"
     - export HOUNDIGRADE_AWS_AUTOSCALING_GROUP_NAME="${HOUNDIGRADE_ECS_CLUSTER_NAME}-asg"
     - export HOUNDIGRADE_LAUNCH_CONFIG_NAME="${HOUNDIGRADE_ECS_CLUSTER_NAME}-lc"
 
@@ -160,7 +160,6 @@ Automatically Teardown Cloudigrade:
     - python --version
     - oc version
     - make install-dev
-    - export DEPLOYMENT_PREFIX="${ENVIRONMENT_SLUG}"
     - oc login ${OPENSHIFT_URL} --token ${GITLAB_CI_SA_TOKEN}
     - oc project ${OPENSHIFT_PROJECT}
     - export DRIVER_CHROME="--driver Remote --capability browserName chrome --host selenium --port 4444"
@@ -176,7 +175,6 @@ Automatically Teardown Cloudigrade:
     - python --version
     - oc version
     - make install-dev
-    - export DEPLOYMENT_PREFIX="${ENVIRONMENT_SLUG}"
     - oc login ${OPENSHIFT_URL} --token ${GITLAB_CI_SA_TOKEN}
     - oc project ${OPENSHIFT_PROJECT}
     - export DRIVER_CHROME="--driver Remote --capability browserName chrome --host selenium --port 4444"
@@ -187,6 +185,8 @@ Automatically Teardown Cloudigrade:
 
 .api_all: &api_all
   script:
+    - export DEPLOYMENT_PREFIX=${CI_PROJECT_NAME}-${CI_ENVIRONMENT_SLUG}
+    - export CLOUDIGRADE_BASE_URL="${DEPLOYMENT_PREFIX}.review.gitlab.cloudigra.de"
     - py.test --junitxml="${REPORT_NAME}.xml" -vvv --force-flaky -m 'not inspection' integrade/tests/api
 
 Inspection:
@@ -198,7 +198,7 @@ Inspection:
   variables:
     REPORT_NAME: inspect
   script:
-    - export AWS_S3_BUCKET_NAME="${ENVIRONMENT_SLUG}-cloudigrade-s3"
+    - export AWS_S3_BUCKET_NAME="${DEPLOYMENT_PREFIX}-cloudigrade-s3"
     - cp .aws_image_config.yaml integrade/aws_image_config.yaml
     - export XDG_CONFIG_HOME=$PWD
     - py.test --junitxml="${REPORT_NAME}.xml" -vvv --force-flaky -m 'inspection' integrade/tests/api
@@ -242,10 +242,12 @@ API Quick:
     TEST_PATH: integrade/tests/api/v1/
     REPORT_NAME: api_quick
   script:
-    - export AWS_S3_BUCKET_NAME="${ENVIRONMENT_SLUG}-cloudigrade-s3"
+    - export DEPLOYMENT_PREFIX=${CI_PROJECT_NAME}-${CI_ENVIRONMENT_SLUG}
+    - export CLOUDIGRADE_BASE_URL="${DEPLOYMENT_PREFIX}.review.gitlab.cloudigra.de"
+    - export AWS_S3_BUCKET_NAME="${DEPLOYMENT_PREFIX}-cloudigrade-s3"
     - cp .aws_image_config.yaml integrade/aws_image_config.yaml
     - export XDG_CONFIG_HOME=$PWD
-    - if [[ "${TEST_MODULES}" ]]; then echo "${TEST_MODULES}" | xargs py.test --junitxml="${REPORT_NAME}.xml" -vvv --force-flaky; fi
+    - if [[ "${TEST_MODULES}" ]]; then echo "${TEST_MODULES}" | xargs py.test --junitxml="${REPORT_NAME}.xml" -vvv --force-flaky; else py.test --junitxml="${REPORT_NAME}.xml" -vvv $TEST_PATH -m smoketest; fi
 
 UI Quick:
   stage: Test Cloudigrade UI
@@ -258,7 +260,9 @@ UI Quick:
     TEST_PATH: integrade/tests/ui
     REPORT_NAME: ui_quick
   script:
-    - if [[ "${TEST_MODULES}" ]]; then echo "${TEST_MODULES}" | xargs py.test --junitxml="${REPORT_NAME}.xml" -vvv --force-flaky ${DRIVER_CHROME}; fi
+    - export DEPLOYMENT_PREFIX=${CI_PROJECT_NAME}-${CI_ENVIRONMENT_SLUG}
+    - export CLOUDIGRADE_BASE_URL="${DEPLOYMENT_PREFIX}.review.gitlab.cloudigra.de"
+    - if [[ "${TEST_MODULES}" ]]; then echo "${TEST_MODULES}" | xargs py.test --junitxml="${REPORT_NAME}.xml" -vvv --force-flaky ${DRIVER_CHROME}; else py.test --junitxml="${REPORT_NAME}.xml" -vvv $TEST_PATH -m smoketest ${DRIVER_CHROME}; fi
   services:
     - name: selenium/standalone-chrome
       alias: selenium
@@ -271,6 +275,8 @@ UI All Manually:
   variables:
     REPORT_NAME: ui_all
   script:
+    - export DEPLOYMENT_PREFIX=${CI_PROJECT_NAME}-${CI_ENVIRONMENT_SLUG}
+    - export CLOUDIGRADE_BASE_URL="${DEPLOYMENT_PREFIX}.review.gitlab.cloudigra.de"
     - py.test --junitxml="${REPORT_NAME}.xml" -vvv --force-flaky ${DRIVER_CHROME} integrade/tests/ui
   services:
     - name: selenium/standalone-chrome
@@ -288,6 +294,8 @@ UI Chrome:
   variables:
     REPORT_NAME: ui_chrome
   script:
+    - export DEPLOYMENT_PREFIX=${CI_PROJECT_NAME}-${CI_ENVIRONMENT_SLUG}
+    - export CLOUDIGRADE_BASE_URL="${DEPLOYMENT_PREFIX}.review.gitlab.cloudigra.de"
     - py.test --junitxml="${REPORT_NAME}.xml" -vvv --force-flaky ${DRIVER_CHROME} integrade/tests/ui
   services:
     - name: selenium/standalone-chrome
@@ -303,6 +311,8 @@ UI Firefox:
   variables:
     REPORT_NAME: ui_firefox
   script:
+    - export DEPLOYMENT_PREFIX=${CI_PROJECT_NAME}-${CI_ENVIRONMENT_SLUG}
+    - export CLOUDIGRADE_BASE_URL="${DEPLOYMENT_PREFIX}.review.gitlab.cloudigra.de"
     - py.test --junitxml="${REPORT_NAME}.xml" -vvv --force-flaky --driver Remote --capability browserName firefox --host selenium --port 4444 integrade/tests/ui
   services:
     - name: selenium/standalone-firefox
@@ -318,6 +328,8 @@ UI Microsoft Edge:
   variables:
     REPORT_NAME: ui_edge
   script:
+    - export DEPLOYMENT_PREFIX=${CI_PROJECT_NAME}-${CI_ENVIRONMENT_SLUG}
+    - export CLOUDIGRADE_BASE_URL="${DEPLOYMENT_PREFIX}.review.gitlab.cloudigra.de"
     - py.test --junitxml="${REPORT_NAME}.xml" -vvv --force-flaky --driver SauceLabs --capability browserName MicrosoftEdge integrade/tests/ui
 
 # Cleans up customer accounts between test runs

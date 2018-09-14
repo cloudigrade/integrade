@@ -10,6 +10,8 @@
 """
 import logging
 
+import pytest
+
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 
@@ -41,6 +43,7 @@ def test_login_invalid_username(selenium, ui_loginpage_empty, ui_user):
     assert not browser.execute_script(CHECK_VALID)
 
 
+@pytest.mark.smoketest
 def test_login_valid_username(selenium, ui_loginpage, ui_user):
     """Test the login form is valid with an e-mail in the username.
 
