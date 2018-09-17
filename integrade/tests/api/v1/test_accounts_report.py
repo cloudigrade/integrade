@@ -12,7 +12,7 @@ import operator
 
 import pytest
 
-from integrade import api, config
+from integrade import api
 from integrade.injector import inject_aws_cloud_account, inject_instance_data
 from integrade.tests import urls, utils
 
@@ -58,10 +58,6 @@ def accounts_report_data():
     return auth, first_account, second_account, third_account
 
 
-@pytest.mark.skipif(
-        len(config.get_config()['aws_profiles']) < 1,
-        reason='needs at least 1 aws profiles',
-)
 @pytest.mark.parametrize('superuser', (False, True), ids=usertype)
 def test_filter_by_account_id(accounts_report_data, superuser):
     """Test that cloud accounts report can be filtered by account ID.
@@ -102,10 +98,6 @@ def test_filter_by_account_id(accounts_report_data, superuser):
     assert account['openshift_instances'] == 1, repr(account)
 
 
-@pytest.mark.skipif(
-    len(config.get_config()['aws_profiles']) < 3,
-    reason='needs at least 3 aws profiles',
-)
 @pytest.mark.parametrize('superuser', (False, True), ids=usertype)
 def test_filter_by_name(accounts_report_data, superuser):
     """Test that cloud accounts can be filtered by name.
@@ -155,10 +147,6 @@ def test_filter_by_name(accounts_report_data, superuser):
             assert account['openshift_instances'] == 1, repr(account)
 
 
-@pytest.mark.skipif(
-    len(config.get_config()['aws_profiles']) < 3,
-    reason='needs at least 3 aws profiles',
-)
 @pytest.mark.parametrize('superuser', (False, True), ids=usertype)
 def test_filter_by_account_id_and_name(accounts_report_data, superuser):
     """Test that cloud accounts report can be filtered by account ID and name.

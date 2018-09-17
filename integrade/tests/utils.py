@@ -12,6 +12,15 @@ from integrade.utils import gen_password, uuid4
 _SENTINEL = object()
 
 
+def needed_aws_profiles_present(num_profiles=1):
+    """Return True if the number of profiles indicated are present.
+
+    See the README for how aws profiles for customers are defined.
+    """
+    return False if not config.get_config().get('aws_profiles') else len(
+        config.get_config().get('aws_profiles', [])) > num_profiles
+
+
 def create_cloud_account(auth, n, cloudtrails_to_delete=None, name=_SENTINEL):
     """Create a cloud account based on configured AWS customer info."""
     client = api.Client(authenticate=False)

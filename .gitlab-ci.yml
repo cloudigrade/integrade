@@ -189,21 +189,35 @@ Automatically Teardown Cloudigrade:
     - export CLOUDIGRADE_BASE_URL="${DEPLOYMENT_PREFIX}.review.gitlab.cloudigra.de"
     - py.test --junitxml="${REPORT_NAME}.xml" -vvv --force-flaky -m 'not inspection' integrade/tests/api
 
-Inspection:
-  stage: Test Cloudigrade Inspection
-  only:
-    - master
-  <<: *before_script
-  <<: *archive_results
+.inspect: &inspect
   variables:
     REPORT_NAME: inspect
   script:
+    - export DEPLOYMENT_PREFIX=${CI_PROJECT_NAME}-${CI_ENVIRONMENT_SLUG}
+    - export CLOUDIGRADE_BASE_URL="${DEPLOYMENT_PREFIX}.review.gitlab.cloudigra.de"
     - export AWS_S3_BUCKET_NAME="${DEPLOYMENT_PREFIX}-cloudigrade-s3"
     - cp .aws_image_config.yaml integrade/aws_image_config.yaml
     - export XDG_CONFIG_HOME=$PWD
     - py.test --junitxml="${REPORT_NAME}.xml" -vvv --force-flaky -m 'inspection' integrade/tests/api
   after_script:
     - python scripts/aws_reaper.py --env-cloudtrail-only
+
+Inspection:
+  stage: Test Cloudigrade Inspection
+  only:
+    - master
+  <<: *before_script
+  <<: *archive_results
+  <<: *inspect
+
+Inspection Manual:
+  stage: Test Cloudigrade API
+  except:
+    - master
+  when: manual
+  <<: *before_script
+  <<: *archive_results
+  <<: *inspect
 
 API All Automatically:
   stage: Test Cloudigrade API

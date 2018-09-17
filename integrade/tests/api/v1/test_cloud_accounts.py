@@ -19,13 +19,17 @@ from integrade.injector import (
 )
 from integrade.tests import aws_utils
 from integrade.tests import urls
-from integrade.tests.utils import create_user_account, get_auth
+from integrade.tests.utils import (
+    create_user_account,
+    get_auth,
+    needed_aws_profiles_present,
+)
 from integrade.utils import uuid4
 
 
 @pytest.mark.serial_only
-@pytest.mark.skipif(len(config.get_config()[
-    'aws_profiles']) < 1, reason='needs at least 1 aws profile')
+@pytest.mark.skipif(not needed_aws_profiles_present(1),
+                    reason='needs at least 1 aws profile')
 def test_create_cloud_account(drop_account_data, cloudtrails_to_delete):
     """Ensure cloud accounts can be registered to a user.
 
@@ -134,8 +138,8 @@ def test_create_cloud_account(drop_account_data, cloudtrails_to_delete):
 
 
 @pytest.mark.serial_only
-@pytest.mark.skipif(len(config.get_config()[
-    'aws_profiles']) < 2, reason='needs at least 2 aws profiles')
+@pytest.mark.skipif(not needed_aws_profiles_present(2),
+                    reason='needs at least 2 aws profile')
 def test_create_multiple_cloud_accounts(
         drop_account_data,
         cloudtrails_to_delete):
@@ -183,8 +187,8 @@ def test_create_multiple_cloud_accounts(
 @pytest.mark.skip(
     reason='https://gitlab.com/cloudigrade/cloudigrade/issues/429')
 @pytest.mark.serial_only
-@pytest.mark.skipif(len(config.get_config()[
-    'aws_profiles']) < 2, reason='needs at least 1 aws profile')
+@pytest.mark.skipif(not needed_aws_profiles_present(2),
+                    reason='needs at least 2 aws profile')
 def test_create_cloud_account_duplicate_names(
     drop_account_data, cloudtrails_to_delete
 ):
@@ -227,8 +231,8 @@ def test_create_cloud_account_duplicate_names(
 
 
 @pytest.mark.serial_only
-@pytest.mark.skipif(len(config.get_config()[
-    'aws_profiles']) < 2, reason='needs at least 1 aws profile')
+@pytest.mark.skipif(not needed_aws_profiles_present(2),
+                    reason='needs at least 2 aws profile')
 def test_create_cloud_account_duplicate_names_different_users(
     drop_account_data, cloudtrails_to_delete
 ):
@@ -306,17 +310,17 @@ def test_negative_read_other_cloud_account(
     # list cloud accounts associated with each user
     list_response = client.get(urls.CLOUD_ACCOUNT, auth=auth1)
     acct_ids_found = [
-            acct['aws_account_id']
-            for acct in list_response.json()['results']
-            ]
+        acct['aws_account_id']
+        for acct in list_response.json()['results']
+    ]
     assert acct1['aws_account_id'] in acct_ids_found
     assert acct2['aws_account_id'] not in acct_ids_found
 
     list_response = client.get(urls.CLOUD_ACCOUNT, auth=auth2)
     acct_ids_found = [
-            acct['aws_account_id']
-            for acct in list_response.json()['results']
-            ]
+        acct['aws_account_id']
+        for acct in list_response.json()['results']
+    ]
     assert acct2['aws_account_id'] in acct_ids_found
     assert acct1['aws_account_id'] not in acct_ids_found
 
@@ -324,9 +328,9 @@ def test_negative_read_other_cloud_account(
     superclient = api.Client()
     list_response = superclient.get(urls.CLOUD_ACCOUNT)
     acct_ids_found = [
-            acct['aws_account_id']
-            for acct in list_response.json()['results']
-            ]
+        acct['aws_account_id']
+        for acct in list_response.json()['results']
+    ]
     assert acct2['aws_account_id'] in acct_ids_found
     assert acct1['aws_account_id'] in acct_ids_found
 
@@ -335,23 +339,23 @@ def test_negative_read_other_cloud_account(
     # FIXME: clumsy way to get super user id
     all_users = superclient.get(urls.USER_LIST).json()
     super_user_id = [
-            user['id'] for user in all_users if user['is_superuser']
-            ][0]
+        user['id'] for user in all_users if user['is_superuser']
+    ][0]
     acct3 = inject_aws_cloud_account(super_user_id)
     list_response = superclient.get(urls.CLOUD_ACCOUNT)
     acct_ids_found = [
-            acct['aws_account_id']
-            for acct in list_response.json()['results']
-            ]
+        acct['aws_account_id']
+        for acct in list_response.json()['results']
+    ]
     assert acct3['aws_account_id'] in acct_ids_found
     assert list_response.json()['count'] == 3
 
     # make sure user1 still just see theirs
     list_response = client.get(urls.CLOUD_ACCOUNT, auth=auth1)
     acct_ids_found = [
-            acct['aws_account_id']
-            for acct in list_response.json()['results']
-            ]
+        acct['aws_account_id']
+        for acct in list_response.json()['results']
+    ]
     assert acct1['aws_account_id'] in acct_ids_found
     assert acct2['aws_account_id'] not in acct_ids_found
     assert acct3['aws_account_id'] not in acct_ids_found
@@ -386,8 +390,8 @@ def test_negative_create_cloud_account_missing(field_to_delete):
 
 
 @pytest.mark.serial_only
-@pytest.mark.skipif(len(config.get_config()[
-    'aws_profiles']) < 1, reason='needs at least 1 aws profile')
+@pytest.mark.skipif(not needed_aws_profiles_present(1),
+                    reason='needs at least 1 aws profile')
 def test_cloudtrail_updated(
         drop_account_data,
         cloudtrails_and_buckets_to_delete):
@@ -420,16 +424,16 @@ def test_cloudtrail_updated(
     bucket_name = aws_utils.create_bucket_for_cloudtrail(profile_name)
     if cloudtrail_client.describe_trails(
             trailNameList=[aws_profile['cloudtrail_name']]
-            ).get('trailList'):
+    ).get('trailList'):
         cloudtrail_client.update_trail(
             Name=aws_profile['cloudtrail_name'],
             S3BucketName=bucket_name
-            )
+        )
     else:
         cloudtrail_client.create_trail(
             Name=aws_profile['cloudtrail_name'],
             S3BucketName=bucket_name
-            )
+        )
     # make sure we clean up our trail and bucket even if test fails
     cloudtrails_and_buckets_to_delete.append(
         (profile_name, aws_profile['cloudtrail_name'], bucket_name))

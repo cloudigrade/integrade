@@ -1,4 +1,5 @@
 """Tools to manage global configuration of integrade."""
+
 import os
 from copy import deepcopy
 
@@ -28,27 +29,7 @@ def get_config(create_superuser=True, need_base_url=True):
     global _CONFIG  # pylint:disable=global-statement
     if _CONFIG is None:
         _CONFIG = {}
-        super_username = os.environ.get(
-                'CLOUDIGRADE_USER', utils.uuid4()
-                )
-        _CONFIG['super_user_name'] = super_username
-        super_password = os.environ.get(
-                'CLOUDIGRADE_PASSWORD', utils.gen_password()
-                )
-        _CONFIG['super_user_password'] = super_password
-        token = os.environ.get('CLOUDIGRADE_TOKEN', False)
-        if not token and create_superuser:
-            token = injector.make_super_user(super_username, super_password)
-        _CONFIG['superuser_token'] = token
-        _CONFIG['api_version'] = os.environ.get(
-            'CLOUDIGRADE_API_VERSION', 'v1')
-        _CONFIG['base_url'] = os.environ.get('CLOUDIGRADE_BASE_URL', '')
         deployment_prefix = os.environ.get('DEPLOYMENT_PREFIX', '')
-        _CONFIG['cloudigrade_s3_bucket'] = os.environ.get(
-                'AWS_S3_BUCKET_NAME', '')
-        if not _CONFIG['cloudigrade_s3_bucket'] and deployment_prefix:
-            _CONFIG['cloudigrade_s3_bucket'] = \
-                    f'{deployment_prefix}-cloudigrade-s3'
         # pull all customer roles out of environ
 
         def is_role(string):
@@ -92,6 +73,14 @@ def get_config(create_superuser=True, need_base_url=True):
                 if not profile['access_key_id']:
                     missing_config_errors.append(
                         f'Could not find AWS access key id for {profile_name}')
+        _CONFIG['api_version'] = os.environ.get(
+            'CLOUDIGRADE_API_VERSION', 'v1')
+        _CONFIG['base_url'] = os.environ.get('CLOUDIGRADE_BASE_URL', '')
+        _CONFIG['cloudigrade_s3_bucket'] = os.environ.get(
+            'AWS_S3_BUCKET_NAME', '')
+        if not _CONFIG['cloudigrade_s3_bucket'] and deployment_prefix:
+            _CONFIG['cloudigrade_s3_bucket'] = \
+                f'{deployment_prefix}-cloudigrade-s3'
         if _CONFIG['base_url'] == '' and need_base_url:
             missing_config_errors.append(
                 'Could not find $CLOUDIGRADE_BASE_URL set in in'
@@ -110,6 +99,25 @@ def get_config(create_superuser=True, need_base_url=True):
             raise exceptions.MissingConfigurationError(
                 '\n'.join(missing_config_errors)
             )
+        super_username = os.environ.get(
+            'CLOUDIGRADE_USER', utils.uuid4()
+        )
+        _CONFIG['super_user_name'] = super_username
+        super_password = os.environ.get(
+            'CLOUDIGRADE_PASSWORD', utils.gen_password()
+        )
+        _CONFIG['super_user_password'] = super_password
+        token = os.environ.get('CLOUDIGRADE_TOKEN', False)
+        if not token and create_superuser:
+            try:
+                token = injector.make_super_user(
+                    super_username, super_password)
+            except RuntimeError as e:
+                raise exceptions.MissingConfigurationError(
+                    'Could not create a super user or token, error:\n'
+                    f'{repr(e)}'
+                )
+        _CONFIG['superuser_token'] = token
     return deepcopy(_CONFIG)
 
 

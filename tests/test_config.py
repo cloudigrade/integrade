@@ -41,7 +41,7 @@ def test_get_config(ssl, protocol):
                 'flying-aardvark-',
                 '42',
                 utils.uuid4(),
-                ])
+            ])
             os.environ['CLOUDIGRADE_TOKEN'] = token
             os.environ['CLOUDIGRADE_BASE_URL'] = 'example.com'
             os.environ['CLOUDIGRADE_ROLE_CUSTOMER1'] = '{}:{}:{}'.format(
@@ -63,6 +63,25 @@ def test_get_config(ssl, protocol):
                 f'{deployment_prefix}{account_number}'
             )
             assert cfg['cloudigrade_s3_bucket'] == bucket_name
+
+
+def test_negative_super_user_creation_fails():
+    """If a base url is specified in the environment, we use it."""
+    with mock.patch.object(config, '_CONFIG', None):
+        with mock.patch.dict(os.environ, {}, clear=True):
+            account_number = int(time.time())
+            os.environ['CLOUDIGRADE_USER'] = 'bob'
+            os.environ['CLOUDIGRADE_PASSWORD'] = 'bob123'
+            os.environ['CLOUDIGRADE_BASE_URL'] = 'example.com'
+            os.environ['CLOUDIGRADE_ROLE_CUSTOMER1'] = '{}:{}:{}'.format(
+                utils.uuid4(), account_number, utils.uuid4())
+            os.environ['DEPLOYMENT_PREFIX'] = 'flying-aardvark-'
+            os.environ['AWS_ACCESS_KEY_ID_CUSTOMER1'] = utils.uuid4()
+            with mock.patch.object(
+                    injector, 'make_super_user') as make_super_user:
+                make_super_user.side_effect = RuntimeError()
+                with pytest.raises(exceptions.MissingConfigurationError):
+                    config.get_config()
 
 
 def test_negative_get_config_missing():

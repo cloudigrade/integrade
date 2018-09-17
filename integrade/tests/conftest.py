@@ -5,8 +5,8 @@ from multiprocessing import Pool
 
 import pytest
 
-from integrade.tests import utils
-from integrade.tests.api.v1.test_login import test_superuser_login
+from integrade import api, config, exceptions
+from integrade.tests import urls, utils
 from integrade.tests.aws_utils import (
     delete_bucket_and_cloudtrail,
     terminate_instance,
@@ -16,7 +16,14 @@ from integrade.tests.aws_utils import (
 @pytest.fixture(scope='session', autouse=True)
 def check_superuser():
     """Ensure that we have a valid superuser for the test run."""
-    test_superuser_login()
+    try:
+        config.get_config()
+        client = api.Client(response_handler=api.echo_handler)
+        response = client.get(urls.AUTH_ME)
+        assert response.status_code == 200, 'Super user token does not work'
+    except (AssertionError, exceptions.MissingConfigurationError) as e:
+        pytest.fail('Super user creation must have failed. '
+                    f'Error: {repr(e)}')
 
 
 @pytest.fixture(scope='session', autouse=True)
