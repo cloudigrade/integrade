@@ -66,7 +66,18 @@ def test_get_config(ssl, protocol):
 
 
 def test_negative_super_user_creation_fails():
-    """If a base url is specified in the environment, we use it."""
+    """Test that if super user creation fails, we get the right exception.
+
+    If no super user token is provided, then config.get_config will call
+    injector.make_super_user. If this fails, we want config.get_config
+    to bail out with as informative of a message as possible, so tests
+    can fail more gracefully and we can know what happened.
+
+    This test ensures that if injector.make_super_user throws a RuntimeError,
+    that config.get_config raises an exceptions.MissingConfigurationError so
+    so that integrade.tests.conftest.check_superuser can catch that and let
+    the user know what happened.
+    """
     with mock.patch.object(config, '_CONFIG', None):
         with mock.patch.dict(os.environ, {}, clear=True):
             account_number = int(time.time())
