@@ -116,7 +116,15 @@ def inject_aws_cloud_account(user_id,
 
     acct, new = AwsAccount.objects.get_or_create(**kwargs)
     days_ago = datetime.timedelta(days=acct_age)
-    acct.created_at = datetime.datetime.now() - days_ago
+    created_date = datetime.datetime.now() - days_ago
+    timetuple = list(created_date.timetuple()[:-2])
+    # make it noon, this sets the hour
+    timetuple[3] = 12
+    # this sets the min
+    timetuple[4] = 0
+    # this sets the sec
+    timetuple[5] = 0
+    acct.created_at = datetime.datetime(*timetuple)
     acct.save()
 
     return {
