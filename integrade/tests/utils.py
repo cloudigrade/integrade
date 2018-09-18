@@ -54,11 +54,12 @@ def create_user_account(user=None):
         create_user helper function.
     """
     if user is None:
-        user = {
-            'email': '',
+        email = f'{uuid4()}@example.com'
+        user = create_user_account({
+            'email': email,
             'password': gen_password(),
-            'username': uuid4(),
-        }
+            'username': email,
+        })
     else:
         user = copy.deepcopy(user)
 
@@ -133,10 +134,11 @@ def get_auth(user=None):
     :returns: instance of api.TokenAuth
     """
     if not user:
+        email = f'{uuid4()}@example.com'
         user = create_user_account({
-            'email': '',
+            'email': email,
             'password': gen_password(),
-            'username': uuid4(),
+            'username': email,
         })
     client = api.Client(authenticate=False)
     response = client.post(urls.AUTH_TOKEN_CREATE, user)
