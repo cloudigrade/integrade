@@ -3,6 +3,8 @@ import time
 
 from selenium.common.exceptions import StaleElementReferenceException
 
+from ..conftest import timemetric
+
 
 class wait_for_input_value(object):
     """Selenium Wait helper to wait until an input has a specific value."""
@@ -103,7 +105,8 @@ def find_element_by_text(driver, text, *args, **kwargs):
 
 def find_elements_by_text(driver, text,
                           exact=True,
-                          timeout=0.1):
+                          timeout=None,
+                          tag=None):
     """Find an element which contains the given text.
 
     parameters:
@@ -126,21 +129,29 @@ def find_elements_by_text(driver, text,
                         text.
 
     """
-    start = time.time()
-    end = start + timeout
-    elements = []
-    while time.time() < end:
-        elements = [
-            e for e in
-            driver.find_elements_by_xpath('//*[contains(.,\'%s\')]' % text)
-            if (text == get_el_text(e) if exact else text in get_el_text(e))
-        ]
-    return elements
+    timeout = timeout or 0.1
+    with timemetric('find_elements_by_text()'):
+        start = time.time()
+        end = start + timeout
+        elements = []
+        while time.time() < end:
+            elements = [
+                e for e in
+                driver.find_elements_by_xpath(
+                    '//*[contains(.,\'%s\')]'
+                    % (text,)
+                )
+                if (
+                    text == get_el_text(e)
+                    if exact else text in get_el_text(e)
+                 ) and e.is_displayed()
+            ]
+        return elements
 
 
-def fill_input_by_label(driver, element, label, value):
+def fill_input_by_label(driver, element, label, value, timeout=None):
     """Click on a field label and enter text to the associated input."""
-    elements = find_elements_by_text(element or driver, label)
+    elements = find_elements_by_text(element or driver, label, timeout=timeout)
     elements[-1].click()
     input = driver.execute_script('return document.activeElement')
     input.clear()

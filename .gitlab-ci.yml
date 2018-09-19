@@ -162,7 +162,6 @@ Automatically Teardown Cloudigrade:
     - make install-dev
     - oc login ${OPENSHIFT_URL} --token ${GITLAB_CI_SA_TOKEN}
     - oc project ${OPENSHIFT_PROJECT}
-    - export DRIVER_CHROME="--driver Remote --capability browserName chrome --host selenium --port 4444"
   environment:
     name: review/$CI_COMMIT_REF_NAME
     url: http://${CI_PROJECT_NAME}-${CI_ENVIRONMENT_SLUG}.review.gitlab.cloudigra.de
@@ -177,7 +176,6 @@ Automatically Teardown Cloudigrade:
     - make install-dev
     - oc login ${OPENSHIFT_URL} --token ${GITLAB_CI_SA_TOKEN}
     - oc project ${OPENSHIFT_PROJECT}
-    - export DRIVER_CHROME="--driver Remote --capability browserName chrome --host selenium --port 4444"
   environment:
     name: review/$CI_COMMIT_REF_NAME
     url: http://${CI_PROJECT_NAME}-${CI_ENVIRONMENT_SLUG}.review.gitlab.cloudigra.de
@@ -198,7 +196,7 @@ Automatically Teardown Cloudigrade:
     - export AWS_S3_BUCKET_NAME="${DEPLOYMENT_PREFIX}-cloudigrade-s3"
     - cp .aws_image_config.yaml integrade/aws_image_config.yaml
     - export XDG_CONFIG_HOME=$PWD
-    - py.test --junitxml="${REPORT_NAME}.xml" -vvv --force-flaky -m 'inspection' integrade/tests/api
+    - py.test --junitxml="${REPORT_NAME}.xml" -vvv -m 'inspection' integrade/tests/api
   after_script:
     - python scripts/aws_reaper.py --env-cloudtrail-only
 
@@ -261,11 +259,11 @@ API Quick:
     - export AWS_S3_BUCKET_NAME="${DEPLOYMENT_PREFIX}-cloudigrade-s3"
     - cp .aws_image_config.yaml integrade/aws_image_config.yaml
     - export XDG_CONFIG_HOME=$PWD
-    - if [[ "${TEST_MODULES}" ]]; then echo "${TEST_MODULES}" | xargs py.test --junitxml="${REPORT_NAME}.xml" -vvv --force-flaky; else py.test --junitxml="${REPORT_NAME}.xml" -vvv $TEST_PATH -m smoketest; fi
+    - if [[ "${TEST_MODULES}" ]]; then echo "${TEST_MODULES}" | xargs py.test --junitxml="${REPORT_NAME}.xml" -vvv; else py.test --junitxml="${REPORT_NAME}.xml" -vvv $TEST_PATH -m smoketest; fi
 
 UI Quick:
   stage: Test Cloudigrade UI
-  when: on_success
+  when: always
   except:
     - master
   <<: *quick_before_script
@@ -273,25 +271,32 @@ UI Quick:
   variables:
     TEST_PATH: integrade/tests/ui
     REPORT_NAME: ui_quick
+    UI_BROWSER: Chrome
+    UI_USE_REMOTE: "true"
   script:
     - export DEPLOYMENT_PREFIX=${CI_PROJECT_NAME}-${CI_ENVIRONMENT_SLUG}
     - export CLOUDIGRADE_BASE_URL="${DEPLOYMENT_PREFIX}.review.gitlab.cloudigra.de"
-    - if [[ "${TEST_MODULES}" ]]; then echo "${TEST_MODULES}" | xargs py.test --junitxml="${REPORT_NAME}.xml" -vvv --force-flaky ${DRIVER_CHROME}; else py.test --junitxml="${REPORT_NAME}.xml" -vvv $TEST_PATH -m smoketest ${DRIVER_CHROME}; fi
+    - if [[ "${TEST_MODULES}" ]]; then echo "${TEST_MODULES}" | xargs py.test --junitxml="${REPORT_NAME}.xml" -vvv; else py.test --junitxml="${REPORT_NAME}.xml" -vvv $TEST_PATH -m smoketest; fi
   services:
     - name: selenium/standalone-chrome
       alias: selenium
+
+.ui_scripts: &ui_scripts
+  script:
+    - export DEPLOYMENT_PREFIX=${CI_PROJECT_NAME}-${CI_ENVIRONMENT_SLUG}
+    - export CLOUDIGRADE_BASE_URL="${DEPLOYMENT_PREFIX}.review.gitlab.cloudigra.de"
+    - py.test --junitxml="${REPORT_NAME}.xml" -vvv integrade/tests/ui ${EXTRA_PYTEST_ARGS}
 
 UI All Manually:
   stage: Test Cloudigrade UI
   when: manual
   <<: *before_script
   <<: *archive_results
+  <<: *ui_scripts
   variables:
     REPORT_NAME: ui_all
-  script:
-    - export DEPLOYMENT_PREFIX=${CI_PROJECT_NAME}-${CI_ENVIRONMENT_SLUG}
-    - export CLOUDIGRADE_BASE_URL="${DEPLOYMENT_PREFIX}.review.gitlab.cloudigra.de"
-    - py.test --junitxml="${REPORT_NAME}.xml" -vvv --force-flaky ${DRIVER_CHROME} integrade/tests/ui
+    UI_BROWSER: Chrome
+    UI_USE_REMOTE: "true"
   services:
     - name: selenium/standalone-chrome
       alias: selenium
@@ -305,12 +310,27 @@ UI Chrome:
   when: always
   <<: *before_script
   <<: *archive_results
+  <<: *ui_scripts
   variables:
     REPORT_NAME: ui_chrome
-  script:
-    - export DEPLOYMENT_PREFIX=${CI_PROJECT_NAME}-${CI_ENVIRONMENT_SLUG}
-    - export CLOUDIGRADE_BASE_URL="${DEPLOYMENT_PREFIX}.review.gitlab.cloudigra.de"
-    - py.test --junitxml="${REPORT_NAME}.xml" -vvv --force-flaky ${DRIVER_CHROME} integrade/tests/ui
+    UI_BROWSER: Chrome
+    UI_USE_REMOTE: "true"
+  services:
+    - name: selenium/standalone-chrome
+      alias: selenium
+
+UI Chrome:
+  stage: Test Cloudigrade UI
+  except:
+    - master
+  when: manual
+  <<: *before_script
+  <<: *archive_results
+  <<: *ui_scripts
+  variables:
+    REPORT_NAME: ui_chrome
+    UI_BROWSER: Chrome
+    UI_USE_REMOTE: "true"
   services:
     - name: selenium/standalone-chrome
       alias: selenium
@@ -322,12 +342,27 @@ UI Firefox:
   when: always
   <<: *before_script
   <<: *archive_results
+  <<: *ui_scripts
   variables:
     REPORT_NAME: ui_firefox
-  script:
-    - export DEPLOYMENT_PREFIX=${CI_PROJECT_NAME}-${CI_ENVIRONMENT_SLUG}
-    - export CLOUDIGRADE_BASE_URL="${DEPLOYMENT_PREFIX}.review.gitlab.cloudigra.de"
-    - py.test --junitxml="${REPORT_NAME}.xml" -vvv --force-flaky --driver Remote --capability browserName firefox --host selenium --port 4444 integrade/tests/ui
+    UI_BROWSER: Firefox
+    UI_USE_REMOTE: "true"
+  services:
+    - name: selenium/standalone-firefox
+      alias: selenium
+
+UI Firefox:
+  stage: Test Cloudigrade UI
+  except:
+    - master
+  when: manual
+  <<: *before_script
+  <<: *archive_results
+  <<: *ui_scripts
+  variables:
+    REPORT_NAME: ui_firefox
+    UI_BROWSER: Firefox
+    UI_USE_REMOTE: "true"
   services:
     - name: selenium/standalone-firefox
       alias: selenium
@@ -339,12 +374,23 @@ UI Microsoft Edge:
   when: always
   <<: *before_script
   <<: *archive_results
+  <<: *ui_scripts
   variables:
     REPORT_NAME: ui_edge
-  script:
-    - export DEPLOYMENT_PREFIX=${CI_PROJECT_NAME}-${CI_ENVIRONMENT_SLUG}
-    - export CLOUDIGRADE_BASE_URL="${DEPLOYMENT_PREFIX}.review.gitlab.cloudigra.de"
-    - py.test --junitxml="${REPORT_NAME}.xml" -vvv --force-flaky --driver SauceLabs --capability browserName MicrosoftEdge integrade/tests/ui
+    UI_BROWSER: MicrosoftEdge
+
+UI Microsoft Edge:
+  stage: Test Cloudigrade UI
+  except:
+    - master
+  when: manual
+  <<: *before_script
+  <<: *archive_results
+  <<: *ui_scripts
+  variables:
+    REPORT_NAME: ui_edge
+    UI_BROWSER: MicrosoftEdge
+    EXTRA_PYTEST_ARGS: "-x --ff"
 
 # Cleans up customer accounts between test runs
 Test Cleanup:

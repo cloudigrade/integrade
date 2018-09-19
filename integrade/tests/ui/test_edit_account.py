@@ -20,7 +20,8 @@ from .utils import (
 )
 
 
-def test_edit_account_name(drop_account_data, selenium, ui_dashboard, ui_user):
+def test_edit_account_name(drop_account_data, browser_session, ui_dashboard,
+                           ui_user):
     """The user can edit the name of an account which already exists.
 
     :id: 3a63ddbc-b153-415e-a6d1-b7255e0d1f80
@@ -35,16 +36,16 @@ def test_edit_account_name(drop_account_data, selenium, ui_dashboard, ui_user):
         chosen name.
     """
     inject_aws_cloud_account(ui_user['id'], name='My Account')
-    selenium.refresh()
+    browser_session.refresh()
     sleep(0.25)
 
     path = "./ancestor::*[contains(@class, 'list-group-item')]"
-    el = find_element_by_text(selenium, 'My Account')
+    el = find_element_by_text(browser_session, 'My Account')
     el = el.find_element_by_xpath(path)
     el.find_element_by_class_name('dropdown-toggle').click()
     find_element_by_text(el, 'Edit Name').click()
-    fill_input_by_label(selenium, None, 'Account Name', 'What now?!')
-    find_element_by_text(selenium, 'Save').click()
+    fill_input_by_label(browser_session, None, 'Account Name', 'What now?!')
+    find_element_by_text(browser_session, 'Save').click()
 
-    assert not find_element_by_text(selenium, 'My Account')
-    assert find_element_by_text(selenium, 'What now?!')
+    assert not find_element_by_text(browser_session, 'My Account')
+    assert find_element_by_text(browser_session, 'What now?!')

@@ -1,7 +1,9 @@
 """Pytest customizations and fixtures for cloudigrade tests."""
+import atexit
 import os
 import subprocess
 from multiprocessing import Pool
+from time import time
 
 import pytest
 
@@ -38,6 +40,45 @@ def capture_logs():
                        )
 
 
+T = 0
+TIMINGS = {}
+
+
+def timemetric(name):
+    """Create a timer context to record blocks of time."""
+    return TimeMetricContext(name)
+
+
+class TimeMetricContext:
+    """Conext manager meausure the time blocks of code take.
+
+    Each timer is given a name and all of the timers of the same name are added
+    up and the total time can be reported at the end of the test via the
+    report_timers() atexit callback.
+    """
+
+    def __init__(self, name):
+        """Remember what named timer we're adding to."""
+        self.name = name
+
+    def __enter__(self):
+        """Mark the time at the start of the timer entry."""
+        self.start = time()
+
+    def __exit__(self, *args):
+        """Add the elapsed time to the appropriate timer."""
+        self.end = time()
+        TIMINGS.setdefault(self.name, 0)
+        TIMINGS[self.name] += self.end - self.start
+
+
+@atexit.register
+def report_timers():
+    """Report results of all timers."""
+    for t in TIMINGS:
+        print(f'Timer "{t}": {TIMINGS[t]:.2f}s')
+
+
 @pytest.fixture()
 def drop_account_data():
     """Drop non-user data from the database.
@@ -52,7 +93,13 @@ def drop_account_data():
     other tests. For that reason, mark any test using this fixture with
     "@pytest.mark.serial_only".
     """
-    utils.drop_account_data()
+    # global T
+    # start = time()
+    with timemetric('drop_account_data()'):
+        utils.drop_account_data()
+    # end = time()
+    # T += (end - start)
+    # print(f'T={T}')
 
 
 @pytest.fixture()

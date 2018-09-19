@@ -10,18 +10,18 @@
 """
 import datetime
 import random
-import time
 
 from dateutil.relativedelta import relativedelta
 
 import pytest
+
+from selenium.webdriver.common.keys import Keys
 
 from integrade.tests import utils
 
 from .utils import (
     fill_input_by_placeholder,
     find_element_by_text,
-    find_elements_by_text,
 )
 from ...injector import (
     inject_aws_cloud_account,
@@ -42,7 +42,7 @@ def sum_usage(usage):
     return total_seconds
 
 
-def test_empty(cloud_account_data, selenium, ui_acct_list):
+def test_empty(cloud_account_data, browser_session, ui_acct_list):
     """Account summaries should shown 0 images and instances without data.
 
     :id: d23e7196-3139-4017-8d46-6d430c5c4f84
@@ -53,13 +53,13 @@ def test_empty(cloud_account_data, selenium, ui_acct_list):
     :expectedresults:
         Both images and instance should show 0 counts
     """
-    assert find_element_by_text(selenium, '0 Images')
-    assert find_element_by_text(selenium, '0 Instances')
+    assert find_element_by_text(browser_session, '0 Images')
+    assert find_element_by_text(browser_session, '0 Instances')
 
 
 @pytest.mark.parametrize(
     'start', (45, 31, 30, 29, 28, 15))
-def test_running_start_times(start, cloud_account_data, selenium,
+def test_running_start_times(start, cloud_account_data, browser_session,
                              ui_acct_list):
     """Instances left running from various days ago should count today.
 
@@ -76,13 +76,14 @@ def test_running_start_times(start, cloud_account_data, selenium,
           date filter
     """
     cloud_account_data('', [start])
-    assert find_element_by_text(selenium, '1 Images')
-    assert find_element_by_text(selenium, '1 Instances')
+    browser_session.refresh()
+    assert find_element_by_text(browser_session, '1 Images', timeout=1)
+    assert find_element_by_text(browser_session, '1 Instances')
 
 
 @pytest.mark.parametrize(
     'tag', ('', 'rhel', 'openshift', 'rhel,openshift'))
-def test_running_tags(tag, cloud_account_data, selenium, ui_acct_list):
+def test_running_tags(tag, cloud_account_data, browser_session, ui_acct_list):
     """Tags on images should not affect image or instance counts in summaryies.
 
     :id: e9ea3960-051d-47cd-a23b-013ad8deb243
@@ -98,22 +99,23 @@ def test_running_tags(tag, cloud_account_data, selenium, ui_acct_list):
         - Both labels should be 1 when an image has both tags
     """
     cloud_account_data(tag, [10])
-    assert find_element_by_text(selenium, '1 Images')
-    assert find_element_by_text(selenium, '1 Instances')
+    browser_session.refresh()
+    assert find_element_by_text(browser_session, '1 Images', timeout=1)
+    assert find_element_by_text(browser_session, '1 Instances')
 
     # No spaces because there are not spaces between the DOM nodes, even tho
     # they are rendered separately.
     if 'rhel' in tag:
-        assert find_element_by_text(selenium, '1RHEL')
+        assert find_element_by_text(browser_session, '1RHEL')
     else:
-        assert find_element_by_text(selenium, '0RHEL')
+        assert find_element_by_text(browser_session, '0RHEL')
     if 'openshift' in tag:
-        assert find_element_by_text(selenium, '1RHOCP')
+        assert find_element_by_text(browser_session, '1RHOCP')
     else:
-        assert find_element_by_text(selenium, '0RHOCP')
+        assert find_element_by_text(browser_session, '0RHOCP')
 
 
-def test_reused_image(cloud_account_data, selenium, ui_acct_list):
+def test_reused_image(cloud_account_data, browser_session, ui_acct_list):
     """An image used in multiple instance should only count once in summary.
 
     :id: 87a32f9c-da2c-4834-81d5-696b50433bf8
@@ -129,12 +131,14 @@ def test_reused_image(cloud_account_data, selenium, ui_acct_list):
     cloud_account_data('', [10], ec2_ami_id='image1')
     cloud_account_data('', [10], ec2_ami_id='image1')
 
-    assert find_element_by_text(selenium, '1 Images')
-    assert find_element_by_text(selenium, '3 Instances')
+    browser_session.refresh()
+
+    assert find_element_by_text(browser_session, '1 Images', timeout=1)
+    assert find_element_by_text(browser_session, '3 Instances')
 
 
 @pytest.mark.skip(reason='http://gitlab.com/cloudigrade/frontigrade/issues/67')
-def test_last_event_time(cloud_account_data, selenium, ui_acct_list):
+def test_last_event_time(cloud_account_data, browser_session, ui_acct_list):
     """Account summaries show the date and time of the last observed event.
 
     :id: c6d5c52c-0640-4409-8b43-7beb600217d7
@@ -151,11 +155,13 @@ def test_last_event_time(cloud_account_data, selenium, ui_acct_list):
     expected = 'Created 9:51AM, August 10th 2018'
 
     cloud_account_data('', [when], ec2_ami_id='image1')
-    assert find_element_by_text(selenium, expected), selenium.page_source
+    browser_session.refresh()
+    assert find_element_by_text(browser_session, expected, timeout=1), \
+        browser_session.page_source
 
 
 def test_account_name_filter(
-    cloud_account_data, selenium, ui_user, ui_acct_list
+    cloud_account_data, browser_session, ui_user, ui_acct_list
 ):
     """Account summary list can be filtered by name.
 
@@ -176,35 +182,33 @@ def test_account_name_filter(
         cloud_account_data('', [10], ec2_ami_id='image1')
 
     inject_instance_data(acct2['id'], '', [10], ec2_ami_id='image1')
-    selenium.refresh()
-    time.sleep(1)
+    browser_session.refresh()
 
-    assert find_element_by_text(selenium, 'First Account')
-    assert find_element_by_text(selenium, 'Second Account')
+    assert find_element_by_text(browser_session, 'First Account', timeout=1)
+    assert find_element_by_text(browser_session, 'Second Account')
 
     input = fill_input_by_placeholder(
-        selenium, None,
+        browser_session, None,
         'Filter by Name', 'Second')
-    input.send_keys('\n')
-    assert not find_element_by_text(selenium, 'First Account')
-    assert find_element_by_text(selenium, 'Second Account')
+
+    input.send_keys(Keys.RETURN)
+    assert not find_element_by_text(browser_session, 'First Account')
+    assert find_element_by_text(browser_session, 'Second Account')
 
     input = fill_input_by_placeholder(
-        selenium, None,
+        browser_session, None,
         'Filter by Name', 'First')
-    input.send_keys('\n')
-    time.sleep(0.25)
-    assert find_element_by_text(selenium, 'First Account')
-    assert not find_element_by_text(selenium, 'Second Account')
+    input.send_keys(Keys.RETURN)
+    assert find_element_by_text(browser_session, 'First Account', timeout=1)
+    assert not find_element_by_text(browser_session, 'Second Account')
 
-    find_element_by_text(selenium, 'Clear All Filters').click()
-    time.sleep(0.25)
-    assert find_element_by_text(selenium, 'First Account')
-    assert find_element_by_text(selenium, 'Second Account')
+    find_element_by_text(browser_session, 'Clear All Filters').click()
+    assert find_element_by_text(browser_session, 'First Account', timeout=1)
+    assert find_element_by_text(browser_session, 'Second Account')
 
 
 def test_account_date_filter(
-    cloud_account_data, selenium, ui_user, ui_acct_list
+    cloud_account_data, browser_session, ui_user, ui_acct_list
 ):
     """The date dropdown should select and filter by previous months.
 
@@ -236,31 +240,30 @@ def test_account_date_filter(
     for i in range(3):
         cloud_account_data('', [start, end], ec2_ami_id='image2')
 
-    assert find_element_by_text(selenium, '0 Images')
-    assert find_element_by_text(selenium, '0 Instances')
+    browser_session.refresh()
+    assert find_element_by_text(browser_session, '0 Images', timeout=1)
+    assert find_element_by_text(browser_session, '0 Instances')
 
-    find_elements_by_text(selenium, 'Last 30 Days')[2].click()
-    find_element_by_text(selenium, month_label).click()
-    time.sleep(0.25)
+    find_element_by_text(browser_session, 'Last 30 Days').click()
+    find_element_by_text(browser_session, month_label, timeout=0.25).click()
 
-    assert find_element_by_text(selenium, '1 Images')
-    assert find_element_by_text(selenium, '3 Instances')
+    assert find_element_by_text(browser_session, '1 Images', timeout=1)
+    assert find_element_by_text(browser_session, '3 Instances')
 
     long_ago = datetime.date.today() - datetime.timedelta(days=180)
     long_ago_label = long_ago.strftime('%Y %B')
-    find_elements_by_text(selenium, month_label)[2].click()
-    find_element_by_text(selenium, long_ago_label).click()
-    time.sleep(0.25)
+    find_element_by_text(browser_session, month_label).click()
+    find_element_by_text(browser_session, long_ago_label).click()
 
-    assert find_element_by_text(selenium, 'N/A Images')
-    assert find_element_by_text(selenium, 'N/A Instances')
+    assert find_element_by_text(browser_session, 'N/A Images', timeout=1)
+    assert find_element_by_text(browser_session, 'N/A Instances')
     # No spaces because there are not spaces between the DOM nodes, even tho
     # they are rendered separately.
-    assert find_element_by_text(selenium, 'N/ARHEL')
-    assert find_element_by_text(selenium, 'N/ARHOCP')
+    assert find_element_by_text(browser_session, 'N/ARHEL')
+    assert find_element_by_text(browser_session, 'N/ARHOCP')
 
 
-def test_summary_cards(cloud_account_data, selenium, ui_acct_list):
+def test_summary_cards(cloud_account_data, browser_session, ui_acct_list):
     """Ensure the summary cards provide the summary usage information.
 
     :id: 53aeef62-79a8-4576-8cc5-b9dcc66d61b8
@@ -365,48 +368,54 @@ def test_summary_cards(cloud_account_data, selenium, ui_acct_list):
     openshift_runtime += sum_usage(usage)
     rhel_runtime += sum_usage(usage)
 
+    browser_session.refresh()
+
     # Convert runtime from seconds to hours
     rhel_runtime = int(rhel_runtime / 3600)
     openshift_runtime = int(openshift_runtime / 3600)
 
     month_label = last_month.strftime('%Y %B')
-    find_elements_by_text(selenium, 'Last 30 Days')[2].click()
-    find_element_by_text(selenium, month_label).click()
-    time.sleep(1)
 
-    assert find_element_by_text(selenium, '4RHEL Instances')
-    assert find_element_by_text(selenium, '3RHOCP Instances')
+    find_element_by_text(browser_session, 'Last 30 Days', timeout=2).click()
+    find_element_by_text(browser_session, month_label, timeout=1).click()
+
+    assert find_element_by_text(browser_session, '4RHEL Instances', timeout=5)
+    assert find_element_by_text(browser_session, '3RHOCP Instances')
     assert find_element_by_text(
-        selenium,
-        f'{rhel_runtime}Red Hat Enterprise Linux Hours'
+        browser_session,
+        f'{rhel_runtime}Red Hat Enterprise Linux Hours',
+        exact=False,
     )
     assert find_element_by_text(
-        selenium,
-        f'{openshift_runtime}Red Hat OpenShift Container Platform Hours'
+        browser_session,
+        f'{openshift_runtime}Red Hat OpenShift Container Platform Hours',
+        exact=False,
     )
 
-    assert find_element_by_text(selenium, '4 Images')
-    assert find_element_by_text(selenium, '7 Instances')
-    assert find_element_by_text(selenium, '4RHEL')
-    assert find_element_by_text(selenium, '3RHOCP')
+    assert find_element_by_text(browser_session, '4 Images')
+    assert find_element_by_text(browser_session, '7 Instances')
+    assert find_element_by_text(browser_session, '4RHEL')
+    assert find_element_by_text(browser_session, '3RHOCP')
 
     month_before_label = month_before.strftime('%Y %B')
-    find_elements_by_text(selenium, month_label)[2].click()
-    find_element_by_text(selenium, month_before_label).click()
-    time.sleep(1)
+    find_element_by_text(browser_session, month_label).click()
+    find_element_by_text(browser_session, month_before_label,
+                         timeout=0.25).click()
 
-    assert find_element_by_text(selenium, '1RHEL Instances')
-    assert find_element_by_text(selenium, '0RHOCP Instances')
+    assert find_element_by_text(browser_session, '1RHEL Instances', timeout=2)
+    assert find_element_by_text(browser_session, '0RHOCP Instances')
     assert find_element_by_text(
-        selenium,
-        '120Red Hat Enterprise Linux Hours'
+        browser_session,
+        '120Red Hat Enterprise Linux Hours',
+        exact=False,
     )
     assert find_element_by_text(
-        selenium,
-        '0Red Hat OpenShift Container Platform Hours'
+        browser_session,
+        '0Red Hat OpenShift Container Platform Hours',
+        exact=False,
     )
 
-    assert find_element_by_text(selenium, '1 Images')
-    assert find_element_by_text(selenium, '1 Instances')
-    assert find_element_by_text(selenium, '1RHEL')
-    assert find_element_by_text(selenium, '0RHOCP')
+    assert find_element_by_text(browser_session, '1 Images')
+    assert find_element_by_text(browser_session, '1 Instances')
+    assert find_element_by_text(browser_session, '1RHEL')
+    assert find_element_by_text(browser_session, '0RHOCP')

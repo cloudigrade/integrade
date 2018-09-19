@@ -188,7 +188,6 @@ class Client(object):
         if authenticate:
             if not self.token:
                 self.token = cfg.get('superuser_token')
-                assert not self.token or ' ' not in self.token, self.token
             if not self.token:
                 raise exceptions.TokenNotFound(
                     'No token was found to authenticate with the server. Make '

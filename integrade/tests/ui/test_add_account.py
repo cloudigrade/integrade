@@ -62,7 +62,8 @@ def test_fill_name_and_clear(selenium, ui_addacct_page1, ui_user):
     ('', '', '', True),
     ('x'*300, 'x'*256, None, False)
 ])
-def test_account_name_required(options, selenium, ui_addacct_page1, ui_user):
+def test_account_name_required(options, browser_session, ui_addacct_page1,
+                               ui_user):
     """The first page's Account Name field is required before proceeding.
 
     :id: 259bf756-86da-11e8-bec5-8c1645548902
@@ -78,6 +79,7 @@ def test_account_name_required(options, selenium, ui_addacct_page1, ui_user):
     :expectedresults: The "Next" button should only ever be enabled when the
         account name field is valid.
     """
+    selenium = browser_session
     name, expected, error, disabled = options
     dialog = ui_addacct_page1['dialog']
     dialog_next = ui_addacct_page1['dialog_next']
@@ -91,7 +93,7 @@ def test_account_name_required(options, selenium, ui_addacct_page1, ui_user):
         assert error in selenium.page_source
 
 
-def test_cancel(drop_account_data, selenium, ui_addacct_page3, ui_user):
+def test_cancel(drop_account_data, browser_session, ui_addacct_page3, ui_user):
     """The user can add a new account using a valid current ARN.
 
     :id: fa01c0a2-86da-11e8-af5f-8c1645548902
@@ -106,6 +108,7 @@ def test_cancel(drop_account_data, selenium, ui_addacct_page3, ui_user):
     :expectedresults: The Account is created and can be fetched by the account
         list API for verification with the given name and ARN.
     """
+    selenium = browser_session
     dialog = ui_addacct_page3['dialog']
 
     assert ui_addacct_page3['dialog_add'].get_attribute('disabled')
@@ -137,7 +140,8 @@ def test_cancel(drop_account_data, selenium, ui_addacct_page3, ui_user):
     None,
 ])
 def test_add_account(mistake,
-                     drop_account_data, selenium, ui_addacct_page3, ui_user):
+                     drop_account_data, browser_session, ui_addacct_page3,
+                     ui_user):
     """The user can add a new account using a valid current ARN.
 
     :id: 7f4e55e8-b4c2-42ac-b651-b7f6689aeebe
@@ -152,8 +156,9 @@ def test_add_account(mistake,
     :expectedresults: The Account is created and can be fetched by the account
         list API for verification with the given name and ARN.
     """
+    selenium = browser_session
     dialog = ui_addacct_page3['dialog']
-    wait = WebDriverWait(selenium, 10)
+    wait = WebDriverWait(selenium, 15)
 
     assert ui_addacct_page3['dialog_add'].get_attribute('disabled')
 
@@ -186,16 +191,18 @@ def test_add_account(mistake,
     if mistake == 'fake_out_cancel':
         find_element_by_text(dialog, 'Cancel').click()
         find_element_by_text(dialog, 'No').click()
-        sleep(0.1)
 
     if mistake == 'invalid_arn1':
         assert 'You must enter a valid ARN' in selenium.page_source
-        fill_input_by_label(selenium, dialog, 'ARN', acct_arn_good)
+        fill_input_by_label(selenium, dialog, 'ARN', acct_arn_good,
+                            timeout=0.25)
     elif mistake == 'invalid_arn2':
-        find_element_by_text(dialog, 'Add').click()
+        find_element_by_text(dialog, 'Add',
+                             timeout=0.25).click()
         wait.until(wait_for_page_text('Invalid ARN.'))
         find_element_by_text(dialog, 'Back').click()
-        fill_input_by_label(selenium, dialog, 'ARN', acct_arn_good)
+        fill_input_by_label(selenium, dialog, 'ARN', acct_arn_good,
+                            timeout=0.25)
 
     find_element_by_text(dialog, 'Add', timeout=1).click()
 
@@ -213,6 +220,7 @@ def test_add_account(mistake,
         )
 
     find_element_by_text(dialog, 'Close').click()
+    sleep(0.25)
 
     # We don't see the welcome screen anymore
     assert find_element_by_text(selenium, 'Welcome to Cloud Meter') is None
@@ -226,7 +234,8 @@ def test_add_account(mistake,
     assert accounts[0]['account_arn'] == acct_arn_good
 
 
-def test_invalid_arn(drop_account_data, selenium, ui_addacct_page3, ui_user):
+def test_invalid_arn(drop_account_data, browser_session, ui_addacct_page3,
+                     ui_user):
     """The account cannot be added if the ARN given is not valid.
 
     :id: 3dc59808-86c3-11e8-9cd4-8c1645548902
@@ -242,6 +251,7 @@ def test_invalid_arn(drop_account_data, selenium, ui_addacct_page3, ui_user):
     :expectedresults: The user should see the page load for a few seconds and
         then receive an error, after which they should not be able to continue.
     """
+    selenium = browser_session
     dialog = ui_addacct_page3['dialog']
     dialog_add = ui_addacct_page3['dialog_add']
     wait = WebDriverWait(selenium, 10)

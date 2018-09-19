@@ -25,7 +25,8 @@ logger = logging.getLogger(__name__)
 CHECK_VALID = 'return document.getElementById("email").matches(":valid")'
 
 
-def test_login_invalid_username(selenium, ui_loginpage_empty, ui_user):
+def test_login_invalid_username(new_session, browser_session,
+                                ui_loginpage_empty, ui_user):
     """Test the login form is invalid without an e-mail in the username.
 
     :id: e3858c7d-1be8-475a-944b-4a05392f404f
@@ -44,7 +45,7 @@ def test_login_invalid_username(selenium, ui_loginpage_empty, ui_user):
 
 
 @pytest.mark.smoketest
-def test_login_valid_username(selenium, ui_loginpage, ui_user):
+def test_login_valid_username(browser_session, ui_loginpage, ui_user):
     """Test the login form is valid with an e-mail in the username.
 
     :id: f5288391-08b3-4a4f-9fd3-b558caadd396
@@ -61,7 +62,7 @@ def test_login_valid_username(selenium, ui_loginpage, ui_user):
     assert browser.execute_script(CHECK_VALID)
 
 
-def test_incorrect_login(selenium, ui_loginpage, ui_user):
+def test_incorrect_login(browser_session, ui_loginpage, ui_user):
     """Test the login fails with the correct username but incorrect password.
 
     :id: 55ce36fe-4055-4394-9cfe-2ae95a84d9d2
@@ -74,7 +75,7 @@ def test_incorrect_login(selenium, ui_loginpage, ui_user):
     :expectedresults: The login should fail with an error on the page.
     """
     browser, login = ui_loginpage()
-    wait = WebDriverWait(selenium, 30)
+    wait = WebDriverWait(browser_session, 30)
 
     # Username field becomes valid with an e-mail address entered as username
     login.username.fill(ui_user['username'])
@@ -86,11 +87,11 @@ def test_incorrect_login(selenium, ui_loginpage, ui_user):
     login.login.click()
     wait.until(wait_for_input_value((By.ID, 'password'), ''))
     error_card_class = 'cloudmeter-login-card-error'
-    error_card = selenium.find_element_by_class_name(error_card_class)
+    error_card = browser_session.find_element_by_class_name(error_card_class)
     assert error_card.text == 'Email address or password is incorrect.'
 
 
-def test_correct_login(selenium, ui_dashboard, ui_user):
+def test_correct_login(browser_session, ui_dashboard, ui_user):
     """Test the login fails with the correct username and password for the user.
 
     :id: 5c590b1b-ad1e-4efe-ba79-ed06e558e46a
@@ -106,7 +107,7 @@ def test_correct_login(selenium, ui_dashboard, ui_user):
     pass
 
 
-def test_logout(selenium, ui_dashboard, ui_user):
+def test_logout(new_session, browser_session, ui_dashboard, ui_user):
     """Test the user can log out of the dashboard through the user menu.
 
     :id: 88763345-a218-4d70-8dab-c98b16e2d1ef
@@ -121,24 +122,24 @@ def test_logout(selenium, ui_dashboard, ui_user):
         session cookies remain valid.
     """
     browser, login = ui_dashboard
-    wait = WebDriverWait(selenium, 10)
+    wait = WebDriverWait(browser_session, 10)
 
     # Logout appears in user dropdown, and logs out when clicked.
     # And, the Logout item does not appear outside the menu.
-    logout = find_element_by_text(selenium, 'Logout')
+    logout = find_element_by_text(browser_session, 'Logout')
     assert not logout or not logout.is_displayed()
-    menu = find_element_by_text(selenium, ui_user['username'],
+    menu = find_element_by_text(browser_session, ui_user['username'],
                                 fail_hard=True, exact=False)
     if not menu:
-        raise ValueError(selenium.page_source)
-    assert menu.is_displayed(), selenium.get_window_size()
+        raise ValueError(browser_session.page_source)
+    assert menu.is_displayed(), browser_session.get_window_size()
     menu.click()
     wait.until(wait_for_page_text('Logout'))
-    find_element_by_text(selenium, 'Logout').click()
+    find_element_by_text(browser_session, 'Logout').click()
 
     login.login.wait_displayed()
 
     # User *stays* logged out, verifying authentication state was cleared as
     # well as login form being displayed
-    selenium.refresh()
+    browser_session.refresh()
     login.login.wait_displayed()
