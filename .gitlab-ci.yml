@@ -287,22 +287,6 @@ UI Quick:
     - export CLOUDIGRADE_BASE_URL="${DEPLOYMENT_PREFIX}.review.gitlab.cloudigra.de"
     - py.test --junitxml="${REPORT_NAME}.xml" -vvv integrade/tests/ui ${EXTRA_PYTEST_ARGS}
 
-UI All Manually:
-  stage: Test Cloudigrade UI
-  when: manual
-  <<: *before_script
-  <<: *archive_results
-  <<: *ui_scripts
-  variables:
-    REPORT_NAME: ui_all
-    UI_BROWSER: Chrome
-    UI_USE_REMOTE: "true"
-  services:
-    - name: selenium/standalone-chrome
-      alias: selenium
-  after_script:
-    - python scripts/aws_reaper.py --env-cloudtrail-only
-
 UI Chrome:
   stage: Test Cloudigrade UI
   only:
@@ -319,7 +303,7 @@ UI Chrome:
     - name: selenium/standalone-chrome
       alias: selenium
 
-UI Chrome:
+UI Chrome (Manually):
   stage: Test Cloudigrade UI
   except:
     - master
@@ -351,7 +335,7 @@ UI Firefox:
     - name: selenium/standalone-firefox
       alias: selenium
 
-UI Firefox:
+UI Firefox (Manually):
   stage: Test Cloudigrade UI
   except:
     - master
@@ -379,7 +363,7 @@ UI Microsoft Edge:
     REPORT_NAME: ui_edge
     UI_BROWSER: MicrosoftEdge
 
-UI Microsoft Edge:
+UI Microsoft Edge (Manually):
   stage: Test Cloudigrade UI
   except:
     - master
