@@ -139,19 +139,19 @@ def test_cancel(drop_account_data, browser_session, ui_addacct_page3, ui_user):
 def test_arn_mistakes(mistake,
                       browser_session, ui_addacct_page3,
                       ui_user):
-    """The user can add a new account using a valid current ARN.
+    """The user will fail to create a new account using an invalid current ARN.
 
     :id: 7f4e55e8-b4c2-42ac-b651-b7f6689aeebe
-    :description: The user can create and name a new cloud account.
+    :description: We ensure the correct error reponse for a number of mistakes
+        the user can make
     :steps:
         1) Open the dashboard and click the "Add Account"
         2) Enter a name for the account
         3) Proceed to page 3
-        4) Enter an ARN which is valid ARN for a resource we are granted
-           permission to
+        4) Enter an incorrect ARN
         5) Click the "Add" button to attempt to create the account
-    :expectedresults: The Account is created and can be fetched by the account
-        list API for verification with the given name and ARN.
+    :expectedresults: The Account is not created and the proper error is shown
+        and is able to be corrected
     """
     selenium = browser_session
     dialog = ui_addacct_page3['dialog']
@@ -245,7 +245,7 @@ def test_add_account(drop_account_data,
                      ui_user):
     """The user can add a new account using a valid current ARN.
 
-    :id: ???
+    :id: 8c5e7e59-94f8-43fa-9e05-682346552252
     :description: The user can create and name a new cloud account.
     :steps:
         1) Open the dashboard and click the "Add Account"
