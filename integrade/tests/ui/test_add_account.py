@@ -18,11 +18,11 @@ from selenium.webdriver.support.ui import WebDriverWait
 
 from integrade import api, config
 from integrade.tests import urls
-from integrade.utils import flaky
 
 from .utils import (
     fill_input_by_label,
     find_element_by_text,
+    find_elements_by_text,
     read_input_by_label,
     wait_for_page_text,
 )
@@ -131,17 +131,14 @@ def test_cancel(drop_account_data, browser_session, ui_addacct_page3, ui_user):
     assert accounts == []
 
 
-@flaky()
 @pytest.mark.parametrize('mistake', [
-    'change_name',
     'fake_out_cancel',
     'invalid_arn1',
     'invalid_arn2',
-    None,
 ])
-def test_add_account(mistake,
-                     drop_account_data, browser_session, ui_addacct_page3,
-                     ui_user):
+def test_arn_mistakes(mistake,
+                      browser_session, ui_addacct_page3,
+                      ui_user):
     """The user can add a new account using a valid current ARN.
 
     :id: 7f4e55e8-b4c2-42ac-b651-b7f6689aeebe
@@ -162,7 +159,6 @@ def test_add_account(mistake,
 
     assert ui_addacct_page3['dialog_add'].get_attribute('disabled')
 
-    acct_name = 'My Account'
     acct_arn = config.get_config()['aws_profiles'][0]['arn']
     acct_arn_good = acct_arn
     if mistake == 'invalid_arn1':
@@ -171,71 +167,46 @@ def test_add_account(mistake,
         acct_arn = acct_arn.replace('iam::', 'iam:')
     fill_input_by_label(selenium, dialog, 'ARN', acct_arn)
 
-    c = api.Client()
-    r = c.get(urls.CLOUD_ACCOUNT).json()
-    accounts = [a for a in r['results'] if a['user_id'] == ui_user['id']]
-
-    # Wait! Maybe I decided to change the account name?
-    if mistake == 'change_name':
-        find_element_by_text(dialog, 'Back').click()
-        find_element_by_text(dialog, 'Back').click()
-
-        current_name = read_input_by_label(selenium, dialog, 'Account Name')
-        assert current_name == acct_name
-        acct_name = 'Different Name'
-        fill_input_by_label(selenium, dialog, 'Account Name', acct_name)
-
-        find_element_by_text(dialog, 'Next').click()
-        find_element_by_text(dialog, 'Next').click()
-
     if mistake == 'fake_out_cancel':
         find_element_by_text(dialog, 'Cancel').click()
         find_element_by_text(dialog, 'No').click()
 
+        # The add account dialog must still looks right after closed the cancel
+        # dialog
+        elements = find_elements_by_text(selenium, 'ARN', timeout=0.25)
+        elements[-1].click()
+        value = selenium.execute_script('return document.activeElement.value')
+        add = find_element_by_text(selenium, 'Add')
+
+        assert value == acct_arn
+        assert not add.get_attribute('disabled')
+
     if mistake == 'invalid_arn1':
+        # The invalid ARN error must appear once the incorrect ARN is entered
         assert 'You must enter a valid ARN' in selenium.page_source
+
+        # The invalid ARN error must go away once the correct ARN is entered
         fill_input_by_label(selenium, dialog, 'ARN', acct_arn_good,
                             timeout=0.25)
+        assert 'You must enter a valid ARN' not in selenium.page_source
+
     elif mistake == 'invalid_arn2':
+        # Trying to submit with an invalid ARN shoulddisplay an error both on
+        # the confirmation page and on the original form if you return
         find_element_by_text(dialog, 'Add',
                              timeout=0.25).click()
         wait.until(wait_for_page_text('Invalid ARN.'))
         find_element_by_text(dialog, 'Back').click()
+        wait.until(wait_for_page_text('Invalid ARN.'))
+
+        # The error should be removed if you enter a correct ARN
         fill_input_by_label(selenium, dialog, 'ARN', acct_arn_good,
                             timeout=0.25)
-
-    find_element_by_text(dialog, 'Add', timeout=1).click()
-
-    try:
-        wait = WebDriverWait(selenium, ACCT_CREATE_TIMEOUT)
-        wait.until(wait_for_page_text('%s was created' % acct_name))
-    except TimeoutException:
-        duplicate_error = 'aws account with this account arn already exists.'
-        # Retry after waiting and clearing accounts
-        if duplicate_error in selenium.page_source:
-            sleep(10)
-        pytest.fail(
-            'Could not create cloud account, or did not see valid '
-            'message to indicate successful creation.'
-        )
-
-    find_element_by_text(dialog, 'Close').click()
-    sleep(0.25)
-
-    # We don't see the welcome screen anymore
-    assert find_element_by_text(selenium, 'Welcome to Cloud Meter') is None
-    assert find_element_by_text(selenium, acct_name) is not None
-
-    # The account exists in the API
-    r = c.get(urls.CLOUD_ACCOUNT).json()
-    accounts = [a for a in r['results'] if a['user_id'] == ui_user['id']]
-    assert acct_name == accounts[0]['name']
-    assert len(accounts) == 1, (len(accounts), ui_user['id'], r['results'])
-    assert accounts[0]['account_arn'] == acct_arn_good
+        assert find_element_by_text(selenium, 'Invalid ARN') is None
 
 
-def test_invalid_arn(drop_account_data, browser_session, ui_addacct_page3,
-                     ui_user):
+def test_incorrect_arn(drop_account_data, browser_session, ui_addacct_page3,
+                       ui_user):
     """The account cannot be added if the ARN given is not valid.
 
     :id: 3dc59808-86c3-11e8-9cd4-8c1645548902
@@ -267,3 +238,79 @@ def test_invalid_arn(drop_account_data, browser_session, ui_addacct_page3,
     assert find_element_by_text(dialog, 'Close').get_attribute('disabled')
     assert not find_element_by_text(dialog, 'Next')
     assert not find_element_by_text(dialog, 'Add')
+
+
+def test_add_account(drop_account_data,
+                     browser_session, ui_addacct_page3,
+                     ui_user):
+    """The user can add a new account using a valid current ARN.
+
+    :id: ???
+    :description: The user can create and name a new cloud account.
+    :steps:
+        1) Open the dashboard and click the "Add Account"
+        2) Enter a name for the account
+        3) Proceed to page 3
+        4) Enter an ARN which is valid ARN for a resource we are granted
+           permission to
+        5) Click the "Add" button to attempt to create the account
+    :expectedresults: The Account is created and can be fetched by the account
+        list API for verification with the given name and ARN.
+    """
+    selenium = browser_session
+    dialog = ui_addacct_page3['dialog']
+    wait = WebDriverWait(selenium, 15)
+
+    assert ui_addacct_page3['dialog_add'].get_attribute('disabled')
+
+    acct_name = 'My Account'
+    acct_arn = config.get_config()['aws_profiles'][0]['arn']
+    acct_arn_good = acct_arn
+    fill_input_by_label(selenium, dialog, 'ARN', acct_arn)
+
+    # We also want to make sure you can go back and change a name
+    find_element_by_text(dialog, 'Back').click()
+    find_element_by_text(dialog, 'Back').click()
+
+    current_name = read_input_by_label(selenium, dialog, 'Account Name')
+    assert current_name == acct_name
+    acct_name = 'Different Name'
+    fill_input_by_label(selenium, dialog, 'Account Name', acct_name)
+
+    find_element_by_text(dialog, 'Next').click()
+    find_element_by_text(dialog, 'Next').click()
+
+    # We want a list of current accounts so we can check our new account
+    # afterwards
+    c = api.Client()
+    r = c.get(urls.CLOUD_ACCOUNT).json()
+    accounts = [a for a in r['results'] if a['user_id'] == ui_user['id']]
+
+    find_element_by_text(dialog, 'Add', timeout=1).click()
+
+    try:
+        wait = WebDriverWait(selenium, ACCT_CREATE_TIMEOUT)
+        wait.until(wait_for_page_text('%s was created' % acct_name))
+    except TimeoutException:
+        duplicate_error = 'aws account with this account arn already exists.'
+        # Retry after waiting and clearing accounts
+        if duplicate_error in selenium.page_source:
+            sleep(10)
+        pytest.fail(
+            'Could not create cloud account, or did not see valid '
+            'message to indicate successful creation.'
+        )
+
+    find_element_by_text(dialog, 'Close').click()
+    sleep(0.25)
+
+    # We don't see the welcome screen anymore
+    assert find_element_by_text(selenium, 'Welcome to Cloud Meter') is None
+    assert find_element_by_text(selenium, acct_name) is not None
+
+    # The account exists in the API
+    r = c.get(urls.CLOUD_ACCOUNT).json()
+    accounts = [a for a in r['results'] if a['user_id'] == ui_user['id']]
+    assert acct_name == accounts[0]['name']
+    assert len(accounts) == 1, (len(accounts), ui_user['id'], r['results'])
+    assert accounts[0]['account_arn'] == acct_arn_good
