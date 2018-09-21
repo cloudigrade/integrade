@@ -191,7 +191,7 @@ def test_arn_mistakes(mistake,
         assert 'You must enter a valid ARN' not in selenium.page_source
 
     elif mistake == 'invalid_arn2':
-        # Trying to submit with an invalid ARN shoulddisplay an error both on
+        # Trying to submit with an invalid ARN should display an error both on
         # the confirmation page and on the original form if you return
         find_element_by_text(dialog, 'Add',
                              timeout=0.25).click()
