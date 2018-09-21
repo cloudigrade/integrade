@@ -162,6 +162,7 @@ Automatically Teardown Cloudigrade:
     - make install-dev
     - oc login ${OPENSHIFT_URL} --token ${GITLAB_CI_SA_TOKEN}
     - oc project ${OPENSHIFT_PROJECT}
+    - export USE_HTTPS=true
   environment:
     name: review/$CI_COMMIT_REF_NAME
     url: http://${CI_PROJECT_NAME}-${CI_ENVIRONMENT_SLUG}.review.gitlab.cloudigra.de
@@ -176,6 +177,7 @@ Automatically Teardown Cloudigrade:
     - make install-dev
     - oc login ${OPENSHIFT_URL} --token ${GITLAB_CI_SA_TOKEN}
     - oc project ${OPENSHIFT_PROJECT}
+    - export USE_HTTPS=true
   environment:
     name: review/$CI_COMMIT_REF_NAME
     url: http://${CI_PROJECT_NAME}-${CI_ENVIRONMENT_SLUG}.review.gitlab.cloudigra.de
