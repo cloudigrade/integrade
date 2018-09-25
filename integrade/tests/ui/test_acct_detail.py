@@ -62,7 +62,7 @@ def test_empty(cloud_account_data, browser_session, ui_acct_list):
         Only accounts with usage have detail views.
     """
     selenium = browser_session
-    account = find_element_by_text(selenium, CLOUD_ACCOUNT_NAME)
+    account = find_element_by_text(selenium, CLOUD_ACCOUNT_NAME, timeout=1)
     account.click()
     assert find_element_by_text(
         selenium,

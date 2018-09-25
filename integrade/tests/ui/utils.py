@@ -173,3 +173,26 @@ def read_input_by_label(driver, element, label):
     find_element_by_text(element or driver, label).click()
     input = driver.execute_script('return document.activeElement')
     return input.get_attribute('value')
+
+
+def retry_w_timeout(t, func, *args, **kwargs):
+    """Retry a function until it returns truthy or a timeout occures."""
+    start = time.time()
+    end = start
+    while end - start < t:
+        retval = func(*args, **kwargs)
+        if retval:
+            return retval
+        end = time.time()
+
+
+def _page_has_text(driver, text):
+    """Simply check if text exists in the page, irrespective of markup."""
+    body = driver.find_element_by_tag_name('body')
+    page_text = ' '.join(body.get_attribute('innerText').split())
+    return text in page_text
+
+
+def page_has_text(driver, text, timeout=5):
+    """Wait for text to be seen in page, irrespective of markup, or timeout."""
+    return retry_w_timeout(timeout, _page_has_text, driver, text)

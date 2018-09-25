@@ -22,6 +22,7 @@ from integrade.tests import utils
 from .utils import (
     fill_input_by_placeholder,
     find_element_by_text,
+    page_has_text,
 )
 from ...injector import (
     inject_aws_cloud_account,
@@ -53,8 +54,8 @@ def test_empty(cloud_account_data, browser_session, ui_acct_list):
     :expectedresults:
         Both images and instance should show 0 counts
     """
-    assert find_element_by_text(browser_session, '0 Images')
-    assert find_element_by_text(browser_session, '0 Instances')
+    assert page_has_text(browser_session, '0 Images')
+    assert page_has_text(browser_session, '0 Instances')
 
 
 @pytest.mark.parametrize(
@@ -379,43 +380,39 @@ def test_summary_cards(cloud_account_data, browser_session, ui_acct_list):
     find_element_by_text(browser_session, 'Last 30 Days', timeout=2).click()
     find_element_by_text(browser_session, month_label, timeout=1).click()
 
-    assert find_element_by_text(browser_session, '4RHEL Instances', timeout=5)
-    assert find_element_by_text(browser_session, '3RHOCP Instances')
-    assert find_element_by_text(
+    assert page_has_text(browser_session, '4 RHEL Instances')
+    assert page_has_text(browser_session, '3 RHOCP Instances')
+    assert page_has_text(
         browser_session,
-        f'{rhel_runtime}Red Hat Enterprise Linux Hours',
-        exact=False,
+        f'{rhel_runtime} RHEL Hrs',
     )
-    assert find_element_by_text(
+    assert page_has_text(
         browser_session,
-        f'{openshift_runtime}Red Hat OpenShift Container Platform Hours',
-        exact=False,
+        f'{openshift_runtime} RHOCP Hrs',
     )
 
-    assert find_element_by_text(browser_session, '4 Images')
-    assert find_element_by_text(browser_session, '7 Instances')
-    assert find_element_by_text(browser_session, '4RHEL')
-    assert find_element_by_text(browser_session, '3RHOCP')
+    assert page_has_text(browser_session, '4 Images')
+    assert page_has_text(browser_session, '7 Instances')
+    assert page_has_text(browser_session, '4 RHEL')
+    assert page_has_text(browser_session, '3 RHOCP')
 
     month_before_label = month_before.strftime('%Y %B')
     find_element_by_text(browser_session, month_label).click()
     find_element_by_text(browser_session, month_before_label,
                          timeout=0.25).click()
 
-    assert find_element_by_text(browser_session, '1RHEL Instances', timeout=2)
-    assert find_element_by_text(browser_session, '0RHOCP Instances')
-    assert find_element_by_text(
+    assert page_has_text(browser_session, '1 RHEL Instances')
+    assert page_has_text(browser_session, '0 RHOCP Instances')
+    assert page_has_text(
         browser_session,
-        '120Red Hat Enterprise Linux Hours',
-        exact=False,
+        '120 RHEL Hrs',
     )
-    assert find_element_by_text(
+    assert page_has_text(
         browser_session,
-        '0Red Hat OpenShift Container Platform Hours',
-        exact=False,
+        '0 RHOCP Hrs',
     )
 
-    assert find_element_by_text(browser_session, '1 Images')
-    assert find_element_by_text(browser_session, '1 Instances')
-    assert find_element_by_text(browser_session, '1RHEL')
-    assert find_element_by_text(browser_session, '0RHOCP')
+    assert page_has_text(browser_session, '1 Images')
+    assert page_has_text(browser_session, '1 Instances')
+    assert page_has_text(browser_session, '1 RHEL')
+    assert page_has_text(browser_session, '0 RHOCP')

@@ -17,6 +17,7 @@ from integrade.injector import (
 from .utils import (
     fill_input_by_label,
     find_element_by_text,
+    page_has_text,
 )
 
 
@@ -35,17 +36,20 @@ def test_edit_account_name(drop_account_data, browser_session, ui_dashboard,
     :expectedresults: The account is now listed in the dashboard with the newly
         chosen name.
     """
-    inject_aws_cloud_account(ui_user['id'], name='My Account')
+    name1 = 'My Account'
+    name2 = 'What now?!'
+
+    inject_aws_cloud_account(ui_user['id'], name=name1)
     browser_session.refresh()
     sleep(0.25)
 
     path = "./ancestor::*[contains(@class, 'list-group-item')]"
-    el = find_element_by_text(browser_session, 'My Account')
+    el = find_element_by_text(browser_session, name1)
     el = el.find_element_by_xpath(path)
     el.find_element_by_class_name('dropdown-toggle').click()
     find_element_by_text(el, 'Edit Name').click()
-    fill_input_by_label(browser_session, None, 'Account Name', 'What now?!')
+    fill_input_by_label(browser_session, None, 'Account Name', name2)
     find_element_by_text(browser_session, 'Save').click()
 
-    assert not find_element_by_text(browser_session, 'My Account')
-    assert find_element_by_text(browser_session, 'What now?!')
+    assert not find_element_by_text(browser_session, name1)
+    assert page_has_text(browser_session, name2)
