@@ -40,14 +40,13 @@ def test_create_cloud_account(drop_account_data, cloudtrails_to_delete):
         2) Send a POST with the cloud account information to 'api/v1/account/'
         3) Send a GET to 'api/v1/account/' to get a list of the cloud accounts
         4) Attempt to create a duplicate and expect it to be rejected
-        5) Attempt to delete the account and expect to be rejected
+        5) Attempt to delete the account and expect to succeed
     :expectedresults:
         1) The server returns a 201 response with the information
             of the created account.
         2) The account cannot be duplicated, and attempts to do so receive a
             400 status code.
-        3) The account cannot be deleted and attempts to do so receive a 405
-            response.
+        3) The account can be deleted and we get a 200 response.
     """
     auth = get_auth()
     client = api.Client(authenticate=False)
@@ -68,7 +67,7 @@ def test_create_cloud_account(drop_account_data, cloudtrails_to_delete):
     )
     end = time()
     create_data = create_response.json()
-    assert end - start < 5
+    assert end - start < 7
     assert create_response.status_code == 201
     assert create_data['account_arn'] == acct_arn
     assert create_data['aws_account_id'] == aws_profile['account_number']
@@ -134,7 +133,7 @@ def test_create_cloud_account(drop_account_data, cloudtrails_to_delete):
         urljoin(urls.CLOUD_ACCOUNT,
                 '{}/'.format(acct['id'])
                 ), auth=auth)
-    assert delete_response.status_code == 405
+    assert delete_response.status_code == 204
 
 
 @pytest.mark.serial_only
