@@ -11,9 +11,9 @@ def run_remote_python(script, **kwargs):
     """Run Python code inside the remove OpenShift pod."""
     script = dedent(script).strip()
 
-    deployment_prefix = os.environ.get('DEPLOYMENT_PREFIX', '')
-    if deployment_prefix:
-        container_name = f'{deployment_prefix}cloudigrade-api'
+    openshift_prefix = os.environ.get('OPENSHIFT_PREFIX', '')
+    if openshift_prefix:
+        container_name = f'{openshift_prefix}cloudigrade-api'
     else:
         container_name = 'cloudigrade-api'
 
@@ -49,7 +49,7 @@ def run_remote_python(script, **kwargs):
         raise EnvironmentError(
             'Must have access to the cloudigrade openshift pod via the "oc"'
             'client to run remote commands in the Django manage.py shell. Make'
-            'sure the "oc" client is in your path and the $DEPLOYMENT_PREFIX'
+            'sure the "oc" client is in your path and the $OPENSHIFT_PREFIX'
             'used in the deploy is in your environment.'
         )
 

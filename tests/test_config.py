@@ -35,23 +35,24 @@ def test_get_config(ssl, protocol):
             token = utils.uuid4()
             use_https = 'True' if protocol == 'https' else 'False'
             account_number = int(time.time())
-            deployment_prefix = random.choice([
+            cloudtrail_prefix = random.choice([
                 'aardvark',
                 'aardvark-',
                 'flying-aardvark-',
                 '42',
                 utils.uuid4(),
             ])
+            bucket_name = 'flying-aardvark-s3'
             os.environ['CLOUDIGRADE_TOKEN'] = token
             os.environ['CLOUDIGRADE_BASE_URL'] = 'example.com'
+            os.environ['AWS_S3_BUCKET_NAME'] = bucket_name
             os.environ['CLOUDIGRADE_ROLE_CUSTOMER1'] = '{}:{}:{}'.format(
                 utils.uuid4(), account_number, utils.uuid4())
-            os.environ['DEPLOYMENT_PREFIX'] = deployment_prefix
+            os.environ['CLOUDTRAIL_PREFIX'] = cloudtrail_prefix
             os.environ['AWS_ACCESS_KEY_ID_CUSTOMER1'] = utils.uuid4()
             os.environ['USE_HTTPS'] = use_https
             os.environ['SSL_VERIFY'] = 'True' if ssl else 'False'
             cfg = config.get_config()
-            bucket_name = f'{deployment_prefix}-cloudigrade-s3'
             assert cfg['superuser_token'] == token
             assert cfg['base_url'] == 'example.com'
             assert cfg['scheme'] == protocol
@@ -60,7 +61,7 @@ def test_get_config(ssl, protocol):
             assert len(cfg['aws_profiles']) == 1
             assert cfg['aws_profiles'][0]['name'] == 'CUSTOMER1'
             assert cfg['aws_profiles'][0]['cloudtrail_name'] == (
-                f'{deployment_prefix}{account_number}'
+                f'{cloudtrail_prefix}{account_number}'
             )
             assert cfg['cloudigrade_s3_bucket'] == bucket_name
 
@@ -86,7 +87,6 @@ def test_negative_super_user_creation_fails():
             os.environ['CLOUDIGRADE_BASE_URL'] = 'example.com'
             os.environ['CLOUDIGRADE_ROLE_CUSTOMER1'] = '{}:{}:{}'.format(
                 utils.uuid4(), account_number, utils.uuid4())
-            os.environ['DEPLOYMENT_PREFIX'] = 'flying-aardvark-'
             os.environ['AWS_ACCESS_KEY_ID_CUSTOMER1'] = utils.uuid4()
             with mock.patch.object(
                     injector, 'make_super_user') as make_super_user:

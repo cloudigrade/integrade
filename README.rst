@@ -79,6 +79,10 @@ Integrade can be configured to test any instance of cloudigrade. The
 **REQUIRED** environment variables are::
 
     CLOUDIGRADE_BASE_URL # base url without http/https prefix
+    AWS_S3_BUCKET_NAME   # cloudigrade's bucket name
+    AWS_QUEUE_PREFIX     # string that integrade's queues begin with
+    OPENSHIFT_PREFIX     # Prefix for all of cloudigrade's openshift
+                         # related objects
 
 To run tests that require AWS accounts (and API access to these), configure any
 number of accounts with the following sets of environment varibles::
@@ -148,49 +152,86 @@ object will contain the following information::
 Running Integrade
 =======================
 
-To run ``cloudigrade`` locally, especially if you want to run a branch that is
-not master, check out that branch and then follow the directions in the
-Cloudigrade readme for `running locally in OpenShift
-<https://gitlab.com/cloudigrade/cloudigrade#running-locally-in-openshift>`_.
-Then, to deploy the code in that branch in particular, follow the directions
-for `deploying in-progress code to OpenShift
-<https://gitlab.com/cloudigrade/cloudigrade#running-locally-in-openshift>`_.
+To run ``cloudigrade`` locally, refer to `shiftigrade <https://gitlab.com/cloudigrade/shiftigrade>`_.
 
-To run ``integrade`` against the test environment, it is necessary to log your
+Environments are created by `cloudigrade
+<https://gitlab.com/cloudigrade/cloudigrade>`_ and `frontigrade
+<https://gitlab.com/cloudigrade/frontigrade>`_ when branches are pushed to
+those repositories. If you are working on a feature or bug fix that has a
+branch in either of those repositories, name your integrade branch the same
+name. This way, your MR will know to point itself to those environments.
+
+If there do not exist branches for both cloudigrade and frontigrade for the
+integrade work you are doing, then you should make branches based off of
+``master`` in those repos and then push branches (with no changes) to each of
+those repositories with the name of your branch, for example
+``update_integrade_tools``.
+
+To run ``integrade`` locally against an MR environment, it is necessary to log your
 local ``oc`` (the command line OpenShift client` into the test environment. You
 can do this by logging in through the web UI and in the menu opened by clicking
 on your user name, there is an option to ``Copy Login Command``. Paste this to
 the terminal to log the ``oc`` client into that OpenShift cluster.
 
-No matter which OpenShift cluster cloudigrade is running in, given that your
-``oc`` binary is logged into it, you can collect the necessary
-``CLOUDIGRADE_BASE_URL`` by inspecting the output of ``oc status``. If this
-environment variable is not set, by default we assume the test environment,
-``test.cloudigra.de``. 
+To set all needed environment variables, you can ``source`` script like the following, but filled in with the necessary details:
 
-If you want to create a super user with a custom set username and password,
-you can do that and retrieve a token for that user, you can source the script
-located in ``scripts/oc-auth.sh`` which will set ``CLOUDIGRADE_USER`` to a
-unique name using ``uuidgen`` and create a superuser with that name, and then
-retreive an authentication token and set the ``CLOUDIGRADE_TOKEN`` with that
-value. It is important to remember that ``source scripts/oc-auth.sh`` will set
-the environment variables in you current shell but ``bash scripts/oc-auth.sh``
-will not. This is ENTIRELY OPTIONAL and only useful if you want to set the
-super user username and password yourself. Otherwise integrade will create one
-on the fly.
+.. code::
+
+        # ==================================================================
+	# Example script to set your environment to point to an MR
+	# ==================================================================
+
+	# Name of your branch
+	export BRANCH_NAME=
+
+	# The access keys for the aws account that Cloudigrade is using
+	# The MRs are using dev11
+	export AWS_ACCESS_KEY_ID=
+	export AWS_SECRET_ACCESS_KEY=
+
+	# Access keys to the dev07 aws account
+	export AWS_ACCESS_KEY_ID_DEV07CUSTOMER=
+	export AWS_SECRET_ACCESS_KEY_DEV07CUSTOMER=
+
+        # Access keys to the dev08 aws account
+	export AWS_ACCESS_KEY_ID_DEV08CUSTOMER=
+	export AWS_SECRET_ACCESS_KEY_DEV08CUSTOMER=
+
+	# The rest of the items needed can be derived from above
+	echo "=================================================================="
+	echo "SETTING INTEGRADE CONFIG"
+	echo "=================================================================="
+	export OPENSHIFT_PREFIX="cloudireview-${BRANCH_NAME}-"
+	export AWS_PREFIX="${BRANCH_NAME}-"
+	export CLOUDTRAIL_PREFIX="cloudireview-$AWS_PREFIX"
+	export USE_HTTPS=True
+	export CLOUDIGRADE_BASE_URL="cloudireview-${BRANCH_NAME}.1b13.insights.openshiftapps.com"
+	export AWS_S3_BUCKET_NAME="${AWS_PREFIX}cloudigrade-s3"
+	export CLOUDIGRADE_ROLE_DEV07CUSTOMER="arn:aws:iam::439727791560:role/allow-dev11-cloudigrade-metering"
+	export CLOUDIGRADE_ROLE_DEV08CUSTOMER="arn:aws:iam::311230538223:role/allow-dev11-cloudigrade-metering"
+
+You can copy the file in the root of this repository named ``.mr_env_template`` and fill it out for your own use.
+
+Integrade will create a super user on the fly for you, but you can optionally provide ``CLOUDIGRADE_TOKEN`` if you have a token you would prefer to use.
 
 If you want to test a different instance of cloudigrade, just make sure to
 export ``CLOUDIGRADE_BASE_URL`` to the correct value and log your ``oc`` client
 into the correct openshift instance.
 
-If you desire to serve ``cloudigrade`` with the development server instead of
-on OpenShift locally or on the test environment, you can use the ``make user``
-and ``make user-authenticate`` targets provided in the ``Makefile`` inside the
-``cloudigrade`` repository and set ``CLOUDIGRADE_USER`` and
-``CLOUDIGRADE_TOKEN`` manually.
-
 With ``integrade`` configured to talk to the correct cloudigrade instance, to
 run the functional tests against the api, run the make target ``make test-api``.
+
+To learn more about different options regarding creating environments for testing, refer to the  `shiftigrade <https://gitlab.com/cloudigrade/shiftigrade>`_ ``README``.
+
+To get started using the api client for exploratory testing, try opening up an `ipython <https://ipython.readthedocs.io/en/stable/>`_ session and running the following:
+
+.. code::
+
+    from integrade import api
+    # this will create a client using super user credentials
+    client = api.Client()
+    client.get('/api/v1/')
+
 
 Running UI Tests
 ================

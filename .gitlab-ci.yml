@@ -2,13 +2,12 @@ image: registry.gitlab.com/cloudigrade/images/test-container
 
 stages:
   - Test Integrade
-  - Deploy Cloudigrade
   - Test Cloudigrade Inspection
   - Test Cloudigrade API
   - Test Cloudigrade UI
   - Cleanup
-  - Teardown Cloudigrade
 
+## Test Integrade on MRs and Master ##
 Test Integrade:
   stage: Test Integrade
   before_script:
@@ -21,128 +20,8 @@ Test Integrade:
     - codecov
   coverage: '/\d+\%\s*$/'
 
-Deploy Cloudigrade:
-  stage: Deploy Cloudigrade
-  image: registry.gitlab.com/cloudigrade/images/deploy-container:latest
-  retry: 1
-  environment:
-    name: review/$CI_COMMIT_REF_NAME
-    url: http://${CI_PROJECT_NAME}-${CI_ENVIRONMENT_SLUG}.review.gitlab.cloudigra.de
-    on_stop: Teardown Cloudigrade
-  variables:
-    GIT_STRATEGY: none
-  before_script:
-    - oc login ${OPENSHIFT_URL} --token ${GITLAB_CI_SA_TOKEN}
-    - oc project ${OPENSHIFT_PROJECT}
-    - git clone https://gitlab.com/cloudigrade/shiftigrade.git
-    - cd shiftigrade
-  script:
-    - export DEPLOYMENT_PREFIX=${CI_PROJECT_NAME}-${CI_ENVIRONMENT_SLUG}
-    - export CLOUDIGRADE_BASE_URL="${DEPLOYMENT_PREFIX}.review.gitlab.cloudigra.de"
-    - export CLOUDTRAIL_EVENT_URL="https://sqs.${AWS_DEFAULT_REGION}.amazonaws.com/${AWS_ACCOUNT_NUMBER}/${DEPLOYMENT_PREFIX}-cloudigrade-cloudtrail-sqs"
-    - export DB_SECRETS_FILE_NAME="${DEPLOYMENT_PREFIX}-db"
-    - export DEPLOYMENT_PREFIX="${DEPLOYMENT_PREFIX}"
-    - export DJANGO_DATABASE_HOST="${DEPLOYMENT_PREFIX}-db.${OPENSHIFT_PROJECT}.svc"
-    - export DJANGO_SECRET_KEY="${CI_COMMIT_SHA}"  # TODO: generate a proper secret key
-    - export GITLAB_DEPLOYMENT="${DEPLOYMENT_PREFIX}"
-    - export HOUNDIGRADE_ECS_CLUSTER_NAME="${DEPLOYMENT_PREFIX}-houndigrade"
-    - export HOUNDIGRADE_AWS_AUTOSCALING_GROUP_NAME="${HOUNDIGRADE_ECS_CLUSTER_NAME}-asg"
-    - export HOUNDIGRADE_LAUNCH_CONFIG_NAME="${HOUNDIGRADE_ECS_CLUSTER_NAME}-lc"
-    - export EC2_HOST_NAME="${HOUNDIGRADE_ECS_CLUSTER_NAME}-host"
-    - export AWS_S3_BUCKET_NAME="${DEPLOYMENT_PREFIX}-cloudigrade-s3"
 
-    - cd ansible
-    - >
-      ansible-playbook \
-        -e application_name=houndigrade \
-        -e aws_prefix="${DEPLOYMENT_PREFIX}" \
-        -e ec2_ami_id="${RECOMMENDED_AMI}" \
-        -e ec2_asg_availability_zones="${HOUNDIGRADE_AWS_AVAILABILITY_ZONE}" \
-        -e ec2_asg_desired_capacity=0 \
-        -e ec2_asg_max_size=0 \
-        -e ec2_asg_min_size=0 \
-        -e ec2_asg_name="${HOUNDIGRADE_AWS_AUTOSCALING_GROUP_NAME}" \
-        -e ec2_asg_vpc_subnets="${SUBNET_NAME}" \
-        -e ec2_instance_name="${EC2_HOST_NAME}" \
-        -e ec2_instance_type="${INSTANCE_TYPE}" \
-        -e ec2_launch_configuration_name="${HOUNDIGRADE_LAUNCH_CONFIG_NAME}" \
-        -e ec2_security_groups="${SECURITY_GROUP_NAME}" \
-        -e ecs_cluster_name="${HOUNDIGRADE_ECS_CLUSTER_NAME}" \
-        -e key_name="${SSH_KEY_NAME}" \
-        -e vpc_name="${VPC_NAME}" \
-        -e bucket_name="${AWS_S3_BUCKET_NAME}" \
-        provision-aws-resources.yaml
-    - ansible-playbook -e aws_prefix="${DEPLOYMENT_PREFIX}" clean-sqs.yaml
-    - cd -
-
-    - >
-      oc process openshift//postgresql-ephemeral \
-        -p NAMESPACE=openshift \
-        -p DATABASE_SERVICE_NAME=${DEPLOYMENT_PREFIX}-db \
-        -p POSTGRESQL_DATABASE=postgres \
-        -p POSTGRESQL_VERSION=9.6 \
-      | oc apply -f -
-    - oc rollout status dc/${DEPLOYMENT_PREFIX}-db
-
-    - kontemplate template ocp/review.yaml | oc apply -f -
-    - oc rollout status "dc/${DEPLOYMENT_PREFIX}cloudigrade-api"
-    - oc rollout status "dc/${DEPLOYMENT_PREFIX}cloudigrade-celery-beat"
-    - oc rollout status "dc/${DEPLOYMENT_PREFIX}cloudigrade-celery-worker"
-    - oc rollout status "dc/${DEPLOYMENT_PREFIX}frontigrade"
-
-.teardown_cloudigrade: &teardown_cloudigrade
-  image: registry.gitlab.com/cloudigrade/images/deploy-container:latest
-  variables:
-    GIT_STRATEGY: none
-  before_script:
-    - oc login ${OPENSHIFT_URL} --token ${GITLAB_CI_SA_TOKEN}
-    - oc project ${OPENSHIFT_PROJECT}
-    - git clone https://gitlab.com/cloudigrade/shiftigrade.git
-    - cd shiftigrade
-  script:
-    - export DEPLOYMENT_PREFIX=${CI_PROJECT_NAME}-${CI_ENVIRONMENT_SLUG}
-    - export CLOUDIGRADE_BASE_URL="${DEPLOYMENT_PREFIX}.review.gitlab.cloudigra.de"
-    - oc delete bc,cm,dc,is,routes,secrets,svc -l gitlab-deployment="${DEPLOYMENT_PREFIX}"
-    - oc delete dc,svc,secret "${DEPLOYMENT_PREFIX}-db"
-
-    - export DEPLOYMENT_PREFIX="${DEPLOYMENT_PREFIX}"
-    - export HOUNDIGRADE_ECS_CLUSTER_NAME="${DEPLOYMENT_PREFIX}-houndigrade"
-    - export HOUNDIGRADE_AWS_AUTOSCALING_GROUP_NAME="${HOUNDIGRADE_ECS_CLUSTER_NAME}-asg"
-    - export HOUNDIGRADE_LAUNCH_CONFIG_NAME="${HOUNDIGRADE_ECS_CLUSTER_NAME}-lc"
-
-    - cd ansible
-    - >
-      ansible-playbook \
-        -e aws_prefix="${DEPLOYMENT_PREFIX}" \
-        -e bucket_state=absent \
-        -e ec2_asg_name="${HOUNDIGRADE_AWS_AUTOSCALING_GROUP_NAME}" \
-        -e ec2_asg_state=absent \
-        -e ec2_launch_configuration_name="${HOUNDIGRADE_LAUNCH_CONFIG_NAME}" \
-        -e ec2_lc_state=absent \
-        -e ecs_cluster_name="${HOUNDIGRADE_ECS_CLUSTER_NAME}" \
-        -e ecs_state=absent \
-        -e sqs_state=absent \
-        provision-aws-resources.yaml
-    - ansible-playbook -e aws_prefix="${DEPLOYMENT_PREFIX}" -e sqs_state=absent clean-sqs.yaml
-    - cd -
-  environment:
-    name: review/$CI_COMMIT_REF_NAME
-    action: stop
-
-Teardown Cloudigrade:
-  stage: Deploy Cloudigrade
-  except:
-    - master
-  when: manual
-  <<: *teardown_cloudigrade
-
-Automatically Teardown Cloudigrade:
-  stage: Teardown Cloudigrade
-  only:
-    - master
-  when: always
-  <<: *teardown_cloudigrade
-
+## SHARED DEFINITIONS ##
 .archive_results: &archive_results
   artifacts:
     when: always
@@ -157,19 +36,19 @@ Automatically Teardown Cloudigrade:
 
 .before_script: &before_script
   before_script:
+    - export DEPLOYMENT_PREFIX=${CI_ENVIRONMENT_SLUG}-
+    - export CLOUDIGRADE_BASE_URL="cloudireview-${CI_COMMIT_REF_SLUG}.1b13.insights.openshiftapps.com/"
     - python --version
     - oc version
     - make install-dev
     - oc login ${OPENSHIFT_URL} --token ${GITLAB_CI_SA_TOKEN}
     - oc project ${OPENSHIFT_PROJECT}
     - export USE_HTTPS=true
-  environment:
-    name: review/$CI_COMMIT_REF_NAME
-    url: http://${CI_PROJECT_NAME}-${CI_ENVIRONMENT_SLUG}.review.gitlab.cloudigra.de
-    on_stop: Teardown Cloudigrade
 
 .quick_before_script: &quick_before_script
   before_script:
+    - export DEPLOYMENT_PREFIX=${CI_ENVIRONMENT_SLUG}-
+    - export CLOUDIGRADE_BASE_URL="cloudireview-${CI_COMMIT_REF_SLUG}.1b13.insights.openshiftapps.com/"
     - export TEST_MODULES="$(git diff-tree --diff-filter=d --no-commit-id --name-only -r master..HEAD ${TEST_PATH})"
     - if [[ -z "${TEST_MODULES}" ]]; then exit 0 ; fi
     - python --version
@@ -178,37 +57,34 @@ Automatically Teardown Cloudigrade:
     - oc login ${OPENSHIFT_URL} --token ${GITLAB_CI_SA_TOKEN}
     - oc project ${OPENSHIFT_PROJECT}
     - export USE_HTTPS=true
-  environment:
-    name: review/$CI_COMMIT_REF_NAME
-    url: http://${CI_PROJECT_NAME}-${CI_ENVIRONMENT_SLUG}.review.gitlab.cloudigra.de
-    on_stop: Teardown Cloudigrade
 
 .api_all: &api_all
+  variables:
+    REPORT_NAME: api_all
+    CLOUDTRAIL_PREFIX: cloudireview-${CI_COMMIT_REF_SLUG}-
+    AWS_S3_BUCKET_NAME: ${CI_COMMIT_REF_SLUG}-cloudigrade-s3
+    AWS_QUEUE_PREFIX: cloudireview-${CI_COMMIT_REF_SLUG}-
+    CLOUDIGRADE_BASE_URL: cloudireview-${CI_COMMIT_REF_SLUG}.1b13.insights.openshiftapps.com
+    OPENSHIFT_PREFIX: cloudireview-${CI_COMMIT_REF_SLUG}-
   script:
-    - export DEPLOYMENT_PREFIX=${CI_PROJECT_NAME}-${CI_ENVIRONMENT_SLUG}
-    - export CLOUDIGRADE_BASE_URL="${DEPLOYMENT_PREFIX}.review.gitlab.cloudigra.de"
     - py.test --junitxml="${REPORT_NAME}.xml" -vvv --force-flaky -m 'not inspection' integrade/tests/api
 
 .inspect: &inspect
   variables:
     REPORT_NAME: inspect
+    CLOUDTRAIL_PREFIX: cloudireview-${CI_COMMIT_REF_SLUG}-
+    AWS_S3_BUCKET_NAME: ${CI_COMMIT_REF_SLUG}-cloudigrade-s3
+    AWS_QUEUE_PREFIX: cloudireview-${CI_COMMIT_REF_SLUG}-
+    CLOUDIGRADE_BASE_URL: cloudireview-${CI_COMMIT_REF_SLUG}.1b13.insights.openshiftapps.com
+    OPENSHIFT_PREFIX: cloudireview-${CI_COMMIT_REF_SLUG}-
   script:
-    - export DEPLOYMENT_PREFIX=${CI_PROJECT_NAME}-${CI_ENVIRONMENT_SLUG}
-    - export CLOUDIGRADE_BASE_URL="${DEPLOYMENT_PREFIX}.review.gitlab.cloudigra.de"
-    - export AWS_S3_BUCKET_NAME="${DEPLOYMENT_PREFIX}-cloudigrade-s3"
     - cp .aws_image_config.yaml integrade/aws_image_config.yaml
     - export XDG_CONFIG_HOME=$PWD
     - py.test --junitxml="${REPORT_NAME}.xml" -vvv -m 'inspection' integrade/tests/api
   after_script:
     - python scripts/aws_reaper.py --env-cloudtrail-only
 
-Inspection:
-  stage: Test Cloudigrade Inspection
-  only:
-    - master
-  <<: *before_script
-  <<: *archive_results
-  <<: *inspect
+## JOBS THAT RUN ON MRs ##
 
 Inspection Manual:
   stage: Test Cloudigrade API
@@ -219,19 +95,6 @@ Inspection Manual:
   <<: *archive_results
   <<: *inspect
 
-API All Automatically:
-  stage: Test Cloudigrade API
-  only:
-    - master
-  when: always
-  <<: *before_script
-  <<: *api_all
-  <<: *archive_results
-  variables:
-    REPORT_NAME: api_all
-  after_script:
-    - python scripts/aws_reaper.py --env-cloudtrail-only
-
 API All Manually:
   stage: Test Cloudigrade API
   except:
@@ -240,8 +103,6 @@ API All Manually:
   <<: *before_script
   <<: *api_all
   <<: *archive_results
-  variables:
-    REPORT_NAME: api_all
   after_script:
     - python scripts/aws_reaper.py --env-cloudtrail-only
 
@@ -255,10 +116,12 @@ API Quick:
   variables:
     TEST_PATH: integrade/tests/api/v1/
     REPORT_NAME: api_quick
+    CLOUDTRAIL_PREFIX: cloudireview-${CI_COMMIT_REF_SLUG}-
+    AWS_S3_BUCKET_NAME: ${CI_COMMIT_REF_SLUG}-cloudigrade-s3
+    AWS_QUEUE_PREFIX: cloudireview-${CI_COMMIT_REF_SLUG}-
+    CLOUDIGRADE_BASE_URL: cloudireview-${CI_COMMIT_REF_SLUG}.1b13.insights.openshiftapps.com
+    OPENSHIFT_PREFIX: cloudireview-${CI_COMMIT_REF_SLUG}-
   script:
-    - export DEPLOYMENT_PREFIX=${CI_PROJECT_NAME}-${CI_ENVIRONMENT_SLUG}
-    - export CLOUDIGRADE_BASE_URL="${DEPLOYMENT_PREFIX}.review.gitlab.cloudigra.de"
-    - export AWS_S3_BUCKET_NAME="${DEPLOYMENT_PREFIX}-cloudigrade-s3"
     - cp .aws_image_config.yaml integrade/aws_image_config.yaml
     - export XDG_CONFIG_HOME=$PWD
     - if [[ "${TEST_MODULES}" ]]; then echo "${TEST_MODULES}" | xargs py.test --junitxml="${REPORT_NAME}.xml" -vvv; else py.test --junitxml="${REPORT_NAME}.xml" -vvv $TEST_PATH -m smoketest; fi
@@ -275,9 +138,12 @@ UI Quick:
     REPORT_NAME: ui_quick
     UI_BROWSER: Chrome
     UI_USE_REMOTE: "true"
+    CLOUDTRAIL_PREFIX: cloudireview-${CI_COMMIT_REF_SLUG}-
+    AWS_S3_BUCKET_NAME: ${CI_COMMIT_REF_SLUG}-cloudigrade-s3
+    AWS_QUEUE_PREFIX: cloudireview-${CI_COMMIT_REF_SLUG}-
+    CLOUDIGRADE_BASE_URL: cloudireview-${CI_COMMIT_REF_SLUG}.1b13.insights.openshiftapps.com
+    OPENSHIFT_PREFIX: cloudireview-${CI_COMMIT_REF_SLUG}-
   script:
-    - export DEPLOYMENT_PREFIX=${CI_PROJECT_NAME}-${CI_ENVIRONMENT_SLUG}
-    - export CLOUDIGRADE_BASE_URL="${DEPLOYMENT_PREFIX}.review.gitlab.cloudigra.de"
     - if [[ "${TEST_MODULES}" ]]; then echo "${TEST_MODULES}" | xargs py.test --junitxml="${REPORT_NAME}.xml" -vvv; else py.test --junitxml="${REPORT_NAME}.xml" -vvv $TEST_PATH -m smoketest; fi
   services:
     - name: selenium/standalone-chrome
@@ -285,57 +151,8 @@ UI Quick:
 
 .ui_scripts: &ui_scripts
   script:
-    - export DEPLOYMENT_PREFIX=${CI_PROJECT_NAME}-${CI_ENVIRONMENT_SLUG}
-    - export CLOUDIGRADE_BASE_URL="${DEPLOYMENT_PREFIX}.review.gitlab.cloudigra.de"
     - py.test --junitxml="${REPORT_NAME}.xml" -vvv integrade/tests/ui ${EXTRA_PYTEST_ARGS}
 
-UI Chrome:
-  stage: Test Cloudigrade UI
-  only:
-    - master
-  when: always
-  <<: *before_script
-  <<: *archive_results
-  <<: *ui_scripts
-  variables:
-    REPORT_NAME: ui_chrome
-    UI_BROWSER: Chrome
-    UI_USE_REMOTE: "true"
-  services:
-    - name: selenium/standalone-chrome
-      alias: selenium
-
-UI Chrome (Manually):
-  stage: Test Cloudigrade UI
-  except:
-    - master
-  when: manual
-  <<: *before_script
-  <<: *archive_results
-  <<: *ui_scripts
-  variables:
-    REPORT_NAME: ui_chrome
-    UI_BROWSER: Chrome
-    UI_USE_REMOTE: "true"
-  services:
-    - name: selenium/standalone-chrome
-      alias: selenium
-
-UI Firefox:
-  stage: Test Cloudigrade UI
-  only:
-    - master
-  when: always
-  <<: *before_script
-  <<: *archive_results
-  <<: *ui_scripts
-  variables:
-    REPORT_NAME: ui_firefox
-    UI_BROWSER: Firefox
-    UI_USE_REMOTE: "true"
-  services:
-    - name: selenium/standalone-firefox
-      alias: selenium
 
 UI Firefox (Manually):
   stage: Test Cloudigrade UI
@@ -378,25 +195,95 @@ UI Microsoft Edge (Manually):
     UI_BROWSER: MicrosoftEdge
     EXTRA_PYTEST_ARGS: "-x --ff"
 
-# Cleans up customer accounts between test runs
-Test Cleanup:
-  stage: Cleanup
-  <<: *before_script
-  script:
-    - python scripts/aws_reaper.py --env-cloudtrail-only
-  when: always
-
-Nightly Cleanup:on-schedule:
-  stage: Cleanup
-  only:
-    - schedules
-  # will only run on the scheduled pipeline,
-  # 'always' in this context means it will run
-  # even if prior stages fail
-  when: always
-  before_script:
-    - python --version
-    - oc version
-    - make install-dev
-  script:
-    - python scripts/aws_reaper.py --all-integrade-cloudtrails
+## JOBS THAT RUN ON MASTER ##
+# Disabling these for now until we get master triggers set up
+    #Test Inspection:
+    #  stage: Test Cloudigrade Inspection
+    #  only:
+    #    - master
+    #  <<: *before_script
+    #  <<: *archive_results
+    #  <<: *inspect
+    #
+    #Test API:
+    #  stage: Test Cloudigrade API
+    #  only:
+    #    - master
+    #  when: always
+    #  <<: *before_script
+    #  <<: *api_all
+    #  <<: *archive_results
+    #  variables:
+    #    REPORT_NAME: api_all
+    #  after_script:
+    #    - python scripts/aws_reaper.py --env-cloudtrail-only
+    #
+    #UI Chrome:
+    #  stage: Test Cloudigrade UI
+    #  only:
+    #    - master
+    #  when: always
+    #  <<: *before_script
+    #  <<: *archive_results
+    #  <<: *ui_scripts
+    #  variables:
+    #    REPORT_NAME: ui_chrome
+    #    UI_BROWSER: Chrome
+    #    UI_USE_REMOTE: "true"
+    #  services:
+    #    - name: selenium/standalone-chrome
+    #      alias: selenium
+    #
+    #UI Chrome (Manually):
+    #  stage: Test Cloudigrade UI
+    #  except:
+    #    - master
+    #  when: manual
+    #  <<: *before_script
+    #  <<: *archive_results
+    #  <<: *ui_scripts
+    #  variables:
+    #    REPORT_NAME: ui_chrome
+    #    UI_BROWSER: Chrome
+    #    UI_USE_REMOTE: "true"
+    #  services:
+    #    - name: selenium/standalone-chrome
+    #      alias: selenium
+    #
+    #UI Firefox:
+    #  stage: Test Cloudigrade UI
+    #  only:
+    #    - master
+    #  when: always
+    #  <<: *before_script
+    #  <<: *archive_results
+    #  <<: *ui_scripts
+    #  variables:
+    #    REPORT_NAME: ui_firefox
+    #    UI_BROWSER: Firefox
+    #    UI_USE_REMOTE: "true"
+    #  services:
+    #    - name: selenium/standalone-firefox
+    #      alias: selenium
+    #
+    #Test Cleanup:
+    #  stage: Cleanup
+    #  <<: *before_script
+    #  script:
+    #    - python scripts/aws_reaper.py --env-cloudtrail-only
+    #  when: always
+    #
+    #Nightly Cleanup:on-schedule:
+    #  stage: Cleanup
+    #  only:
+    #    - schedules
+    #  # will only run on the scheduled pipeline,
+    #  # 'always' in this context means it will run
+    #  # even if prior stages fail
+    #  when: always
+    #  before_script:
+    #    - python --version
+    #    - oc version
+    #    - make install-dev
+    #  script:
+    #    - python scripts/aws_reaper.py --all-integrade-cloudtrails

@@ -391,20 +391,20 @@ def clean_cloudigrade_queues():
     """Purge any messages off of queues that have the deployment_prefix.
 
     :raises:
-        1) MissingConfigurationError if no DEPLOYMENT_PREFIX is found
+        1) MissingConfigurationError if no AWS_PREFIX is found
         in the environment.
         2) AWSCredentialsNotFoundError if the credentials expected for the
         cloudigrade are not found in the environment.
     """
     session = aws_session('CLOUDIGRADE')
     client = session.client('sqs')
-    deployment_prefix = os.environ.get('DEPLOYMENT_PREFIX', False)
+    deployment_prefix = os.environ.get('AWS_QUEUE_PREFIX', False)
     if not deployment_prefix:
         iam = session.resource('iam')
         current_user_arn = iam.CurrentUser().arn
         raise MissingConfigurationError(
             'No deployment prefix was specified with the environment'
-            ' variable DEPLOYMENT_PREFIX. Without this, we cannot safely'
+            ' variable AWS_PREFIX. Without this, we cannot safely'
             ' purge the SQS queues on the cloudigrade aws account'
             f' accessed with arn {current_user_arn}.')
     for q_url in client.list_queues(

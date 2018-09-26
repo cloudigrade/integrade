@@ -52,8 +52,8 @@ def customer_aws_reaper(
         $ python scripts/aws_reaper.py
 
         # would terminate all instances and also all integrade cloudtrails
-        # and also any cloudtrail related to this $DEPLOYMENT_PREFIX even if
-        # 'integrade' is not in the name.
+        # and also any cloudtrail in the customer accounts with
+        # $CLOUDTRAIL_PREFIX
         $ python scripts/aws_reaper.py --all-integrade-cloudtrails
 
         # would ONLY delete the cloudtrail for this environment

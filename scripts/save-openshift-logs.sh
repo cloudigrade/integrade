@@ -1,9 +1,9 @@
 #!/bin/sh
 
-if [[ ${DEPLOYMENT_PREFIX:-} ]]; then
-    API_CONTAINER_NAME="${DEPLOYMENT_PREFIX}cloudigrade-api"
-    CELERY_BEAT_CONTAINER_NAME="${DEPLOYMENT_PREFIX}cloudigrade-celery-beat"
-    CELERY_WORKER_CONTAINER_NAME="${DEPLOYMENT_PREFIX}cloudigrade-celery-worker"
+if [[ ${OPENSHIFT_PREFIX:-} ]]; then
+    API_CONTAINER_NAME="${OPENSHIFT_PREFIX}cloudigrade-api"
+    CELERY_BEAT_CONTAINER_NAME="${OPENSHIFT_PREFIX}cloudigrade-celery-beat"
+    CELERY_WORKER_CONTAINER_NAME="${OPENSHIFT_PREFIX}cloudigrade-celery-worker"
 else
     API_CONTAINER_NAME="cloudigrade-api"
     CELERY_BEAT_CONTAINER_NAME="cloudigrade-celery-beat"

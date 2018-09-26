@@ -29,7 +29,9 @@ def get_config(create_superuser=True, need_base_url=True):
     global _CONFIG  # pylint:disable=global-statement
     if _CONFIG is None:
         _CONFIG = {}
-        deployment_prefix = os.environ.get('DEPLOYMENT_PREFIX', '')
+        _CONFIG['api_version'] = os.getenv('CLOUDIGRADE_API_VERSION', 'v1')
+        _CONFIG['base_url'] = os.getenv('CLOUDIGRADE_BASE_URL', '')
+        _CONFIG['cloudigrade_s3_bucket'] = os.getenv('AWS_S3_BUCKET_NAME')
         # pull all customer roles out of environ
 
         def is_role(string):
@@ -60,10 +62,8 @@ def get_config(create_superuser=True, need_base_url=True):
                     str.isdigit,
                     acct_arn.split(':'))][0]
             profile['account_number'] = acct_num
-            if deployment_prefix:
-                profile['cloudtrail_name'] = f'{deployment_prefix}{acct_num}'
-            else:
-                profile['cloudtrail_name'] = f'cloudigrade-{acct_num}'
+            cloudtrail_prefix = os.getenv('CLOUDTRAIL_PREFIX')
+            profile['cloudtrail_name'] = f'{cloudtrail_prefix}{acct_num}'
             profile['access_key_id'] = os.environ.get(
                 f'AWS_ACCESS_KEY_ID_{profile_name}')
             profile['images'] = aws_image_config.get('profiles', {}).get(
@@ -73,14 +73,7 @@ def get_config(create_superuser=True, need_base_url=True):
                 if not profile['access_key_id']:
                     missing_config_errors.append(
                         f'Could not find AWS access key id for {profile_name}')
-        _CONFIG['api_version'] = os.environ.get(
-            'CLOUDIGRADE_API_VERSION', 'v1')
-        _CONFIG['base_url'] = os.environ.get('CLOUDIGRADE_BASE_URL', '')
-        _CONFIG['cloudigrade_s3_bucket'] = os.environ.get(
-            'AWS_S3_BUCKET_NAME', '')
-        if not _CONFIG['cloudigrade_s3_bucket'] and deployment_prefix:
-            _CONFIG['cloudigrade_s3_bucket'] = \
-                f'{deployment_prefix}-cloudigrade-s3'
+
         if _CONFIG['base_url'] == '' and need_base_url:
             missing_config_errors.append(
                 'Could not find $CLOUDIGRADE_BASE_URL set in in'
