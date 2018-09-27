@@ -303,9 +303,8 @@ Teardown Cloudigrade (Master):
     PROJECT_ID: 7449616
     TARGET_BRANCH: master
     DEPLOYMENT_NAME: integrade
-  script:
-      - >
-        curl -vvvv --request POST --header "PRIVATE-TOKEN: ${API_TOKEN}" https://gitlab.com/api/v4/projects/${PROJECT_ID}/environments/$(curl -vvvv  --header "PRIVATE-TOKEN: ${API_TOKEN}" https://gitlab.com/api/v4/projects/${PROJECT_ID}/environments | jq '.[] | select(.name=="review/master-${DEPLOYMENT_NAME}") | .id')/stop
+    AUTH: "PRIVATE-TOKEN: ${API_TOKEN}"
+  script: curl --request POST --header "${AUTH}" https://gitlab.com/api/v4/projects/${PROJECT_ID}/environments/$(curl --header "${AUTH}" https://gitlab.com/api/v4/projects/${PROJECT_ID}/environments | jq '.[] | select(.name=="review/master-integrade") | .id')/stop
 
 Teardown Frontigrade (Master):
   stage: Teardown Cloudigrade
@@ -317,9 +316,7 @@ Teardown Frontigrade (Master):
     PROJECT_ID: 7449617
     TARGET_BRANCH: master
     DEPLOYMENT_NAME: integrade
-  script:
-      - >
-        curl -vvvv  --request POST --header "PRIVATE-TOKEN: ${API_TOKEN}" https://gitlab.com/api/v4/projects/${PROJECT_ID}/environments/$(curl -vvvv  --header "PRIVATE-TOKEN: ${API_TOKEN}" https://gitlab.com/api/v4/projects/${PROJECT_ID}/environments | jq '.[] | select(.name=="review/master-${DEPLOYMENT_NAME}") | .id')/stop
+  script: curl --request POST --header "${AUTH}" https://gitlab.com/api/v4/projects/${PROJECT_ID}/environments/$(curl --header "${AUTH}" https://gitlab.com/api/v4/projects/${PROJECT_ID}/environments | jq '.[] | select(.name=="review/master-integrade") | .id')/stop
 
 # Cleans up customer accounts between test runs
 Test Cleanup:
