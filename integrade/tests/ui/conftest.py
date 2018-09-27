@@ -129,7 +129,7 @@ def cloud_account(ui_user, drop_account_data):
 
 
 @pytest.fixture
-def cloud_account_data(cloud_account):
+def cloud_account_data(cloud_account, ui_user):
     """Create a factory to create cloud account data.
 
     This fixture creates a factory (a function) which will insert data into a
@@ -152,6 +152,9 @@ def cloud_account_data(cloud_account):
             cloud_account_data("", [start, stop], ec2_ami_id=image_id)
     """
     def factory(tag, events, **kwargs):
+        name = kwargs.pop('name', None)
+        if name:
+            inject_aws_cloud_account(ui_user['id'], name=name)
         inject_instance_data(cloud_account['id'], tag, events, **kwargs)
     return factory
 

@@ -58,6 +58,36 @@ def test_empty(cloud_account_data, browser_session, ui_acct_list):
     assert page_has_text(browser_session, '0 Instances')
 
 
+def test_summary_list_layout(cloud_account_data, browser_session,
+                             ui_acct_list):
+    """Confirm aspects of the layout of elements on the summary list.
+
+    :id: 873fb451-6ed7-4be4-9dfa-a8f0c22a4dfb
+    :description: This test was created to check the behavior of long account
+        names.
+    :steps:
+        1) Add a cloud account with a short name and another with a long name
+        2) Check the lengths of both summary rows
+    :expectedresults:
+        - Confirm both lengths are equal
+    """
+    cloud_account_data('', [15], name='x ' * 127)
+    browser_session.refresh()
+
+    page_has_text(browser_session, 'x x x x', timeout=30)
+
+    # Compare 'scrollWidth' of two list-group-item
+    a, b = browser_session.execute_script("""
+    var items = document.querySelectorAll('.list-group-item')
+    return [items[0].scrollWidth, items[1].scrollWidth]
+    """)
+
+    assert a == b
+
+    assert find_element_by_text(browser_session, '1 Images', timeout=1)
+    assert find_element_by_text(browser_session, '1 Instances')
+
+
 @pytest.mark.parametrize(
     'start', (45, 31, 30, 29, 28, 15))
 def test_running_start_times(start, cloud_account_data, browser_session,
