@@ -202,7 +202,7 @@ To set all needed environment variables, you can ``source`` script like the foll
 	echo "SETTING INTEGRADE CONFIG"
 	echo "=================================================================="
 	export OPENSHIFT_PREFIX="cloudireview-${BRANCH_NAME}-"
-	export AWS_PREFIX="${BRANCH_NAME}-"
+	export AWS_QUEUE_PREFIX="${BRANCH_NAME}-"
 	export CLOUDTRAIL_PREFIX="cloudireview-$AWS_PREFIX"
 	export USE_HTTPS=True
 	export CLOUDIGRADE_BASE_URL="cloudireview-${BRANCH_NAME}.1b13.insights.openshiftapps.com"
