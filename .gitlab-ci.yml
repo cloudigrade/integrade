@@ -153,6 +153,22 @@ UI Quick:
   script:
     - py.test --junitxml="${REPORT_NAME}.xml" -vvv integrade/tests/ui ${EXTRA_PYTEST_ARGS}
 
+UI Chrome (Manually):
+  stage: Test Cloudigrade UI
+  except:
+    - master
+  when: manual
+  <<: *before_script
+  <<: *archive_results
+  <<: *ui_scripts
+  variables:
+    REPORT_NAME: ui_chrome
+    UI_BROWSER: Chrome
+    UI_USE_REMOTE: "true"
+    OPENSHIFT_PREFIX: cloudireview-${CI_COMMIT_REF_SLUG}-
+  services:
+    - name: selenium/standalone-chrome
+      alias: selenium
 
 UI Firefox (Manually):
   stage: Test Cloudigrade UI
@@ -166,6 +182,7 @@ UI Firefox (Manually):
     REPORT_NAME: ui_firefox
     UI_BROWSER: Firefox
     UI_USE_REMOTE: "true"
+    OPENSHIFT_PREFIX: cloudireview-${CI_COMMIT_REF_SLUG}-
   services:
     - name: selenium/standalone-firefox
       alias: selenium
@@ -181,6 +198,7 @@ UI Microsoft Edge:
   variables:
     REPORT_NAME: ui_edge
     UI_BROWSER: MicrosoftEdge
+    OPENSHIFT_PREFIX: cloudireview-${CI_COMMIT_REF_SLUG}-
 
 UI Microsoft Edge (Manually):
   stage: Test Cloudigrade UI
@@ -194,6 +212,7 @@ UI Microsoft Edge (Manually):
     REPORT_NAME: ui_edge
     UI_BROWSER: MicrosoftEdge
     EXTRA_PYTEST_ARGS: "-x --ff"
+    OPENSHIFT_PREFIX: cloudireview-${CI_COMMIT_REF_SLUG}-
 
 ## JOBS THAT RUN ON MASTER ##
 # Disabling these for now until we get master triggers set up
@@ -234,21 +253,6 @@ UI Microsoft Edge (Manually):
     #    - name: selenium/standalone-chrome
     #      alias: selenium
     #
-    #UI Chrome (Manually):
-    #  stage: Test Cloudigrade UI
-    #  except:
-    #    - master
-    #  when: manual
-    #  <<: *before_script
-    #  <<: *archive_results
-    #  <<: *ui_scripts
-    #  variables:
-    #    REPORT_NAME: ui_chrome
-    #    UI_BROWSER: Chrome
-    #    UI_USE_REMOTE: "true"
-    #  services:
-    #    - name: selenium/standalone-chrome
-    #      alias: selenium
     #
     #UI Firefox:
     #  stage: Test Cloudigrade UI
