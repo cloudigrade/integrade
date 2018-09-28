@@ -24,6 +24,7 @@ stages:
 
 .before_script: &before_script
   before_script:
+    - echo ${OPENSHIFT_PREFIX}
     - python --version
     - oc version
     - make install-dev
@@ -33,6 +34,7 @@ stages:
 
 .quick_before_script: &quick_before_script
   before_script:
+    - echo ${OPENSHIFT_PREFIX}
     - export TEST_MODULES="$(git diff-tree --diff-filter=d --no-commit-id --name-only -r master..HEAD ${TEST_PATH})"
     - if [[ -z "${TEST_MODULES}" ]]; then exit 0 ; fi
     - python --version
@@ -44,6 +46,7 @@ stages:
 
 .api_all: &api_all
   script:
+    - echo ${OPENSHIFT_PREFIX}
     - py.test --junitxml="${REPORT_NAME}.xml" -vvv --force-flaky -m 'not inspection' integrade/tests/api
 
 .inspect: &inspect
@@ -77,7 +80,7 @@ Test Integrade:
 
 
 ## Deploy Master Review Branches ##
-Deploy Master Cloudigrade:
+.Deploy Master Cloudigrade:
   stage: Deploy Master
   image: registry.gitlab.com/finestructure/pipeline-trigger
   only:
@@ -90,7 +93,7 @@ Deploy Master Cloudigrade:
   script:
     - trigger -a ${API_TOKEN} -p ${CLOUDIGRADE_PIPELINE_TOKEN} -t ${TARGET_BRANCH} -e CHAT_INPUT=${DEPLOYMENT_NAME} ${PROJECT_ID}
 
-Deploy Master Frontigrade:
+.Deploy Master Frontigrade:
   stage: Deploy Master
   image: registry.gitlab.com/finestructure/pipeline-trigger
   only:
@@ -357,14 +360,14 @@ UI Firefox:
   when: always
   script: curl --request POST --header "${AUTH}" https://gitlab.com/api/v4/projects/${PROJECT_ID}/environments/$(curl --header "${AUTH}" https://gitlab.com/api/v4/projects/${PROJECT_ID}/environments | jq '.[] | select(.name=="review/master-integrade") | .id')/stop
 
-Teardown Cloudigrade (Master):
+.Teardown Cloudigrade (Master):
   <<: *stop_master_review
   variables:
     GIT_STRATEGY: none
     PROJECT_ID: 7449616
     AUTH: "PRIVATE-TOKEN: ${API_TOKEN}"
 
-Teardown Frontigrade (Master):
+.Teardown Frontigrade (Master):
   <<: *stop_master_review
   variables:
     GIT_STRATEGY: none
