@@ -65,6 +65,10 @@ stages:
     CLOUDIGRADE_BASE_URL: master-integrade.1b13.insights.openshiftapps.com
     OPENSHIFT_PREFIX: master-integrade-
 
+.ui_scripts: &ui_scripts
+  script:
+    - py.test --junitxml="${REPORT_NAME}.xml" -vvv integrade/tests/ui ${EXTRA_PYTEST_ARGS}
+
 ## Test Integrade on MRs and Master ##
 Test Integrade:
   stage: Test Integrade
@@ -80,7 +84,7 @@ Test Integrade:
 
 
 ## Deploy Master Review Branches ##
-.Deploy Master Cloudigrade:
+Deploy Master Cloudigrade:
   stage: Deploy Master
   image: registry.gitlab.com/finestructure/pipeline-trigger
   only:
@@ -93,7 +97,7 @@ Test Integrade:
   script:
     - trigger -a ${API_TOKEN} -p ${CLOUDIGRADE_PIPELINE_TOKEN} -t ${TARGET_BRANCH} -e CHAT_INPUT=${DEPLOYMENT_NAME} ${PROJECT_ID}
 
-.Deploy Master Frontigrade:
+Deploy Master Frontigrade:
   stage: Deploy Master
   image: registry.gitlab.com/finestructure/pipeline-trigger
   only:
@@ -185,11 +189,6 @@ UI Quick:
   services:
     - name: selenium/standalone-chrome
       alias: selenium
-
-.ui_scripts: &ui_scripts
-  script:
-    - py.test --junitxml="${REPORT_NAME}.xml" -vvv integrade/tests/ui ${EXTRA_PYTEST_ARGS}
-
 
 UI Firefox (Manually):
   stage: Test Cloudigrade UI
@@ -360,14 +359,14 @@ UI Microsoft Edge:
   when: always
   script: curl --request POST --header "${AUTH}" https://gitlab.com/api/v4/projects/${PROJECT_ID}/environments/$(curl --header "${AUTH}" https://gitlab.com/api/v4/projects/${PROJECT_ID}/environments | jq '.[] | select(.name=="review/master-integrade") | .id')/stop
 
-.Teardown Cloudigrade (Master):
+Teardown Cloudigrade (Master):
   <<: *stop_master_review
   variables:
     GIT_STRATEGY: none
     PROJECT_ID: 7449616
     AUTH: "PRIVATE-TOKEN: ${API_TOKEN}"
 
-.Teardown Frontigrade (Master):
+Teardown Frontigrade (Master):
   <<: *stop_master_review
   variables:
     GIT_STRATEGY: none
