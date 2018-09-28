@@ -213,24 +213,6 @@ UI Firefox (Manually):
     - name: selenium/standalone-firefox
       alias: selenium
 
-UI Microsoft Edge:
-  stage: Test Cloudigrade UI
-  only:
-    - master
-    - schedule
-  when: always
-  <<: *before_script
-  <<: *archive_results
-  <<: *ui_scripts
-  variables:
-    CLOUDTRAIL_PREFIX: cloudireview-${CI_COMMIT_REF_SLUG}-
-    AWS_S3_BUCKET_NAME: ${CI_COMMIT_REF_SLUG}-cloudigrade-s3
-    AWS_QUEUE_PREFIX: cloudireview-${CI_COMMIT_REF_SLUG}-
-    CLOUDIGRADE_BASE_URL: cloudireview-${CI_COMMIT_REF_SLUG}.1b13.insights.openshiftapps.com
-    OPENSHIFT_PREFIX: cloudireview-${CI_COMMIT_REF_SLUG}-
-    REPORT_NAME: ui_edge
-    UI_BROWSER: MicrosoftEdge
-
 UI Microsoft Edge (Manually):
   stage: Test Cloudigrade UI
   except:
@@ -248,7 +230,6 @@ UI Microsoft Edge (Manually):
     OPENSHIFT_PREFIX: cloudireview-${CI_COMMIT_REF_SLUG}-
     REPORT_NAME: ui_edge
     UI_BROWSER: MicrosoftEdge
-    EXTRA_PYTEST_ARGS: "-x --ff"
 
 ## JOBS THAT RUN ON MASTER ##
 Test Inspection:
@@ -350,6 +331,25 @@ UI Firefox:
   services:
     - name: selenium/standalone-firefox
       alias: selenium
+
+UI Microsoft Edge:
+  stage: Test Cloudigrade UI
+  only:
+    - master
+    - schedule
+  when: always
+  <<: *before_script
+  <<: *archive_results
+  <<: *ui_scripts
+  variables:
+    CLOUDTRAIL_PREFIX: master-integrade-
+    AWS_S3_BUCKET_NAME: master-integrade-cloudigrade-s3
+    AWS_QUEUE_PREFIX: master-integrade-
+    CLOUDIGRADE_BASE_URL: master-integrade.1b13.insights.openshiftapps.com
+    OPENSHIFT_PREFIX: master-integrade-
+    REPORT_NAME: ui_edge
+    UI_BROWSER: MicrosoftEdge
+    EXTRA_PYTEST_ARGS: "-x --ff"
 
 # Clean up master review environments
 .stop_master_review: &stop_master_review
