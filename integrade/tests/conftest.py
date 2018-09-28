@@ -4,6 +4,7 @@ import os
 import subprocess
 from multiprocessing import Pool
 from time import time
+from urllib.parse import urljoin
 
 import pytest
 
@@ -13,6 +14,40 @@ from integrade.tests.aws_utils import (
     delete_bucket_and_cloudtrail,
     terminate_instance,
 )
+
+
+@pytest.fixture
+def create_user_account():
+    """Create a factory to create user accounts.
+
+    This fixture creates a factory (a function) which will create a user
+    account. Repeated calls will create return new users. All users created
+    with this factory will delete any cloud accounts associated with the users
+    after the test has run.
+
+    Optional arguments can be passed as a dictionary:
+        {'username': 'str', 'password': 'str', 'email': 'str'}
+
+    If none are provided, values will be generated and returned.
+    """
+    users = []
+
+    def factory(**kwargs):
+        """Create a user, add it to our list of users, and return it."""
+        user = utils.create_user_account(**kwargs)
+        users.append(user)
+        return user
+
+    yield factory
+
+    client = api.Client()
+
+    for user in users:
+        auth = utils.get_auth(user)
+        while client.get(urls.CLOUD_ACCOUNT, auth=auth).json()['results']:
+            account = client.get(
+                urls.CLOUD_ACCOUNT, auth=auth).json()['results'][0]
+            client.delete(urljoin(urls.CLOUD_ACCOUNT, str(account['id'])))
 
 
 @pytest.fixture(scope='session', autouse=True)

@@ -24,7 +24,7 @@ from integrade.tests import (
 )
 
 
-def test_list_accounts_empty():
+def test_list_accounts_empty(create_user_account):
     """Test accounts without any instance or image history have empty summaries.
 
     :id: 2a152ef6-fcd8-491c-b3cc-bda81699453a
@@ -37,7 +37,7 @@ def test_list_accounts_empty():
         - The account is in the response and matches the created account
         - Instances, images, RHEL, and Openshift all have 0 counts
     """
-    user = utils.create_user_account()
+    user = create_user_account()
     auth = utils.get_auth(user)
     acct = inject_aws_cloud_account(user['id'])
     client = api.Client(authenticate=False)
