@@ -8,6 +8,7 @@
 :testtype: functional
 :upstream: yes
 """
+import calendar
 import datetime
 import random
 
@@ -368,13 +369,14 @@ def test_summary_cards(cloud_account_data, browser_session, ui_acct_list):
     cloud_account_data('rhel', usage, ec2_ami_id=rhel_ami_id)
     rhel_runtime += sum_usage(usage[2:10])
 
+    _, last_day = calendar.monthrange(2018, last_month.month)
     usage = [
-        utils.utc_dt(2018, last_month.month, 31, 5, 0, 0),
-        utils.utc_dt(2018, last_month.month, 31, 6, 0, 0),
-        utils.utc_dt(2018, last_month.month, 31, 7, 0, 0),
-        utils.utc_dt(2018, last_month.month, 31, 8, 0, 0),
-        utils.utc_dt(2018, last_month.month, 31, 9, 0, 0),
-        utils.utc_dt(2018, last_month.month, 31, 10, 0, 0),
+        utils.utc_dt(2018, last_month.month, last_day, 5, 0, 0),
+        utils.utc_dt(2018, last_month.month, last_day, 6, 0, 0),
+        utils.utc_dt(2018, last_month.month, last_day, 7, 0, 0),
+        utils.utc_dt(2018, last_month.month, last_day, 8, 0, 0),
+        utils.utc_dt(2018, last_month.month, last_day, 9, 0, 0),
+        utils.utc_dt(2018, last_month.month, last_day, 10, 0, 0),
     ]
     cloud_account_data('rhel', usage, ec2_ami_id=rhel_ami_id)
     rhel_runtime += sum_usage(usage)
