@@ -58,12 +58,36 @@ def test_fill_name_and_clear(selenium, ui_addacct_page1, ui_user):
     assert dialog_next.get_attribute('disabled')
 
 
+def test_aws_link(browser_session, ui_addacct_page1):
+    """Check the Add Account dialog's AWS link.
+
+    :id: 9f7d2780-63b9-4691-a7e3-3dfa738a994b
+    :description: The link to the AWS IAM console must open in a new tab
+        and must link to the correct section, not the top-level console.
+    :steps:
+        1) Navigate to the dashboard and click the "Add Account" button
+        2) Observe the AWS link on the dialog
+    :expectedresults: The link should go to the expected page and should
+        target a new, blank tab.
+    """
+    selenium = browser_session
+    dialog = ui_addacct_page1['dialog']
+
+    link = find_element_by_text(selenium, 'AWS Identity Access Management')
+    assert link, dialog.get_attribute('outerHTML')
+
+    href = link.get_attribute('href')
+    target = link.get_attribute('target')
+
+    assert href == 'https://console.aws.amazon.com/iam'
+    assert target == '_blank'
+
+
 @pytest.mark.parametrize('options', [
     ('', '', '', True),
     ('x'*300, 'x'*256, None, False)
 ])
-def test_account_name_required(options, browser_session, ui_addacct_page1,
-                               ui_user):
+def test_account_name_required(options, browser_session, ui_addacct_page1):
     """The first page's Account Name field is required before proceeding.
 
     :id: 259bf756-86da-11e8-bec5-8c1645548902
