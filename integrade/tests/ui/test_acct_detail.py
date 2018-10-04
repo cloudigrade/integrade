@@ -23,7 +23,10 @@ from .conftest import (
     CLOUD_ACCOUNT_NAME,
 )
 from .utils import (
+    elem_parent,
     find_element_by_text,
+    find_elements_by_text,
+    get_el_text,
 )
 
 INSTANCE_START = randint(1, 99)
@@ -198,6 +201,87 @@ def test_image_tag(events, cloud_account_data, browser_session,
 
         assert find_element_by_text(selenium, ec2_ami_id, exact=False)
         assert find_element_by_text(selenium, f'{hours} Hours', exact=False)
+
+
+@pytest.mark.parametrize('tag', ['rhel', 'openshift'])
+@pytest.mark.parametrize('flagged', [True, False],
+                         ids=['flagged', 'notflagged'])
+def test_image_flagging(cloud_account_data, browser_session,
+                        ui_acct_list, tag, flagged):
+    """Flagging images should negate the detected states w/ proper indication.
+
+    :id: 5c9b8d7c-9b0d-43b5-ab1a-220556adf99c
+    :description: Test flagging both detected and undetected states for RHEL
+        and Openshfit.
+    :steps:
+        1) Given a user and cloud account, mock an image with some usage for
+           each combination of RHEL and Openshift being detected or undetected
+           by cloudigrade.
+        2) For each tag flag the detected state
+    :expectedresults:
+        - For either detected or undetected states the label should appear
+        - Once flagged, an asterisk should be added
+        - The graph should be updated with new data
+    """
+    selenium = browser_session
+
+    instance_id = 'i-{}'.format(randint(1000, 99999))
+    ec2_ami_id = 'ami-{}'.format(randint(1000, 99999))
+    hours, spare_min, events = get_expected_hours_in_past_30_days([1, 2])
+    cloud_account_data(
+        tag,
+        events,
+        instance_id=instance_id,
+        ec2_ami_id=ec2_ami_id,
+        challenged=flagged,
+    )
+    selenium.refresh()
+    assert find_element_by_text(selenium, '1 Instances', timeout=1)
+
+    account = find_element_by_text(selenium, CLOUD_ACCOUNT_NAME, timeout=0.5)
+    with return_url(selenium):
+        account.click()
+        time.sleep(1)
+
+        if 'rhel' == tag:
+            label = 'RHEL'
+        elif 'openshift' == tag:
+            label = 'RHOCP'
+        else:
+            raise RuntimeError(
+                'Test did not expect tag parameter: %r' % (tag,)
+            )
+
+        if flagged:
+            check = 'Flagged for review'
+        else:
+            check = 'Flag for review'
+
+        ctn = selenium.find_element_by_css_selector('.list-view-pf-main-info')
+        assert product_id_tag_present(selenium, label)
+        assert bool(ctn.find_elements_by_class_name('fa-asterisk')) == flagged
+
+        find_element_by_text(selenium, ec2_ami_id).click()
+        time.sleep(0.1)
+
+        info = elem_parent(
+            find_element_by_text(selenium, f'{label} Hrs', exact=False)
+        )
+        tags_before = len(find_elements_by_text(ctn, label))
+        hours_before = get_el_text(info)
+
+        find_element_by_text(selenium, check).click()
+        time.sleep(1)
+
+        info = elem_parent(
+            find_element_by_text(selenium, f'{label} Hrs', exact=False)
+        )
+        tags_after = len(find_elements_by_text(ctn, label))
+        hours_after = get_el_text(info)
+
+        assert bool(ctn.find_elements_by_class_name('fa-asterisk')) != flagged
+        assert tags_after == tags_before
+        assert hours_before != hours_after
 
 
 def test_reused_image(cloud_account_data, browser_session, ui_acct_list):

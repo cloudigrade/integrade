@@ -2,6 +2,7 @@
 import time
 
 from selenium.common.exceptions import StaleElementReferenceException
+from selenium.webdriver.remote.webdriver import WebDriver
 
 from ..conftest import timemetric
 
@@ -130,6 +131,7 @@ def find_elements_by_text(driver, text,
 
     """
     timeout = timeout or 0.1
+    prefix = '' if isinstance(driver, WebDriver) else '.'
     with timemetric('find_elements_by_text()'):
         start = time.time()
         end = start + timeout
@@ -138,8 +140,8 @@ def find_elements_by_text(driver, text,
             elements = [
                 e for e in
                 driver.find_elements_by_xpath(
-                    '//*[contains(.,\'%s\')]'
-                    % (text,)
+                    '%s//*[contains(.,\'%s\')]'
+                    % (prefix, text)
                 )
                 if (
                     text == get_el_text(e)
@@ -196,3 +198,8 @@ def _page_has_text(driver, text):
 def page_has_text(driver, text, timeout=5):
     """Wait for text to be seen in page, irrespective of markup, or timeout."""
     return retry_w_timeout(timeout, _page_has_text, driver, text)
+
+
+def elem_parent(elem):
+    """Return the parent of a given element."""
+    return elem.find_element_by_xpath('..')

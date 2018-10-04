@@ -142,6 +142,7 @@ def inject_instance_data(
     instance_id=None,
     ec2_ami_id=None,
     owner_aws_account_id=None,
+    challenged=False,
 ):
     """Inject instance and image data for tests.
 
@@ -177,6 +178,9 @@ def inject_instance_data(
             inspection_json=json.dumps(
                 {"rhel_release_files_found": rhel_detected}),
             openshift_detected=True if 'openshift' in image_type else False,
+
+            rhel_challenged=(challenged and 'rhel' in image_type),
+            openshift_challenged=(challenged and 'openshift' in image_type),
 
             platform='none',
         )
