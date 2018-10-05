@@ -268,7 +268,11 @@ def test_challenge_image(superuser, method):
             pytest.fail(f'Unknown method "{method}"')
         assert response[f'{tag}_challenged'] is True
 
-    # # Ensure any other user can't fetch it
+    # Make sure the change is reflected in new responses
+    response = client.get(image_url, auth=auth).json()
+    response[f'{tag}_challenged'] = True
+
+    # Ensure any other user can't fetch it
     response = client.get(image_url, auth=auth)
     assert response.status_code == 200
     assert response.json()[f'{tag}_challenged']
