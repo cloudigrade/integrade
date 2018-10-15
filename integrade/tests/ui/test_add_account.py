@@ -8,6 +8,7 @@
 :testtype: functional
 :upstream: yes
 """
+import json
 import logging
 from time import sleep
 
@@ -18,6 +19,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 
 from integrade import api, config
 from integrade.tests import urls
+from integrade.tests.utils import get_auth
 
 from .utils import (
     fill_input_by_label,
@@ -262,6 +264,31 @@ def test_incorrect_arn(drop_account_data, browser_session, ui_addacct_page3,
     assert find_element_by_text(dialog, 'Close').get_attribute('disabled')
     assert not find_element_by_text(dialog, 'Next')
     assert not find_element_by_text(dialog, 'Add')
+
+
+def test_aws_policy(drop_account_data,
+                    browser_session,
+                    ui_addacct_page1,
+                    ui_user):
+    """Test the shared policy between UI and API.
+
+    :id: 82c82a98-4e03-4459-8944-9cca03b59955
+    :description: The UI should use the currently single policy from the API.
+    :steps:
+        1) Open the Add Account dialog and view the policy
+        2) Get the policy from the API directly
+    :expectedresults: The policy named traditional_inspection from the API
+        should match the policy contents in the UI precisely.
+    """
+    el = browser_session.find_element_by_class_name('cloudmeter-copy-input')
+    ui_policy = json.loads(el.get_attribute('value'))
+
+    auth = get_auth()
+    client = api.Client(response_handler=api.json_handler)
+    response = client.get(urls.SYSCONFIG, auth=auth)
+    api_policy = response['aws_policies']['traditional_inspection']
+
+    assert api_policy == ui_policy
 
 
 def test_add_account(drop_account_data,
