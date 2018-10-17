@@ -1,4 +1,5 @@
 """Utility functions."""
+import math
 import os
 import secrets
 import string
@@ -40,7 +41,16 @@ def get_expected_hours_in_past_30_days(events):
 def get_time_lapsed_in_past_30_days(start, end):
     """Get the number of hours and minutes in the past 30 days.
 
-    None as the end argument indicates the instance is still running.
+    The result is the number of hours and minutes of runtime total expected.
+
+    None as the end argument indicates the instance is still running. start is
+    capped at 30.
+
+    The start and end arguments are an int number of days in the past in which
+    the start or end event took place. For example, start and end values of 10
+    and 3, respectively, would mean the machine was started 10 days ago and
+    ended 3 days ago, and had run for 1 week (7 days, the difference of start
+    and end).
     """
     utc_offset_hours = 0
     if start > 30:
@@ -57,6 +67,11 @@ def get_time_lapsed_in_past_30_days(start, end):
     hours = (start - end) * 24
 
     return int(max(0, hours)), 0
+
+
+def round_hours(hours, minutes):
+    """Given a number of hours and minutes an instance ran, round up."""
+    return math.ceil(hours + minutes / 60)
 
 
 def base_url(cfg):

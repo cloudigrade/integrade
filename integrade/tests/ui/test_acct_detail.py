@@ -17,7 +17,10 @@ from integrade.injector import (
     inject_aws_cloud_account,
     inject_instance_data,
 )
-from integrade.utils import get_expected_hours_in_past_30_days
+from integrade.utils import (
+    get_expected_hours_in_past_30_days,
+    round_hours,
+)
 
 from .conftest import (
     CLOUD_ACCOUNT_NAME,
@@ -28,11 +31,6 @@ from .utils import (
     find_elements_by_text,
     get_el_text,
 )
-
-INSTANCE_START = randint(1, 99)
-INSTANCE_END = INSTANCE_START - randint(0, 45)
-if INSTANCE_END < 0:
-    INSTANCE_END = None
 
 
 def product_id_tag_present(driver, tag):
@@ -126,6 +124,7 @@ def test_hours_image(events, cloud_account_data, browser_session,
     instance_id = 'i-{}'.format(randint(1000, 99999))
     ec2_ami_id = 'ami-{}'.format(randint(1000, 99999))
     hours, spare_min, events = get_expected_hours_in_past_30_days(events)
+    hours = round_hours(hours, spare_min)
     cloud_account_data(
         '',
         events,
@@ -141,7 +140,7 @@ def test_hours_image(events, cloud_account_data, browser_session,
         hours_el = find_element_by_text(selenium, f'Hours', exact=False)
         assert find_element_by_text(selenium, f'{hours} Hours', exact=False), \
             f'seen: {hours_el.get_attribute("innerText")}, ' \
-            'expected: {hours} Hours'
+            f'expected: {hours} Hours'
 
 
 tag_names = ['No Tag', 'RHEL', 'Openshift', 'RHEL and Openshift']
@@ -173,6 +172,7 @@ def test_image_tag(events, cloud_account_data, browser_session,
     instance_id = 'i-{}'.format(randint(1000, 99999))
     ec2_ami_id = 'ami-{}'.format(randint(1000, 99999))
     hours, spare_min, events = get_expected_hours_in_past_30_days(events)
+    hours = round_hours(hours, spare_min)
     cloud_account_data(
         tag,
         events,
@@ -228,6 +228,7 @@ def test_image_flagging(cloud_account_data, browser_session,
     instance_id = 'i-{}'.format(randint(1000, 99999))
     ec2_ami_id = 'ami-{}'.format(randint(1000, 99999))
     hours, spare_min, events = get_expected_hours_in_past_30_days([1, 2])
+    hours = round_hours(hours, spare_min)
     cloud_account_data(
         tag,
         events,
@@ -285,13 +286,13 @@ def test_image_flagging(cloud_account_data, browser_session,
 
 
 def test_reused_image(cloud_account_data, browser_session, ui_acct_list):
-    """Multiple instances uses one image should be refelcted properly."""
+    """Multiple instances uses one image should be reflected properly."""
     selenium = browser_session
     with return_url(selenium):
         events = [1, None]
         hours, spare_min, events = get_expected_hours_in_past_30_days(events)
         num_instances = randint(2, 5)
-        hours = hours * num_instances + (spare_min * num_instances) // 60
+        hours = round_hours(hours * num_instances, spare_min * num_instances)
         ec2_ami_id = 'ami-{}'.format(randint(1000, 99999))
 
         for _ in range(num_instances):
@@ -304,9 +305,15 @@ def test_reused_image(cloud_account_data, browser_session, ui_acct_list):
             f'{num_instances} Instances',
             exact=False)
         account.click()
+
         time.sleep(1)
+
+        hours_el = find_element_by_text(selenium, f'Hours', exact=False)
+        hours_txt = hours_el.get_attribute('innerText')
+
         assert find_element_by_text(selenium, ec2_ami_id, exact=False)
-        assert find_element_by_text(selenium, f'{hours} Hours', exact=False)
+        assert find_element_by_text(selenium, f'{hours} Hours', exact=False),\
+            f'"{hours} Hours" expected; instead, saw "{hours_txt}"'
 
 
 @pytest.mark.parametrize(
@@ -346,6 +353,7 @@ def test_multiple_accounts(
 
         ec2_ami_id = 'ami-{}'.format(randint(1000, 99999))
         hours, spare_min, events = get_expected_hours_in_past_30_days(events)
+        hours = round_hours(hours, spare_min)
         accts = []
         num_accounts = 3
         active_account_indx = randint(0, num_accounts - 1)
@@ -383,6 +391,11 @@ def test_multiple_accounts(
         account_bar = find_element_by_text(selenium, account['name'])
         assert account_bar
         account_bar.click()
+
         time.sleep(1)
+        hours_el = find_element_by_text(selenium, f'Hours', exact=False)
+        hours_txt = hours_el.get_attribute('innerText')
+
         assert find_element_by_text(selenium, ec2_ami_id, exact=False)
-        assert find_element_by_text(selenium, f'{hours} Hours', exact=False)
+        assert find_element_by_text(selenium, f'{hours} Hours', exact=False),\
+            f'"{hours} Hours" expected; instead, saw "{hours_txt}"'

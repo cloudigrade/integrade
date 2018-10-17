@@ -9,6 +9,7 @@ from integrade.utils import (
     flaky,
     gen_password,
     get_expected_hours_in_past_30_days,
+    round_hours,
     uuid4
 )
 
@@ -82,6 +83,15 @@ def test_get_expected_hours_in_past_30_days():
     assert hours == (24 * 30) + current_hours
     assert spare_min == current_min
     assert events == [45]
+
+
+def test_round_hours():
+    """Test we round hours and minutes properly."""
+    assert 1 == round_hours(1, 0)
+    assert 2 == round_hours(1, 1)
+    assert 2 == round_hours(1, 59)
+    assert 3 == round_hours(2, 60)
+    assert 5 == round_hours(3, 61)
 
 
 def test_gen_password():
