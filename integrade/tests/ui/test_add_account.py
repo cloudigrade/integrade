@@ -24,7 +24,6 @@ from integrade.tests.utils import get_auth
 from .utils import (
     fill_input_by_label,
     find_element_by_text,
-    find_elements_by_text,
     read_input_by_label,
     wait_for_page_text,
 )
@@ -143,7 +142,7 @@ def test_cancel(drop_account_data, browser_session, ui_addacct_page3, ui_user):
     fill_input_by_label(selenium, dialog, 'ARN', acct_arn)
 
     find_element_by_text(dialog, 'Cancel').click()
-    find_element_by_text(dialog, 'Yes').click()
+    find_element_by_text(selenium, 'Yes').click()
 
     pytest.raises(
         NoSuchElementException,
@@ -195,13 +194,11 @@ def test_arn_mistakes(mistake,
 
     if mistake == 'fake_out_cancel':
         find_element_by_text(dialog, 'Cancel').click()
-        find_element_by_text(dialog, 'No').click()
+        find_element_by_text(selenium, 'No').click()
 
         # The add account dialog must still looks right after closed the cancel
         # dialog
-        elements = find_elements_by_text(selenium, 'ARN', timeout=0.25)
-        elements[-1].click()
-        value = selenium.execute_script('return document.activeElement.value')
+        value = read_input_by_label(selenium, None, 'ARN')
         add = find_element_by_text(selenium, 'Add')
 
         assert value == acct_arn

@@ -88,6 +88,9 @@ def test_account_delete(
     find_element_by_text(browser_session, 'Second Account')
 
     open_account_menu(browser_session, 'Second Account')
+    browser_session.execute_script(
+        'window.scrollTo(0, document.body.scrollHeight);'
+    )  # TODO: Move to a utility, but where?
 
     # Click delete in the dropdown
     find_element_by_text(browser_session, 'Delete').click()
