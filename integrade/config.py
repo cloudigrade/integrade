@@ -30,8 +30,26 @@ def get_config(create_superuser=True, need_base_url=True):
     if _CONFIG is None:
         _CONFIG = {}
         _CONFIG['api_version'] = os.getenv('CLOUDIGRADE_API_VERSION', 'v1')
-        _CONFIG['base_url'] = os.getenv('CLOUDIGRADE_BASE_URL', '')
         _CONFIG['cloudigrade_s3_bucket'] = os.getenv('AWS_S3_BUCKET_NAME')
+
+        cloudtrail_prefix = os.getenv('CLOUDTRAIL_PREFIX')
+        ref_slug = os.environ.get('CI_COMMIT_REF_SLUG', '')
+
+        # The location of the API endpoints and UI may be configured directly
+        # with `CLOUDIGRADE_BASE_URL` -OR- we can determine a location based
+        # on `CI_COMMIT_REF_SLUG` which comes from Gitlab CI and is our
+        # current branch name.
+
+        _CONFIG['base_url'] = os.getenv(
+            'CLOUDIGRADE_BASE_URL',
+            f'review-{ref_slug}.1b13.insights.openshiftapps.com',
+        )
+
+        _CONFIG['openshift_prefix'] = os.getenv(
+            'OPENSHIFT_PREFIX',
+            f'c-review-{ref_slug[:29]}-',
+        )
+
         # pull all customer roles out of environ
 
         def is_role(string):
@@ -62,7 +80,6 @@ def get_config(create_superuser=True, need_base_url=True):
                     str.isdigit,
                     acct_arn.split(':'))][0]
             profile['account_number'] = acct_num
-            cloudtrail_prefix = os.getenv('CLOUDTRAIL_PREFIX')
             profile['cloudtrail_name'] = f'{cloudtrail_prefix}{acct_num}'
             profile['access_key_id'] = os.environ.get(
                 f'AWS_ACCESS_KEY_ID_{profile_name}')

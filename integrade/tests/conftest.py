@@ -57,7 +57,7 @@ def check_superuser():
         config.get_config()
         client = api.Client(response_handler=api.echo_handler)
         response = client.get(urls.AUTH_ME)
-        assert response.status_code == 200, 'Super user token does not work'
+        assert response.status_code == 200, response.url
     except (AssertionError, exceptions.MissingConfigurationError) as e:
         pytest.fail('Super user creation must have failed. '
                     f'Error: {repr(e)}')

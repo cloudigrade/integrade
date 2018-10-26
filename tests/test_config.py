@@ -109,7 +109,6 @@ def test_negative_get_config_missing():
                 except exceptions.MissingConfigurationError as e:
                     msg = str(e)
                     msg.replace('\n', ' ')
-                    assert 'CLOUDIGRADE_BASE_URL' in msg
                     assert 'AWS access key id' in msg
 
 

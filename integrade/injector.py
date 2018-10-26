@@ -1,21 +1,22 @@
 """Utilities to help interact with the remote environment."""
-import os
 import pickle
 import subprocess
 from random import randint
 from shutil import which
 from textwrap import dedent, indent
 
+from integrade import config
+
 
 def run_remote_python(script, **kwargs):
     """Run Python code inside the remove OpenShift pod."""
     script = dedent(script).strip()
 
-    openshift_prefix = os.environ.get('OPENSHIFT_PREFIX', '')
+    openshift_prefix = config.get_config()['openshift_prefix']
     if openshift_prefix:
-        container_name = f'{openshift_prefix}cloudigrade-api'
+        container_name = f'{openshift_prefix}a'
     else:
-        container_name = 'cloudigrade-api'
+        raise RuntimeError('Unable to determine openshift prefix!')
 
     data = pickle.dumps(kwargs)
     wrap_start = 'import pickle as _pickle;import sys as _sys;\n' \
@@ -42,7 +43,9 @@ def run_remote_python(script, **kwargs):
         if result.returncode != 0:
             for line in result.stdout:
                 print(line)
-            raise RuntimeError('Remote script failed')
+            raise RuntimeError(
+                f'Remote script failed (container_name="{container_name}"'
+            )
         elif result.stdout:
             return pickle.loads(result.stdout)
     else:

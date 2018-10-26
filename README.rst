@@ -192,23 +192,23 @@ To set all needed environment variables, you can ``source`` script like the foll
     # Access keys to the dev07 aws account
     export AWS_ACCESS_KEY_ID_DEV07CUSTOMER=
     export AWS_SECRET_ACCESS_KEY_DEV07CUSTOMER=
+    export CLOUDIGRADE_ROLE_DEV07CUSTOMER=
 
         # Access keys to the dev08 aws account
     export AWS_ACCESS_KEY_ID_DEV08CUSTOMER=
     export AWS_SECRET_ACCESS_KEY_DEV08CUSTOMER=
+    export CLOUDIGRADE_ROLE_DEV08CUSTOMER=
 
     # The rest of the items needed can be derived from above
     echo "=================================================================="
     echo "SETTING INTEGRADE CONFIG"
     echo "=================================================================="
-    export OPENSHIFT_PREFIX="cloudireview-${BRANCH_NAME}-"
+    export OPENSHIFT_PREFIX="c-review-${BRANCH_NAME}-"
     export AWS_QUEUE_PREFIX="${BRANCH_NAME}-"
-    export CLOUDTRAIL_PREFIX="cloudireview-$AWS_PREFIX"
+    export CLOUDTRAIL_PREFIX="review-$AWS_PREFIX"
     export USE_HTTPS=True
-    export CLOUDIGRADE_BASE_URL="cloudireview-${BRANCH_NAME}.1b13.insights.openshiftapps.com"
+    export CLOUDIGRADE_BASE_URL="review-${BRANCH_NAME}.1b13.insights.openshiftapps.com"
     export AWS_S3_BUCKET_NAME="${AWS_PREFIX}cloudigrade-s3"
-    export CLOUDIGRADE_ROLE_DEV07CUSTOMER="arn:aws:iam::439727791560:role/allow-dev11-cloudigrade-metering"
-    export CLOUDIGRADE_ROLE_DEV08CUSTOMER="arn:aws:iam::311230538223:role/allow-dev11-cloudigrade-metering"
 
 You can copy the file in the root of this repository named ``.mr_env_template`` and fill it out for your own use.
 
