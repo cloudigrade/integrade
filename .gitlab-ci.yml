@@ -60,7 +60,7 @@ stages:
     AWS_S3_BUCKET_NAME: master-integrade-cloudigrade-s3
     AWS_QUEUE_PREFIX: master-integrade-
     CLOUDIGRADE_BASE_URL: master-integrade.1b13.insights.openshiftapps.com
-    OPENSHIFT_PREFIX: master-integrade-
+    OPENSHIFT_PREFIX: c-master-integrade-
 
 .ui_scripts: &ui_scripts
   script:
@@ -246,7 +246,7 @@ Test Inspection:
     AWS_S3_BUCKET_NAME: master-integrade-cloudigrade-s3
     AWS_QUEUE_PREFIX: master-integrade-
     CLOUDIGRADE_BASE_URL: master-integrade.1b13.insights.openshiftapps.com
-    OPENSHIFT_PREFIX: master-integrade-
+    OPENSHIFT_PREFIX: c-master-integrade-
 
 Test API:
   stage: Test Cloudigrade API
@@ -262,7 +262,7 @@ Test API:
     AWS_S3_BUCKET_NAME: master-integrade-cloudigrade-s3
     AWS_QUEUE_PREFIX: master-integrade-
     CLOUDIGRADE_BASE_URL: master-integrade.1b13.insights.openshiftapps.com
-    OPENSHIFT_PREFIX: master-integrade-
+    OPENSHIFT_PREFIX: c-master-integrade-
     REPORT_NAME: api_all
   after_script:
     - python scripts/aws_reaper.py --env-cloudtrail-only
@@ -281,7 +281,7 @@ UI Chrome:
     AWS_S3_BUCKET_NAME: master-integrade-cloudigrade-s3
     AWS_QUEUE_PREFIX: master-integrade-
     CLOUDIGRADE_BASE_URL: master-integrade.1b13.insights.openshiftapps.com
-    OPENSHIFT_PREFIX: master-integrade-
+    OPENSHIFT_PREFIX: c-master-integrade-
     REPORT_NAME: ui_chrome
     UI_BROWSER: Chrome
     UI_USE_REMOTE: "true"
@@ -303,7 +303,7 @@ UI Firefox:
     AWS_S3_BUCKET_NAME: master-integrade-cloudigrade-s3
     AWS_QUEUE_PREFIX: master-integrade-
     CLOUDIGRADE_BASE_URL: master-integrade.1b13.insights.openshiftapps.com
-    OPENSHIFT_PREFIX: master-integrade-
+    OPENSHIFT_PREFIX: c-master-integrade-
     REPORT_NAME: ui_firefox
     UI_BROWSER: Firefox
     UI_USE_REMOTE: "true"
@@ -325,7 +325,7 @@ UI Microsoft Edge:
     AWS_S3_BUCKET_NAME: master-integrade-cloudigrade-s3
     AWS_QUEUE_PREFIX: master-integrade-
     CLOUDIGRADE_BASE_URL: master-integrade.1b13.insights.openshiftapps.com
-    OPENSHIFT_PREFIX: master-integrade-
+    OPENSHIFT_PREFIX: c-master-integrade-
     REPORT_NAME: ui_edge
     UI_BROWSER: MicrosoftEdge
     EXTRA_PYTEST_ARGS: "-x --ff"
@@ -362,7 +362,7 @@ Test Cleanup:
     AWS_S3_BUCKET_NAME: master-integrade-cloudigrade-s3
     AWS_QUEUE_PREFIX: master-integrade-
     CLOUDIGRADE_BASE_URL: master-integrade.1b13.insights.openshiftapps.com
-    OPENSHIFT_PREFIX: master-integrade-
+    OPENSHIFT_PREFIX: c-master-integrade-
   script:
     - python scripts/aws_reaper.py --env-cloudtrail-only
   when: always
