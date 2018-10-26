@@ -24,7 +24,7 @@ install-dev:
 	pip install -e .[dev]
 
 lint:
-	flake8 .
+	flake8 integrade tests
 
 test:
 	py.test tests
@@ -50,4 +50,7 @@ test-ui:
 test-coverage:
 	py.test --verbose --cov-report term --cov=integrade --cov=tests tests
 
-.PHONY: all install install-dev lint test test-coverage test-api
+docs:
+	scripts/gendocs.sh
+
+.PHONY: all install install-dev lint test test-coverage test-api docs

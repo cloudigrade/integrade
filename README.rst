@@ -75,8 +75,58 @@ that the tests pass and also the code follows the code style properly. The
 Configuring Integrade
 =======================
 
-Integrade can be configured to test any instance of cloudigrade. The
-**REQUIRED** environment variables are::
+Integrade can be configured to test any instance of cloudigrade. You may set
+up this configuration yourself or use the `setup-env.sh` script in the
+`scripts/` directory.
+
+Automatic Setup
+---------------
+
+Before using the automatic setup you will need to create a configuration file
+for AWS access credentials. These credentials should include the Cloudigrade
+AWS account's access key and secret key as well as ARNs and credentials for two
+"customer" accounts.
+
+Create a file `.env-pre-setup` in the integrade root directory::
+
+    # Access and Secret Keys for the Cloudigrade AWS Account
+    export AWS_ACCESS_KEY_ID=XXX
+    export AWS_SECRET_ACCESS_KEY=XXX
+
+    # Access keys to the first customer account
+    export AWS_ACCESS_KEY_ID_DEV07CUSTOMER=XXX
+    export AWS_SECRET_ACCESS_KEY_DEV07CUSTOMER=XXX
+    export CLOUDIGRADE_ROLE_DEV07CUSTOMER=XXX
+
+    # Access keys to the second customer account
+    export AWS_ACCESS_KEY_ID_DEV08CUSTOMER=XXX
+    export AWS_SECRET_ACCESS_KEY_DEV08CUSTOMER=XXX
+    export CLOUDIGRADE_ROLE_DEV08CUSTOMER=XXX
+
+If you do know know which credentials to use ask another integrade developer
+for assistance.
+
+Automatic setup configures your environment to run tests against a remote
+installation of the Cloudigrade service. These include automated review
+environments that are created for each active branch of the cloudigrade and
+frontigrade repositories. When you push an integrade branch of the same name
+for a Merge Request, its tests will be run on the matching environment.
+
+To configure your local setup to use that same branch-based environment, use
+the `setup-env.sh` script::
+
+    eval $(scripts/setup-env.sh my-branch-name-here)
+
+Your environment is not populated with all the correct information to point
+running tests at the remote review environment. You can test them out with a
+simple test run.
+
+    make test-api
+
+Manual Setup
+------------
+
+The **REQUIRED** environment variables are::
 
     CLOUDIGRADE_BASE_URL # base url without http/https prefix
     AWS_S3_BUCKET_NAME   # cloudigrade's bucket name
@@ -246,6 +296,8 @@ Download this tool and place the `sc` binary in your path. Next, add the two
 environment variables $SAUCELABS_USERNAME and $SAUCELABS_API_KEY to your
 ~/.bash_profile. You can now run the SauceLabs Connect tunnel in a terminal.
 
+.. code::
+
     sc --user $SAUCELABS_USERNAME --api-key $SAUCELABS_API_KEY --shared-tunnel
 
 The command will take a few seconds to start up and will tell you when it is
@@ -253,6 +305,8 @@ ready to accept connections from SauceLabs. Once it is ready you can proceed to
 run your tests locally.
 
 The UI tests can be easily run either on Chrome or Firefox:
+
+.. code::
 
     py.test -v integrade/tests/ui/ --driver Chrome
     py.test -v integrade/tests/ui/ --driver Firefox
