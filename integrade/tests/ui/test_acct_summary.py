@@ -11,6 +11,7 @@
 import calendar
 import datetime
 import random
+import time
 
 from dateutil.relativedelta import relativedelta
 
@@ -19,11 +20,17 @@ import pytest
 from selenium.webdriver.common.keys import Keys
 
 from integrade.tests import utils
+from integrade.utils import (
+    get_expected_hours_in_past_30_days,
+    round_hours,
+)
 
 from .utils import (
+    element_has_text,
     fill_input_by_placeholder,
     find_element_by_text,
     page_has_text,
+    retry_w_timeout,
 )
 from ...injector import (
     inject_aws_cloud_account,
@@ -55,6 +62,8 @@ def test_empty(cloud_account_data, browser_session, ui_acct_list):
     :expectedresults:
         Both images and instance should show 0 counts
     """
+    assert find_element_by_text(browser_session, '0RHEL')
+    assert find_element_by_text(browser_session, '0RHOCP')
     assert page_has_text(browser_session, '0 Images')
     assert page_has_text(browser_session, '0 Instances')
 
@@ -116,11 +125,11 @@ def test_running_start_times(start, cloud_account_data, browser_session,
 @pytest.mark.parametrize(
     'tag', ('', 'rhel', 'openshift', 'rhel,openshift'))
 def test_running_tags(tag, cloud_account_data, browser_session, ui_acct_list):
-    """Tags on images should not affect image or instance counts in summaryies.
+    """Tags on images should not affect image or instance counts in summaries.
 
     :id: e9ea3960-051d-47cd-a23b-013ad8deb243
     :description: The presence of tags should not affect image or instance
-        counts, but should be reflected in the summaries themselves.
+    counts, but should be reflected in the summaries themselves.
     :steps:
         1) Add a cloud account
         2) Create images and instances with no tag, each tag, and both tags
@@ -131,18 +140,21 @@ def test_running_tags(tag, cloud_account_data, browser_session, ui_acct_list):
         - Both labels should be 1 when an image has both tags
     """
     cloud_account_data(tag, [10])
+    hours, spare_min, events = get_expected_hours_in_past_30_days([10, None])
+    hours = round_hours(hours, spare_min)
     browser_session.refresh()
+
     assert find_element_by_text(browser_session, '1 Images', timeout=1)
     assert find_element_by_text(browser_session, '1 Instances')
 
     # No spaces because there are not spaces between the DOM nodes, even tho
     # they are rendered separately.
     if 'rhel' in tag:
-        assert find_element_by_text(browser_session, '1RHEL')
+        assert find_element_by_text(browser_session, f'{hours}RHEL')
     else:
         assert find_element_by_text(browser_session, '0RHEL')
     if 'openshift' in tag:
-        assert find_element_by_text(browser_session, '1RHOCP')
+        assert find_element_by_text(browser_session, f'{hours}RHOCP')
     else:
         assert find_element_by_text(browser_session, '0RHOCP')
 
@@ -273,6 +285,7 @@ def test_account_date_filter(
         cloud_account_data('', [start, end], ec2_ami_id='image2')
 
     browser_session.refresh()
+
     assert find_element_by_text(browser_session, '0 Images', timeout=1)
     assert find_element_by_text(browser_session, '0 Instances')
 
@@ -312,6 +325,8 @@ def test_summary_cards(cloud_account_data, browser_session, ui_acct_list):
            reported as expected.
         3) Do the same for 2 months ago as the usage period. Confirm the usage
            is reported as expected.
+        4) Click on summary row. Confirm that RHEL and RHOCP hours are as
+           expected.
     :expectedresults:
         The usage report should count only RHEL and OpenShift hours. Any usage
         from a non RHEL or OpenShift image should not be considered.
@@ -408,43 +423,39 @@ def test_summary_cards(cloud_account_data, browser_session, ui_acct_list):
     openshift_runtime = int(openshift_runtime / 3600)
 
     month_label = last_month.strftime('%Y %B')
-
     find_element_by_text(browser_session, 'Last 30 Days', timeout=2).click()
     find_element_by_text(browser_session, month_label, timeout=1).click()
-
-    assert page_has_text(browser_session, '4 RHEL Instances')
-    assert page_has_text(browser_session, '3 RHOCP Instances')
-    assert page_has_text(
-        browser_session,
-        f'{rhel_runtime} RHEL Hrs',
-    )
-    assert page_has_text(
-        browser_session,
-        f'{openshift_runtime} RHOCP Hrs',
-    )
-
-    assert page_has_text(browser_session, '4 Images')
-    assert page_has_text(browser_session, '7 Instances')
-    assert page_has_text(browser_session, '4 RHEL')
-    assert page_has_text(browser_session, '3 RHOCP')
-
+    time.sleep(1)
+    summary_row = retry_w_timeout(
+        1,
+        browser_session.find_elements_by_css_selector,
+        '.cloudmeter-list-view-card'
+        )
+    cards = browser_session.find_elements_by_css_selector(
+        '.cloudmeter-utilization-graph'
+        )
+    assert len(cards) == 2
+    assert element_has_text(cards[0], f'{rhel_runtime} RHEL Hours')
+    assert element_has_text(cards[1], f'{openshift_runtime} RHOCP Hours')
+    assert element_has_text(summary_row[0], '4 Images')
+    assert element_has_text(summary_row[0], '7 Instances')
+    assert element_has_text(summary_row[0], f'{rhel_runtime} RHEL')
+    assert element_has_text(summary_row[0], f'{openshift_runtime} RHOCP')
     month_before_label = month_before.strftime('%Y %B')
     find_element_by_text(browser_session, month_label).click()
     find_element_by_text(browser_session, month_before_label,
                          timeout=0.25).click()
-
-    assert page_has_text(browser_session, '1 RHEL Instances')
-    assert page_has_text(browser_session, '0 RHOCP Instances')
-    assert page_has_text(
-        browser_session,
-        '120 RHEL Hrs',
-    )
-    assert page_has_text(
-        browser_session,
-        '0 RHOCP Hrs',
-    )
-
+    assert page_has_text(browser_session, '120 RHEL')
+    assert page_has_text(browser_session, '0 RHOCP')
     assert page_has_text(browser_session, '1 Images')
     assert page_has_text(browser_session, '1 Instances')
-    assert page_has_text(browser_session, '1 RHEL')
+    info_bar = browser_session.find_element_by_css_selector(
+        '.cloudmeter-list-view-card .list-group-item-heading'
+        )
+    info_bar.click()
+    cards = browser_session.find_elements_by_css_selector(
+        '.cloudmeter-utilization-graph'
+        )
+
+    assert page_has_text(browser_session, '120 RHEL')
     assert page_has_text(browser_session, '0 RHOCP')

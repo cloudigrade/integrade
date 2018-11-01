@@ -108,8 +108,8 @@ def test_hours_image(events, cloud_account_data, browser_session,
     """Test that the account detail view displays correct data for images.
 
     :id: 2f666f93-5844-4bfb-b0bf-e31f856657a3
-    :description: Test the account detail view shows detail breakdown of hours
-        used per image.
+    :description: Test that the account detail view shows the detailed
+        breakdown of hours used per image.
     :steps:
         1) Given a user and cloud account, mock usage for an image.
         2) Navigate to the account detail view.
@@ -131,7 +131,7 @@ def test_hours_image(events, cloud_account_data, browser_session,
         instance_id=instance_id,
         ec2_ami_id=ec2_ami_id)
     selenium.refresh()
-    account = find_element_by_text(selenium, CLOUD_ACCOUNT_NAME, timeout=0.5)
+    account = find_element_by_text(selenium, CLOUD_ACCOUNT_NAME, timeout=2)
 
     with return_url(selenium):
         account.click()
@@ -198,7 +198,6 @@ def test_image_tag(events, cloud_account_data, browser_session,
 
         if 'openshift' in tag:
             assert product_id_tag_present(selenium, 'RHOCP')
-
         assert find_element_by_text(selenium, ec2_ami_id, exact=False)
         assert find_element_by_text(selenium, f'{hours} Hours', exact=False)
 
@@ -264,18 +263,17 @@ def test_image_flagging(cloud_account_data, browser_session,
 
         find_element_by_text(selenium, ec2_ami_id).click()
         time.sleep(0.1)
-
         info = elem_parent(
-            find_element_by_text(selenium, f'{label} Hrs', exact=False)
+            find_element_by_text(selenium, f'{label} Hours', exact=False)
         )
         tags_before = len(find_elements_by_text(ctn, label))
         hours_before = get_el_text(info)
 
-        find_element_by_text(selenium, check).click()
+        find_element_by_text(selenium, check, selector='label').click()
         time.sleep(1)
 
         info = elem_parent(
-            find_element_by_text(selenium, f'{label} Hrs', exact=False)
+            find_element_by_text(selenium, f'{label} Hours', exact=False)
         )
         tags_after = len(find_elements_by_text(ctn, label))
         hours_after = get_el_text(info)

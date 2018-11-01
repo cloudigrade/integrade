@@ -280,6 +280,17 @@ def page_has_text(driver, text, timeout=5):
     return retry_w_timeout(timeout, _page_has_text, driver, text)
 
 
+def _element_has_text(element, text):
+    """Simply check if text exists in the element, irrespective of markup."""
+    element_text = ' '.join(element.get_attribute('innerText').split('\n'))
+    return text in element_text
+
+
+def element_has_text(element, text, timeout=5):
+    """Wait for text in element, irrespective of markup, or timeout."""
+    return retry_w_timeout(timeout, _element_has_text, element, text)
+
+
 def elem_parent(elem):
     """Return the parent of a given element."""
     return elem.find_element_by_xpath('..')
