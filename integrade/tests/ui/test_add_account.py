@@ -160,6 +160,7 @@ def test_cancel(drop_account_data, browser_session, ui_addacct_page3, ui_user):
     'fake_out_cancel',
     'invalid_arn1',
     'invalid_arn2',
+    'whitespace_arn',
 ])
 def test_arn_mistakes(mistake,
                       browser_session, ui_addacct_page3,
@@ -190,6 +191,8 @@ def test_arn_mistakes(mistake,
         acct_arn = 'oops:' + acct_arn
     elif mistake == 'invalid_arn2':
         acct_arn = acct_arn.replace('iam::', 'iam:')
+    elif mistake == 'whitespace_arn':
+        acct_arn = f' {acct_arn} '
     fill_input_by_label(selenium, dialog, 'ARN', acct_arn)
 
     if mistake == 'fake_out_cancel':
@@ -226,6 +229,10 @@ def test_arn_mistakes(mistake,
         fill_input_by_label(selenium, dialog, 'ARN', acct_arn_good,
                             timeout=0.25)
         assert find_element_by_text(selenium, 'Invalid ARN') is None
+
+    elif mistake == 'whitespace_arn':
+        # Extra spaces are a *non* error state
+        assert 'You must enter a valid ARN' not in selenium.page_source
 
 
 def test_incorrect_arn(drop_account_data, browser_session, ui_addacct_page3,
@@ -312,7 +319,8 @@ def test_add_account(drop_account_data,
     assert ui_addacct_page3['dialog_add'].get_attribute('disabled')
 
     acct_name = 'My Account'
-    acct_arn = config.get_config()['aws_profiles'][0]['arn']
+    # The whitespace simulates some copy-and-paste behaviors
+    acct_arn = ' ' + config.get_config()['aws_profiles'][0]['arn']
     acct_arn_good = acct_arn
     fill_input_by_label(selenium, dialog, 'ARN', acct_arn)
 
@@ -361,4 +369,4 @@ def test_add_account(drop_account_data,
     accounts = [a for a in r['results'] if a['user_id'] == ui_user['id']]
     assert acct_name == accounts[0]['name']
     assert len(accounts) == 1, (len(accounts), ui_user['id'], r['results'])
-    assert accounts[0]['account_arn'] == acct_arn_good
+    assert accounts[0]['account_arn'] == acct_arn_good.strip()
