@@ -144,6 +144,54 @@ def test_image_tagging(conf):
     assert int(image['runtime_seconds']) == int(expected_runtime), repr(image)
 
 
+@pytest.mark.debug
+@pytest.mark.parametrize('config', [
+    ('openshift', 2, 1),
+])
+def test_instance_runtime(config):
+    """Test future start and end times for empty set result.
+
+    :id: f3c84697-a40c-40d9-846d-117e2647e9d3
+    :description: Test events that start/end in the future ensuring
+        that results are empty [].
+    :steps:
+        1) Add a cloud account
+        2) Insert past instance, image, and event data
+        3) Insert future instance, image, and event data
+        4) GET from the image report endpoint
+    :expectedresults:
+        - When start/end times are in the future OR when start>end
+            expect runtine_seconds to be empty.
+    """
+    user = utils.create_user_account()
+    auth = utils.get_auth(user)
+    acct = inject_aws_cloud_account(user['id'])
+    image_type, instance_start, instance_end = config
+    client = api.Client(authenticate=False)
+    events = [instance_start]
+    if instance_end:
+        events.append(instance_end)
+    inject_instance_data(acct['id'], image_type, events)
+
+    report_start, report_end = utils.get_time_range(180)
+    params = {
+        'start': report_start,
+        'end': report_end,
+        'account_id': acct['id'],
+    }
+    response = client.get(urls.REPORT_ACCOUNTS, params=params, auth=auth)
+    response_data = response.json()['cloud_account_overviews'][0]
+    rhel_instances = response_data['rhel_instances']
+    openshift_instances = response_data['openshift_instances']
+    rhel_runtime_seconds = response_data['rhel_runtime_seconds']
+    openshift_runtime_seconds = response_data['openshift_runtime_seconds']
+    empty = None
+    assert rhel_instances == empty
+    assert openshift_instances == empty
+    assert rhel_runtime_seconds == empty
+    assert openshift_runtime_seconds == empty
+
+
 @pytest.mark.parametrize('impersonate', (False, True))
 def test_list_images_while_impersonating(impersonate):
     """Test account data fetched via impersonating a user as a superuser.
