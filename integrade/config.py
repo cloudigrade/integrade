@@ -42,7 +42,7 @@ def get_config(create_superuser=True, need_base_url=True):
 
         _CONFIG['base_url'] = os.getenv(
             'CLOUDIGRADE_BASE_URL',
-            f'review-{ref_slug}.1b13.insights.openshiftapps.com',
+            f'review-{ref_slug}.5a9f.insights-dev.openshiftapps.com',
         )
 
         _CONFIG['openshift_prefix'] = os.getenv(
