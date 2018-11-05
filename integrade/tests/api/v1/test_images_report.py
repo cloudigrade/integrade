@@ -8,6 +8,8 @@
 :testtype: functional
 :upstream: yes
 """
+import datetime
+
 import pytest
 
 from integrade import api
@@ -167,7 +169,7 @@ def test_instance_runtime(config):
     auth = utils.get_auth(user)
     acct = inject_aws_cloud_account(user['id'])
     image_type, instance_start, instance_end = config
-    client = api.Client(authenticate=False)
+    client = api.Client(authenticate=False, response_handler=api.echo_handler)
     events = [instance_start]
     if instance_end:
         events.append(instance_end)
@@ -190,6 +192,19 @@ def test_instance_runtime(config):
     assert openshift_instances == empty
     assert rhel_runtime_seconds == empty
     assert openshift_runtime_seconds == empty
+    past_date = datetime.datetime.now() + datetime.timedelta(-30)
+    backwards_params = {
+        'start': report_start,
+        'end': past_date,
+        'account_id': acct['id'],
+    }
+    response2 = client.get(
+        urls.REPORT_ACCOUNTS,
+        params=backwards_params,
+        auth=auth,
+        )
+    response_error = response2.json()['non_field_errors'][0]
+    assert response_error == 'End date must be after start date.'
 
 
 @pytest.mark.parametrize('impersonate', (False, True))
