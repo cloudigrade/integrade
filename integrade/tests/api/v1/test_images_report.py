@@ -146,14 +146,10 @@ def test_image_tagging(conf):
     assert int(image['runtime_seconds']) == int(expected_runtime), repr(image)
 
 
-@pytest.mark.debug
-@pytest.mark.parametrize('config', [
-    ('openshift', 2, 1),
-])
-def test_instance_runtime(config):
+def test_runtime_requests_from_future():
     """Test future start and end times for empty set result.
 
-    :id: f3c84697-a40c-40d9-846d-117e2647e9d3
+    :id: 133A04EE-55C3-4948-B2F9-D89A6A84C9FC
     :description: Test events that start/end in the future ensuring
         that results are empty [].
     :steps:
@@ -168,7 +164,9 @@ def test_instance_runtime(config):
     user = utils.create_user_account()
     auth = utils.get_auth(user)
     acct = inject_aws_cloud_account(user['id'])
-    image_type, instance_start, instance_end = config
+    image_type = 'openshift'
+    instance_start = 2
+    instance_end = 1
     client = api.Client(authenticate=False, response_handler=api.echo_handler)
     events = [instance_start]
     if instance_end:
@@ -187,23 +185,23 @@ def test_instance_runtime(config):
     openshift_instances = response_data['openshift_instances']
     rhel_runtime_seconds = response_data['rhel_runtime_seconds']
     openshift_runtime_seconds = response_data['openshift_runtime_seconds']
-    empty = None
-    assert rhel_instances == empty
-    assert openshift_instances == empty
-    assert rhel_runtime_seconds == empty
-    assert openshift_runtime_seconds == empty
+
+    assert rhel_instances is None
+    assert openshift_instances is None
+    assert rhel_runtime_seconds is None
+    assert openshift_runtime_seconds is None
     past_date = datetime.datetime.now() + datetime.timedelta(-30)
     backwards_params = {
         'start': report_start,
         'end': past_date,
         'account_id': acct['id'],
     }
-    response2 = client.get(
+    response = client.get(
         urls.REPORT_ACCOUNTS,
         params=backwards_params,
         auth=auth,
         )
-    response_error = response2.json()['non_field_errors'][0]
+    response_error = response.json()['non_field_errors'][0]
     assert response_error == 'End date must be after start date.'
 
 

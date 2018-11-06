@@ -9,7 +9,7 @@ from integrade import config
 
 
 def run_remote_python(script, **kwargs):
-    """Run Python code inside the remove OpenShift pod."""
+    """Run Python code inside the remote OpenShift pod."""
     script = dedent(script).strip()
 
     openshift_prefix = config.get_config()['openshift_prefix']
