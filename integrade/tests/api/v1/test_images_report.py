@@ -187,11 +187,11 @@ def test_instance_runtime(config):
     openshift_instances = response_data['openshift_instances']
     rhel_runtime_seconds = response_data['rhel_runtime_seconds']
     openshift_runtime_seconds = response_data['openshift_runtime_seconds']
-    empty = None
-    assert rhel_instances == empty
-    assert openshift_instances == empty
-    assert rhel_runtime_seconds == empty
-    assert openshift_runtime_seconds == empty
+
+    assert rhel_instances is None
+    assert openshift_instances is None
+    assert rhel_runtime_seconds is None
+    assert openshift_runtime_seconds is None
     past_date = datetime.datetime.now() + datetime.timedelta(-30)
     backwards_params = {
         'start': report_start,
