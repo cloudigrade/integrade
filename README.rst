@@ -257,7 +257,7 @@ To set all needed environment variables, you can ``source`` script like the foll
     export AWS_QUEUE_PREFIX="${BRANCH_NAME}-"
     export CLOUDTRAIL_PREFIX="review-$AWS_PREFIX"
     export USE_HTTPS=True
-    export CLOUDIGRADE_BASE_URL="review-${BRANCH_NAME}.1b13.insights.openshiftapps.com"
+    export CLOUDIGRADE_BASE_URL="review-${BRANCH_NAME}.5a9f.insights-dev.openshiftapps.com"
     export AWS_S3_BUCKET_NAME="${AWS_PREFIX}cloudigrade-s3"
 
 You can copy the file in the root of this repository named ``.mr_env_template`` and fill it out for your own use.
