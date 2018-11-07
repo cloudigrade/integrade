@@ -219,7 +219,7 @@ def test_image_flagging(cloud_account_data, browser_session,
         2) For each tag flag the detected state
     :expectedresults:
         - For either detected or undetected states the label should appear
-        - Once flagged, an asterisk should be added
+        - Once flagged, a flag should be added
         - The graph should be updated with new data
     """
     selenium = browser_session
@@ -259,7 +259,7 @@ def test_image_flagging(cloud_account_data, browser_session,
 
         ctn = selenium.find_element_by_css_selector('.list-view-pf-main-info')
         assert product_id_tag_present(selenium, label)
-        assert bool(ctn.find_elements_by_class_name('fa-asterisk')) == flagged
+        assert bool(ctn.find_elements_by_class_name('fa-flag')) == flagged
 
         find_element_by_text(selenium, ec2_ami_id).click()
         time.sleep(0.1)
@@ -278,7 +278,7 @@ def test_image_flagging(cloud_account_data, browser_session,
         tags_after = len(find_elements_by_text(ctn, label))
         hours_after = get_el_text(info)
 
-        assert bool(ctn.find_elements_by_class_name('fa-asterisk')) != flagged
+        assert bool(ctn.find_elements_by_class_name('fa-flag')) != flagged
         assert tags_after == tags_before
         assert hours_before != hours_after
 
