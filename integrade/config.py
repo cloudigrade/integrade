@@ -80,7 +80,7 @@ def get_config(create_superuser=True, need_base_url=True):
                     str.isdigit,
                     acct_arn.split(':'))][0]
             profile['account_number'] = acct_num
-            profile['cloudtrail_name'] = f'{cloudtrail_prefix}{acct_num}'
+            profile['cloudtrail_name'] = f'{cloudtrail_prefix[:-1]}{acct_num}'
             profile['access_key_id'] = os.environ.get(
                 f'AWS_ACCESS_KEY_ID_{profile_name}')
             profile['images'] = aws_image_config.get('profiles', {}).get(
