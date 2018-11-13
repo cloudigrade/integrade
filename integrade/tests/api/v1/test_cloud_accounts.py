@@ -95,7 +95,7 @@ def test_create_cloud_account(drop_account_data, cloudtrails_to_delete):
     assert acct in list_response.json()['results']
 
     # Check if account name can be patched
-    for new_name in (None, acct['name']):
+    for new_name in (acct['name']):
         payload = {
             'name': new_name,
             'resourcetype': 'AwsAccount',
@@ -106,7 +106,7 @@ def test_create_cloud_account(drop_account_data, cloudtrails_to_delete):
         assert response.json()['name'] == new_name
 
     # Check if an account can be updated
-    for new_name in (None, acct['name']):
+    for new_name in (acct['name']):
         payload = {
             'account_arn': acct_arn,
             'name': new_name,
@@ -360,7 +360,11 @@ def test_negative_read_other_cloud_account(
     assert acct3['aws_account_id'] not in acct_ids_found
 
 
-@pytest.mark.parametrize('field_to_delete', ['resourcetype', 'account_arn'])
+@pytest.mark.parametrize('field_to_delete', [
+    'resourcetype',
+    'account_arn',
+    'name',
+    ])
 def test_negative_create_cloud_account_missing(field_to_delete):
     """Ensure attempts to create cloud accounts missing data are rejected.
 
@@ -376,7 +380,8 @@ def test_negative_create_cloud_account_missing(field_to_delete):
 
     cloud_account = {
         'account_arn': uuid4(),
-        'resourcetype': 'AwsAccount'
+        'resourcetype': 'AwsAccount',
+        'name': '',
     }
     # remove one field
     cloud_account.pop(field_to_delete)
@@ -385,7 +390,9 @@ def test_negative_create_cloud_account_missing(field_to_delete):
         payload=cloud_account,
         auth=auth
     )
+    missing_fields = create_response.json().keys()
     assert create_response.status_code == 400, create_response.json()
+    assert field_to_delete in missing_fields
 
 
 @pytest.mark.serial_only
