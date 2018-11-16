@@ -95,27 +95,25 @@ def test_create_cloud_account(drop_account_data, cloudtrails_to_delete):
     assert acct in list_response.json()['results']
 
     # Check if account name can be patched
-    for new_name in (acct['name']):
-        payload = {
-            'name': new_name,
-            'resourcetype': 'AwsAccount',
-        }
-        response = client.patch(
-            account_url, payload=payload, auth=auth)
-        response = client.get(account_url, auth=auth)
-        assert response.json()['name'] == new_name
+    payload = {
+        'name': 'new_name',
+        'resourcetype': 'AwsAccount',
+    }
+    response = client.patch(
+        account_url, payload=payload, auth=auth)
+    response = client.get(account_url, auth=auth)
+    assert response.json()['name'] == 'new_name'
 
     # Check if an account can be updated
-    for new_name in (acct['name']):
-        payload = {
-            'account_arn': acct_arn,
-            'name': new_name,
-            'resourcetype': 'AwsAccount',
-        }
-        response = client.put(
-            account_url, payload=payload, auth=auth)
-        response = client.get(account_url, auth=auth)
-        assert response.json()['name'] == new_name
+    payload = {
+        'account_arn': acct_arn,
+        'name': 'new_name',
+        'resourcetype': 'AwsAccount',
+    }
+    response = client.put(
+        account_url, payload=payload, auth=auth)
+    response = client.get(account_url, auth=auth)
+    assert response.json()['name'] == 'new_name'
 
     # assert we cannot create duplicate
     client.response_handler = api.echo_handler
@@ -162,6 +160,7 @@ def test_create_multiple_cloud_accounts(
         arn = profile['arn']
         cloud_account = {
             'account_arn': arn,
+            'name': uuid4(),
             'resourcetype': 'AwsAccount'
         }
         create_response = client.post(
@@ -377,11 +376,14 @@ def test_negative_create_cloud_account_missing(field_to_delete):
     """
     auth = get_auth()
     client = api.Client(authenticate=False, response_handler=api.echo_handler)
+    cfg = config.get_config()
+    aws_profile = cfg['aws_profiles'][0]
+    profile_name = aws_profile['name']
 
     cloud_account = {
         'account_arn': uuid4(),
         'resourcetype': 'AwsAccount',
-        'name': '',
+        'name': profile_name,
     }
     # remove one field
     cloud_account.pop(field_to_delete)
@@ -445,7 +447,8 @@ def test_cloudtrail_updated(
         (profile_name, aws_profile['cloudtrail_name'], bucket_name))
     cloud_account = {
         'account_arn': acct_arn,
-        'resourcetype': 'AwsAccount'
+        'resourcetype': 'AwsAccount',
+        'name': 'name'
     }
     create_response = client.post(
         urls.CLOUD_ACCOUNT,
