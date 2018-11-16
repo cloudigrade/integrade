@@ -294,3 +294,19 @@ def element_has_text(element, text, timeout=5):
 def elem_parent(elem):
     """Return the parent of a given element."""
     return elem.find_element_by_xpath('..')
+
+
+class return_url:
+    """Conext manager to control return back to a URL after steps completed."""
+
+    def __init__(self, browser):
+        """Initialize with reference to the WebDriver."""
+        self.browser = browser
+
+    def __enter__(self):
+        """Remember current URL before entering context."""
+        self.url = self.browser.current_url
+
+    def __exit__(self, *args):
+        """Return to original URL outside context."""
+        self.browser.get(self.url)

@@ -5,6 +5,7 @@ import secrets
 import string
 import time
 import uuid
+from datetime import datetime
 from urllib.parse import urlunparse
 
 from flaky import flaky as _flaky
@@ -27,6 +28,7 @@ def get_expected_hours_in_past_30_days(events):
     """
     hours = 0
     spare_min = 0
+    utc_tomorrow = datetime.utcnow().date() > datetime.now().date()
     for i in range(1, len(events), 2):
         start = events[i - 1]
         end = events[i]
@@ -35,6 +37,8 @@ def get_expected_hours_in_past_30_days(events):
         spare_min += these_min
     if None in events:
         events.remove(None)
+    if utc_tomorrow:
+        hours = hours - 24
     return hours, spare_min, events
 
 

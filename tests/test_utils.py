@@ -2,6 +2,7 @@
 import os
 import string
 import time
+from datetime import date
 from unittest.mock import patch
 
 from integrade.utils import (
@@ -83,6 +84,15 @@ def test_get_expected_hours_in_past_30_days():
     assert hours == (24 * 30) + current_hours
     assert spare_min == current_min
     assert events == [45]
+
+    # assert that whole days are counted based on UTC time
+    with patch('integrade.utils.datetime') as datetime:
+        datetime.utcnow().date.return_value = date(2018, 11, 16)
+        datetime.now().date.return_value = date(2018, 11, 15)
+        hours, spare_min, events = get_expected_hours_in_past_30_days([2, 1])
+        assert hours == 0
+        assert spare_min == 0
+        assert events == [2, 1]
 
 
 def test_round_hours():

@@ -30,6 +30,7 @@ from .utils import (
     find_element_by_text,
     find_elements_by_text,
     get_el_text,
+    return_url,
 )
 
 
@@ -75,22 +76,6 @@ def test_empty(cloud_account_data, browser_session, ui_acct_list):
     assert find_element_by_text(selenium, CLOUD_ACCOUNT_NAME)
 
 
-class return_url:
-    """Conext manager to control return back to a URL after steps completed."""
-
-    def __init__(self, browser):
-        """Initialize with reference to the WebDriver."""
-        self.browser = browser
-
-    def __enter__(self):
-        """Remember current URL before entering context."""
-        self.url = self.browser.current_url
-
-    def __exit__(self, *args):
-        """Return to original URL outside context."""
-        self.browser.get(self.url)
-
-
 @pytest.mark.parametrize(
     'events', (
         # started two days ago, turned off 1 day ago
@@ -126,21 +111,25 @@ def test_hours_image(events, cloud_account_data, browser_session,
     hours, spare_min, events = get_expected_hours_in_past_30_days(events)
     hours = round_hours(hours, spare_min)
     cloud_account_data(
-        '',
+        'rhel',
         events,
         instance_id=instance_id,
-        ec2_ami_id=ec2_ami_id)
+        ec2_ami_id=ec2_ami_id,
+    )
     selenium.refresh()
     account = find_element_by_text(selenium, CLOUD_ACCOUNT_NAME, timeout=2)
 
     with return_url(selenium):
         account.click()
+        time.sleep(1)
         assert find_element_by_text(selenium, ec2_ami_id, exact=False,
                                     timeout=0.5)
-        hours_el = find_element_by_text(selenium, f'Hours', exact=False)
-        assert find_element_by_text(selenium, f'{hours} Hours', exact=False), \
-            f'seen: {hours_el.get_attribute("innerText")}, ' \
-            f'expected: {hours} Hours'
+        info_bar = browser_session.find_element_by_css_selector(
+            '.cloudmeter-list-view-card'
+        )
+        assert find_element_by_text(info_bar, f'{hours}RHEL', exact=False), \
+            f'seen: {info_bar.get_attribute("innerText")}, ' \
+            f'expected: {hours} RHEL'
 
 
 tag_names = ['No Tag', 'RHEL', 'Openshift', 'RHEL and Openshift']
@@ -189,17 +178,18 @@ def test_image_tag(events, cloud_account_data, browser_session,
         # now in detail view
         # assert that product identification tags are correctly displayed
 
-        if tag == '':
-            assert not product_id_tag_present(selenium, 'RHEL')
-            assert not product_id_tag_present(selenium, 'RHOCP')
+        rhel = 0
+        rhocp = 0
 
         if 'rhel' in tag:
-            assert product_id_tag_present(selenium, 'RHEL')
-
+            rhel = hours
         if 'openshift' in tag:
-            assert product_id_tag_present(selenium, 'RHOCP')
+            rhocp = hours
+
+        assert find_element_by_text(selenium, f'{rhel}RHEL', exact=False)
+        assert find_element_by_text(selenium, f'{rhocp}RHOCP', exact=False)
+
         assert find_element_by_text(selenium, ec2_ami_id, exact=False)
-        assert find_element_by_text(selenium, f'{hours} Hours', exact=False)
 
 
 @pytest.mark.parametrize('tag', ['rhel', 'openshift'])
@@ -294,7 +284,7 @@ def test_reused_image(cloud_account_data, browser_session, ui_acct_list):
         ec2_ami_id = 'ami-{}'.format(randint(1000, 99999))
 
         for _ in range(num_instances):
-            cloud_account_data('', events, ec2_ami_id=ec2_ami_id)
+            cloud_account_data('rhel', events, ec2_ami_id=ec2_ami_id)
         selenium.refresh()
         account = find_element_by_text(selenium, CLOUD_ACCOUNT_NAME,
                                        timeout=0.5)
@@ -310,7 +300,8 @@ def test_reused_image(cloud_account_data, browser_session, ui_acct_list):
         hours_txt = hours_el.get_attribute('innerText')
 
         assert find_element_by_text(selenium, ec2_ami_id, exact=False)
-        assert find_element_by_text(selenium, f'{hours} Hours', exact=False),\
+        label = f'{hours}RHEL Hours'
+        assert find_element_by_text(selenium, label, exact=False),\
             f'"{hours} Hours" expected; instead, saw "{hours_txt}"'
 
 
@@ -395,5 +386,6 @@ def test_multiple_accounts(
         hours_txt = hours_el.get_attribute('innerText')
 
         assert find_element_by_text(selenium, ec2_ami_id, exact=False)
-        assert find_element_by_text(selenium, f'{hours} Hours', exact=False),\
-            f'"{hours} Hours" expected; instead, saw "{hours_txt}"'
+        label = f'{hours}RHEL Hours'
+        assert find_element_by_text(selenium, label, exact=False),\
+            f'"{hours} RHEL Hours" expected; instead, saw "{hours_txt}"'

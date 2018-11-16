@@ -31,6 +31,7 @@ from .utils import (
     find_element_by_text,
     page_has_text,
     retry_w_timeout,
+    return_url,
 )
 from ...injector import (
     inject_aws_cloud_account,
@@ -147,16 +148,25 @@ def test_running_tags(tag, cloud_account_data, browser_session, ui_acct_list):
     assert find_element_by_text(browser_session, '1 Images', timeout=1)
     assert find_element_by_text(browser_session, '1 Instances')
 
-    # No spaces because there are not spaces between the DOM nodes, even tho
-    # they are rendered separately.
-    if 'rhel' in tag:
-        assert find_element_by_text(browser_session, f'{hours}RHEL')
-    else:
-        assert find_element_by_text(browser_session, '0RHEL')
-    if 'openshift' in tag:
-        assert find_element_by_text(browser_session, f'{hours}RHOCP')
-    else:
-        assert find_element_by_text(browser_session, '0RHOCP')
+    for level in ('summary', 'detail'):
+        with return_url(browser_session):
+            if level == 'detail':
+                find_element_by_text(
+                    browser_session, 'First Account', timeout=1).click()
+                time.sleep(1)
+
+            if 'rhel' in tag:
+                # No spaces because there are not spaces between the DOM nodes,
+                # even tho they are rendered separately.
+                assert find_element_by_text(browser_session,
+                                            f'{hours}RHEL Hours')
+            else:
+                assert find_element_by_text(browser_session, '0RHEL Hours')
+            if 'openshift' in tag:
+                assert find_element_by_text(browser_session,
+                                            f'{hours}RHOCP Hours')
+            else:
+                assert find_element_by_text(browser_session, '0RHOCP Hours')
 
 
 def test_reused_image(cloud_account_data, browser_session, ui_acct_list):
