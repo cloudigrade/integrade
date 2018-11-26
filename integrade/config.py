@@ -1,6 +1,7 @@
 """Tools to manage global configuration of integrade."""
 
 import os
+import urllib3
 from copy import deepcopy
 
 import urllib3

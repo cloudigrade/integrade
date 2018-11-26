@@ -146,6 +146,8 @@ def inject_instance_data(
     ec2_ami_id=None,
     owner_aws_account_id=None,
     challenged=False,
+    vcpu=1,
+    memory=1,
 ):
     """Inject instance and image data for tests.
 
@@ -168,7 +170,17 @@ def inject_instance_data(
     import json
 
     from account.models import Account, AwsInstance, AwsInstanceEvent
-    from account.models import AwsMachineImage
+    from account.models import AwsMachineImage, AwsEC2InstanceDefinitions
+
+    instance_type = 'xx.fake-' + str(vcpu) + '-' + str(memory)
+
+    AwsEC2InstanceDefinitions.objects.get_or_create(
+        instance_type=instance_type,
+        defaults=dict(
+            memory=1,
+            vcpu=1,
+        ),
+    )
 
     acct = Account.objects.get_or_create(id=acct_id)[0]
     rhel_detected = True if 'rhel' in image_type else False
@@ -207,6 +219,7 @@ def inject_instance_data(
             event_type='power_on' if not on else 'power_off',
             machineimage=image1,
             instance=instance1,
+            instance_type=instance_type,
             occurred_at=when,
             created_at=when,
         )

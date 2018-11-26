@@ -13,7 +13,7 @@ echo export AWS_DEFAULT_REGION=us-east-1
 
 # The rest of the items needed can be derived from above
 echo export AWS_QUEUE_PREFIX="${BRANCH_NAME}-"
-echo export CLOUDTRAIL_PREFIX="review-${BRANCH_NAME}-"
+echo export CLOUDTRAIL_PREFIX="review-${BRANCH_NAME}"
 echo export USE_HTTPS=True
 echo export CLOUDIGRADE_BASE_URL="review-${BRANCH_NAME}.5a9f.insights-dev.openshiftapps.com"
 echo export OPENSHIFT_PREFIX="c-review-${SHORT_NAME}-"

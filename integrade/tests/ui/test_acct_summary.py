@@ -469,3 +469,55 @@ def test_summary_cards(cloud_account_data, browser_session, ui_acct_list):
 
     assert page_has_text(browser_session, '120 RHEL')
     assert page_has_text(browser_session, '0 RHOCP')
+
+
+@pytest.mark.parametrize(
+    'tag', ('rhel',))  # ('', 'rhel', 'openshift', 'rhel,openshift'))
+def test_graph_modes(tag, cloud_account_data, browser_session, ui_acct_list):
+    """
+
+    :id:
+    :description: 
+    :steps:
+        1) 
+    :expectedresults:
+        -
+    """
+    cloud_account_data(tag, [10], vcpu=2, memory=0.5)
+    hours, spare_min, events = get_expected_hours_in_past_30_days([10, None])
+    hours = round_hours(hours, spare_min)
+    browser_session.refresh()
+
+    assert find_element_by_text(browser_session, '1 Images', timeout=1)
+    assert find_element_by_text(browser_session, '1 Instances')
+
+    # !!!
+    # - Look for titles for RHEL and OCP graph cards
+    # - select ancestor node cloudmeter-utilization-graph to get the card itself
+    # - Look for the RHEL default 'Instance Hours', verify numbers
+    # - Look for the OCP default 'Instance Hours', verify numbers
+    # - For each tag change to 'core hours', verify numbers
+    # - For each tag change to 'GB hours', verify numbers
+    # - For each tag change to 'instance hours', verify numbers
+
+    for level in ('summary', 'detail'):
+        with return_url(browser_session):
+            if level == 'detail':
+                find_element_by_text(
+                    browser_session, 'First Account', timeout=1).click()
+                time.sleep(1)
+            else:
+                import pdb; pdb.set_trace()
+
+            if 'rhel' in tag:
+                # No spaces because there are not spaces between the DOM nodes,
+                # even tho they are rendered separately.
+                assert find_element_by_text(browser_session,
+                                            f'{hours}RHEL Hours')
+            else:
+                assert find_element_by_text(browser_session, '0RHEL Hours')
+            if 'openshift' in tag:
+                assert find_element_by_text(browser_session,
+                                            f'{hours}RHOCP Hours')
+            else:
+                assert find_element_by_text(browser_session, '0RHOCP Hours')

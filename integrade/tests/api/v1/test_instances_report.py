@@ -26,64 +26,100 @@ EXPECTED_REPORT_DATA = {
             'date': '2018-01-07T00:00:00Z',
             'openshift_instances': 1,
             'openshift_runtime_seconds': 86400.0,
+            'openshift_memory_seconds': 86400.0,
+            'openshift_vcpu_seconds': 86400.0,
             'rhel_instances': 0,
-            'rhel_runtime_seconds': 0.0
+            'rhel_runtime_seconds': 0.0,
+            'rhel_memory_seconds': 0.0,
+            'rhel_vcpu_seconds': 0.0,
         },
         {
             'date': '2018-01-08T00:00:00Z',
             'openshift_instances': 1,
             'openshift_runtime_seconds': 86400.0,
+            'openshift_memory_seconds': 86400.0,
+            'openshift_vcpu_seconds': 86400.0,
             'rhel_instances': 1,
-            'rhel_runtime_seconds': 68400.0
+            'rhel_runtime_seconds': 68400.0,
+            'rhel_memory_seconds': 68400.0,
+            'rhel_vcpu_seconds': 68400.0,
         },
         {
             'date': '2018-01-09T00:00:00Z',
             'openshift_instances': 2,
             'openshift_runtime_seconds': 140400.0,
+            'openshift_memory_seconds': 140400.0,
+            'openshift_vcpu_seconds': 140400.0,
             'rhel_instances': 2,
             'rhel_runtime_seconds': 140400.0,
+            'rhel_memory_seconds': 140400.0,
+            'rhel_vcpu_seconds': 140400.0,
         },
         {
             'date': '2018-01-10T00:00:00Z',
             'openshift_instances': 2,
             'openshift_runtime_seconds': 172800.0,
+            'openshift_memory_seconds': 172800.0,
+            'openshift_vcpu_seconds': 172800.0,
             'rhel_instances': 2,
             'rhel_runtime_seconds': 104400.0,
+            'rhel_memory_seconds': 104400.0,
+            'rhel_vcpu_seconds': 104400.0,
         },
         {
             'date': '2018-01-11T00:00:00Z',
             'openshift_instances': 3,
             'openshift_runtime_seconds': 234000.0,
+            'openshift_memory_seconds': 234000.0,
+            'openshift_vcpu_seconds': 234000.0,
             'rhel_instances': 2,
             'rhel_runtime_seconds': 97200.0,
+            'rhel_memory_seconds': 97200.0,
+            'rhel_vcpu_seconds': 97200.0,
         },
         {
             'date': '2018-01-12T00:00:00Z',
             'openshift_instances': 3,
             'openshift_runtime_seconds': 259200.0,
+            'openshift_memory_seconds': 259200.0,
+            'openshift_vcpu_seconds': 259200.0,
             'rhel_instances': 2,
             'rhel_runtime_seconds': 162000.0,
+            'rhel_memory_seconds': 162000.0,
+            'rhel_vcpu_seconds': 162000.0,
         },
         {
             'date': '2018-01-13T00:00:00Z',
             'openshift_instances': 3,
             'openshift_runtime_seconds': 190800.0,
+            'openshift_memory_seconds': 190800.0,
+            'openshift_vcpu_seconds': 190800.0,
             'rhel_instances': 1,
             'rhel_runtime_seconds': 86400.0,
+            'rhel_memory_seconds': 86400.0,
+            'rhel_vcpu_seconds': 86400.0,
         },
         {
             'date': '2018-01-14T00:00:00Z',
             'openshift_instances': 2,
             'openshift_runtime_seconds': 118800.0,
+            'openshift_memory_seconds': 118800.0,
+            'openshift_vcpu_seconds': 118800.0,
             'rhel_instances': 1,
             'rhel_runtime_seconds': 32400.0,
+            'rhel_memory_seconds': 32400.0,
+            'rhel_vcpu_seconds': 32400.0,
         },
         {
             'date': '2018-01-15T00:00:00Z',
             'openshift_instances': 1,
             'openshift_runtime_seconds': 86400.0,
+            'openshift_memory_seconds': 86400.0,
+            'openshift_vcpu_seconds': 86400.0,
             'rhel_instances': 0,
-            'rhel_runtime_seconds': 0.0
+            'rhel_runtime_seconds': 0.0,
+            'rhel_memory_seconds': 0.0,
+            'rhel_vcpu_seconds': 0.0,
         },
     ],
     'instances_seen_with_openshift': 3,
@@ -116,6 +152,7 @@ def instances_report_data():
         )
     ]
 
+    # Run an unmetered instance from 3AM Jan 9th to 3AM the 11th
     inject_instance_data(
         accounts1[0]['id'],
         '',
@@ -125,6 +162,7 @@ def instances_report_data():
         ],
         ec2_ami_id=plain_ami_id,
     )
+    # Run an OCP instance from 7AM Jan 11th to 5AM the 13th
     inject_instance_data(
         accounts1[0]['id'],
         'openshift',
@@ -134,6 +172,7 @@ def instances_report_data():
         ],
         ec2_ami_id=openshift_ami_id,
     )
+    # Run an OCP instance from 4AM Jan 1st to 9PM the 31st
     inject_instance_data(
         accounts1[0]['id'],
         'openshift',
@@ -143,6 +182,11 @@ def instances_report_data():
         ],
         ec2_ami_id=openshift_ami_id,
     )
+    # Run a RHEL instance with multiple runtime durations
+    # Dec 24th to 29th
+    # Jan 8th to 10th
+    # Jan 11th on and off multiple times
+    # Jan 20th to 23rd
     inject_instance_data(
         accounts1[0]['id'],
         'rhel',
@@ -151,17 +195,21 @@ def instances_report_data():
             utils.utc_dt(2017, 12, 29, 3, 0, 0),
             utils.utc_dt(2018, 1, 8, 5, 0, 0),
             utils.utc_dt(2018, 1, 10, 5, 0, 0),
+            
             utils.utc_dt(2018, 1, 11, 5, 0, 0),
             utils.utc_dt(2018, 1, 11, 6, 0, 0),
             utils.utc_dt(2018, 1, 11, 7, 0, 0),
             utils.utc_dt(2018, 1, 11, 8, 0, 0),
             utils.utc_dt(2018, 1, 11, 9, 0, 0),
             utils.utc_dt(2018, 1, 11, 10, 0, 0),
+
             utils.utc_dt(2018, 2, 20, 5, 0, 0),
             utils.utc_dt(2018, 2, 23, 5, 0, 0),
         ],
         ec2_ami_id=rhel_ami_id,
     )
+    # Run a RHEL instance with multiple runtime durations,
+    # on a different account
     inject_instance_data(
         accounts1[1]['id'],
         'rhel',
@@ -175,6 +223,7 @@ def instances_report_data():
         ],
         ec2_ami_id=rhel_ami_id,
     )
+    # Run a RHEL+OCP instance from Jan 9th at 9AM to the 14th at 9AM
     inject_instance_data(
         accounts1[1]['id'],
         'rhel,openshift',
@@ -217,7 +266,11 @@ def test_instances_report(instances_report_data):
         auth=auth1
     )
 
-    assert response == EXPECTED_REPORT_DATA, response
+    for i, exp_data in enumerate(EXPECTED_REPORT_DATA['daily_usage']):
+        seen_day = response['daily_usage'][i]
+        vcpu = seen_day['rhel_vcpu_seconds']
+        runtime = seen_day['rhel_runtime_seconds']
+        assert exp_data == seen_day, (runtime - vcpu) / 60 / 60  # seen_day['date']
 
 
 def test_superuser_instances_report(instances_report_data):
