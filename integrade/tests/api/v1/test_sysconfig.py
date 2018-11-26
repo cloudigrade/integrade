@@ -28,7 +28,11 @@ def test_sysconfig():
     auth = get_auth()
     client = api.Client(response_handler=api.json_handler)
     response = client.get(urls.SYSCONFIG, auth=auth)
-    assert list(response.keys()) == ['aws_account_id', 'aws_policies']
+    assert set(response.keys()) == set((
+        'aws_account_id',
+        'aws_policies',
+        'version',
+    ))
     assert re.match(r'\d+', response['aws_account_id'])
 
 
