@@ -474,12 +474,12 @@ def test_summary_cards(cloud_account_data, browser_session, ui_acct_list):
 @pytest.mark.parametrize(
     'tag', ('rhel',))  # ('', 'rhel', 'openshift', 'rhel,openshift'))
 def test_graph_modes(tag, cloud_account_data, browser_session, ui_acct_list):
-    """
+    """....
 
     :id:
-    :description: 
+    :description:
     :steps:
-        1) 
+        1)
     :expectedresults:
         -
     """
@@ -491,9 +491,10 @@ def test_graph_modes(tag, cloud_account_data, browser_session, ui_acct_list):
     assert find_element_by_text(browser_session, '1 Images', timeout=1)
     assert find_element_by_text(browser_session, '1 Instances')
 
-    # !!!
+    # !!! IN PRORGRESS NOTES !!! #
     # - Look for titles for RHEL and OCP graph cards
-    # - select ancestor node cloudmeter-utilization-graph to get the card itself
+    # - select ancestor node cloudmeter-utilization-graph to get the card
+    #   itself
     # - Look for the RHEL default 'Instance Hours', verify numbers
     # - Look for the OCP default 'Instance Hours', verify numbers
     # - For each tag change to 'core hours', verify numbers
@@ -506,8 +507,6 @@ def test_graph_modes(tag, cloud_account_data, browser_session, ui_acct_list):
                 find_element_by_text(
                     browser_session, 'First Account', timeout=1).click()
                 time.sleep(1)
-            else:
-                import pdb; pdb.set_trace()
 
             if 'rhel' in tag:
                 # No spaces because there are not spaces between the DOM nodes,

@@ -195,7 +195,7 @@ def instances_report_data():
             utils.utc_dt(2017, 12, 29, 3, 0, 0),
             utils.utc_dt(2018, 1, 8, 5, 0, 0),
             utils.utc_dt(2018, 1, 10, 5, 0, 0),
-            
+
             utils.utc_dt(2018, 1, 11, 5, 0, 0),
             utils.utc_dt(2018, 1, 11, 6, 0, 0),
             utils.utc_dt(2018, 1, 11, 7, 0, 0),
@@ -270,7 +270,7 @@ def test_instances_report(instances_report_data):
         seen_day = response['daily_usage'][i]
         vcpu = seen_day['rhel_vcpu_seconds']
         runtime = seen_day['rhel_runtime_seconds']
-        assert exp_data == seen_day, (runtime - vcpu) / 60 / 60  # seen_day['date']
+        assert exp_data == seen_day, (runtime - vcpu) / 60 / 60
 
 
 def test_superuser_instances_report(instances_report_data):
