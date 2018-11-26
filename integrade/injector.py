@@ -177,8 +177,8 @@ def inject_instance_data(
     AwsEC2InstanceDefinitions.objects.get_or_create(
         instance_type=instance_type,
         defaults=dict(
-            memory=1,
-            vcpu=1,
+            memory=memory,
+            vcpu=vcpu,
         ),
     )
 
