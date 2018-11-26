@@ -363,7 +363,8 @@ def test_negative_read_other_cloud_account(
     'resourcetype',
     'account_arn',
     ])
-def test_negative_create_cloud_account_missing(field_to_delete):
+def test_negative_create_cloud_account_missing(drop_account_data,
+                                               field_to_delete):
     """Ensure attempts to create cloud accounts missing data are rejected.
 
     :id: a93821ba-4181-47e7-b685-dbe642c1441e
@@ -378,9 +379,10 @@ def test_negative_create_cloud_account_missing(field_to_delete):
     cfg = config.get_config()
     aws_profile = cfg['aws_profiles'][0]
     profile_name = aws_profile['name']
+    acct_arn = aws_profile['arn']
 
     cloud_account = {
-        'account_arn': uuid4(),
+        'account_arn': acct_arn,
         'resourcetype': 'AwsAccount',
         'name': profile_name,
     }
@@ -393,7 +395,7 @@ def test_negative_create_cloud_account_missing(field_to_delete):
     )
     missing_fields = create_response.json().keys()
     assert create_response.status_code == 400, create_response.json()
-    assert field_to_delete in missing_fields
+    assert field_to_delete in missing_fields, create_response.json()
 
 
 @pytest.mark.serial_only
