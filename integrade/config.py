@@ -7,7 +7,6 @@ import urllib3
 
 from xdg import BaseDirectory
 
-import urllib3
 import yaml
 
 from integrade import exceptions, injector, utils
