@@ -107,13 +107,13 @@ def test_create_cloud_account(drop_account_data, cloudtrails_to_delete):
     # Check if an account can be updated
     payload = {
         'account_arn': acct_arn,
-        'name': 'new_name',
+        'name': 'new_name2',
         'resourcetype': 'AwsAccount',
     }
     response = client.put(
         account_url, payload=payload, auth=auth)
     response = client.get(account_url, auth=auth)
-    assert response.json()['name'] == 'new_name'
+    assert response.json()['name'] == 'new_name2'
 
     # assert we cannot create duplicate
     client.response_handler = api.echo_handler
@@ -362,7 +362,6 @@ def test_negative_read_other_cloud_account(
 @pytest.mark.parametrize('field_to_delete', [
     'resourcetype',
     'account_arn',
-    'name',
     ])
 def test_negative_create_cloud_account_missing(field_to_delete):
     """Ensure attempts to create cloud accounts missing data are rejected.
@@ -430,6 +429,9 @@ def test_cloudtrail_updated(
 
     # create our own cloud trail with a different s3 bucket
     bucket_name = aws_utils.create_bucket_for_cloudtrail(profile_name)
+    # Queue the bucket for cleanup
+    cloudtrails_and_buckets_to_delete.append(
+        (profile_name, None, bucket_name))
     if cloudtrail_client.describe_trails(
             trailNameList=[aws_profile['cloudtrail_name']]
     ).get('trailList'):
@@ -442,13 +444,13 @@ def test_cloudtrail_updated(
             Name=aws_profile['cloudtrail_name'],
             S3BucketName=bucket_name
         )
-    # make sure we clean up our trail and bucket even if test fails
+    # Queue the cloudtrail for cleanup
     cloudtrails_and_buckets_to_delete.append(
-        (profile_name, aws_profile['cloudtrail_name'], bucket_name))
+        (profile_name, aws_profile['cloudtrail_name'], None))
     cloud_account = {
         'account_arn': acct_arn,
         'resourcetype': 'AwsAccount',
-        'name': 'name'
+        'name': 'name',
     }
     create_response = client.post(
         urls.CLOUD_ACCOUNT,

@@ -3,11 +3,17 @@
 import os
 from copy import deepcopy
 
+import urllib3
+
 from xdg import BaseDirectory
 
 import yaml
 
 from integrade import exceptions, injector, utils
+
+
+# Suppress HTTPS warnings against our test server without a cert
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 
 # `get_config` uses this as a cache. It is intentionally a global. This design
@@ -32,8 +38,9 @@ def get_config(create_superuser=True, need_base_url=True):
         _CONFIG['api_version'] = os.getenv('CLOUDIGRADE_API_VERSION', 'v1')
         _CONFIG['cloudigrade_s3_bucket'] = os.getenv('AWS_S3_BUCKET_NAME')
 
-        cloudtrail_prefix = os.getenv('CLOUDTRAIL_PREFIX')
         ref_slug = os.environ.get('CI_COMMIT_REF_SLUG', '')
+        cloudtrail_prefix = os.getenv('CLOUDTRAIL_PREFIX',
+                                      f'review-{ref_slug}')
 
         # The location of the API endpoints and UI may be configured directly
         # with `CLOUDIGRADE_BASE_URL` -OR- we can determine a location based

@@ -138,8 +138,10 @@ def delete_bucket_and_cloudtrail(profile_cloudtrail_bucket):
         ``multiprocessing.pool.Pool.map``.
     """
     (aws_profile, cloudtrail_name, bucket_name) = profile_cloudtrail_bucket
-    delete_cloudtrail((aws_profile, cloudtrail_name))
-    delete_s3_bucket((aws_profile, bucket_name))
+    if cloudtrail_name:
+        delete_cloudtrail((aws_profile, cloudtrail_name))
+    if bucket_name:
+        delete_s3_bucket((aws_profile, bucket_name))
 
 
 def create_instances(

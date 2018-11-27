@@ -210,5 +210,6 @@ def cloudtrails_and_buckets_to_delete():
 
     if to_delete:
         with Pool() as p:
+            # import pdb; pdb.set_trace()
             p.map(
                 delete_bucket_and_cloudtrail, to_delete)
