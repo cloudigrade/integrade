@@ -17,9 +17,9 @@ from integrade.injector import inject_aws_cloud_account, inject_instance_data
 from integrade.tests import urls, utils
 
 
-def hour2sec(h): return h * 60 * 60
-
-def sec2hour(s): return s / 60 / 60
+def hour2sec(h):
+    """Convert hours to seconds."""
+    return h * 60 * 60
 
 
 API_DATETIME_FORMAT = '%Y-%m-%dT%H:%MZ'
@@ -53,21 +53,21 @@ EXPECTED_REPORT_DATA = {
             'date': '2018-01-09T00:00:00Z',
             'openshift_instances': 2,
             'openshift_runtime_seconds': 140400.0,
-            'openshift_memory_seconds': 140400.0
+            'openshift_memory_seconds':
                 # An extra 15 hours of GB hours comes from running a 2GB
                 # instance from the 9th to he 14th
                 # See additional OCP GB Hours added to expected counts in
                 # following days
-                + hour2sec(15),
+                140400.0 + hour2sec(15),
             'openshift_vcpu_seconds': 140400.0,
             'rhel_instances': 2,
             'rhel_runtime_seconds': 140400.0,
-            'rhel_memory_seconds': 140400.0
+            'rhel_memory_seconds':
                 # An extra 15 hours of GB hours comes from running a 2GB
                 # instance from the 9th to he 14th
                 # See additional RHEL GB Hours added to expected counts in
                 # following days
-                + hour2sec(15),
+                140400.0 + hour2sec(15),
             'rhel_vcpu_seconds': 140400.0,
         },
         {
@@ -86,10 +86,10 @@ EXPECTED_REPORT_DATA = {
             'openshift_instances': 3,
             'openshift_runtime_seconds': 234000.0,
             'openshift_memory_seconds': 234000.0 + hour2sec(24),
-            'openshift_vcpu_seconds': 234000.0
+            'openshift_vcpu_seconds':
                 # An extra 17 hours of vCPU time comes from running a 2x vCPU
                 # instance from the 11th to he 13th
-                + hour2sec(17),
+                234000.0 + hour2sec(17),
             'rhel_instances': 2,
             'rhel_runtime_seconds': 97200.0,
             'rhel_memory_seconds': 97200.0 + hour2sec(24),
@@ -100,27 +100,27 @@ EXPECTED_REPORT_DATA = {
             'openshift_instances': 3,
             'openshift_runtime_seconds': 259200.0,
             'openshift_memory_seconds': 259200.0 + hour2sec(24),
-            'openshift_vcpu_seconds': 259200.0
+            'openshift_vcpu_seconds':
                 # An extra 24 hours of vCPU time comes from running a 2x vCPU
                 # instance from the 11th to he 13th
-                + hour2sec(24),
+                259200.0 + hour2sec(24),
             'rhel_instances': 2,
             'rhel_runtime_seconds': 162000.0,
             'rhel_memory_seconds': 162000.0 + hour2sec(24),
-            'rhel_vcpu_seconds': 162000.0
+            'rhel_vcpu_seconds':
                 # An extra 21 hours of vCPU time comes from running a 2x vCPU
                 # instance on the 12th for a total runtime of 21 hours
-                 + hour2sec(21),
+                162000.0 + hour2sec(21),
         },
         {
             'date': '2018-01-13T00:00:00Z',
             'openshift_instances': 3,
             'openshift_runtime_seconds': 190800.0,
             'openshift_memory_seconds': 190800.0 + hour2sec(24),
-            'openshift_vcpu_seconds': 190800.0
+            'openshift_vcpu_seconds':
                 # An extra 7 hours of vCPU time comes from running a 2x vCPU
                 # instance from the 11th to he 13th
-                + hour2sec(5),
+                190800.0 + hour2sec(5),
             'rhel_instances': 1,
             'rhel_runtime_seconds': 86400.0,
             'rhel_memory_seconds': 86400.0 + hour2sec(24),
