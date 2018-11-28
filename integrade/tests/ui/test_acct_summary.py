@@ -10,6 +10,7 @@
 """
 import calendar
 import datetime
+import math
 import random
 import time
 
@@ -471,9 +472,12 @@ def test_summary_cards(cloud_account_data, browser_session, ui_acct_list):
     assert page_has_text(browser_session, '0 RHOCP')
 
 
-@pytest.mark.parametrize(
-    'tag', ('rhel',))  # ('', 'rhel', 'openshift', 'rhel,openshift'))
-def test_graph_modes(tag, cloud_account_data, browser_session, ui_acct_list):
+DIM_INSTANCE = ('instance', 'Instance Hours')
+DIM_MEMORY = ('gb', 'GB Memory Hours')
+DIM_VCPU = ('cpu', 'Core Hours')
+
+
+def test_graph_modes(cloud_account_data, browser_session, ui_acct_list):
     """....
 
     :id:
@@ -483,40 +487,88 @@ def test_graph_modes(tag, cloud_account_data, browser_session, ui_acct_list):
     :expectedresults:
         -
     """
-    cloud_account_data(tag, [10], vcpu=2, memory=0.5)
-    hours, spare_min, events = get_expected_hours_in_past_30_days([10, None])
-    hours = round_hours(hours, spare_min)
+    cloud_account_data('rhel', [10], vcpu=2, memory=0.5)
+    cloud_account_data('rhel,openshift', [5], vcpu=2, memory=0.5)
+    cloud_account_data('openshift', [10], vcpu=4, memory=4)
+
+    hours1, min1, events = get_expected_hours_in_past_30_days([10, None])
+    hours2, min2, events = get_expected_hours_in_past_30_days([5, None])
+
+    c = math.ceil
+
+    # RHEL Hours for each "dimension"
+    # image1 for 10 days + image2 for 5 days
+    rhel_hours = {
+        'instance': round_hours(hours1 + hours2, min1 + min2),
+        'gb': round_hours(c((hours1 + hours2) / 2), c((min1 + min2) / 2)),
+        'cpu': round_hours(hours1*2 + hours2*2, min1*2 + min2*2),
+    }
+    # RHOCP, image2 for 5 days + image3 for 10 days
+    rhocp_hours = {
+        'instance': round_hours(hours1 + hours2, min1 + min2),
+        'gb': round_hours(c(hours1*4 + hours2/2), c(min1*4 + min2/2)),
+        'cpu': round_hours(hours1*4 + hours2*2, min1*4 + min2*2),
+    }
+
     browser_session.refresh()
 
-    assert find_element_by_text(browser_session, '1 Images', timeout=1)
-    assert find_element_by_text(browser_session, '1 Instances')
+    # Find the graph card based on the product header
+    def graph_card(header):
+        el = find_element_by_text(
+            browser_session,
+            header,
+        )
+        el = el.find_element_by_xpath('..')
+        el = el.find_element_by_xpath('..')
+        return el
 
-    # !!! IN PRORGRESS NOTES !!! #
-    # - Look for titles for RHEL and OCP graph cards
-    # - select ancestor node cloudmeter-utilization-graph to get the card
-    #   itself
-    # - Look for the RHEL default 'Instance Hours', verify numbers
-    # - Look for the OCP default 'Instance Hours', verify numbers
-    # - For each tag change to 'core hours', verify numbers
-    # - For each tag change to 'GB hours', verify numbers
-    # - For each tag change to 'instance hours', verify numbers
+    for tag in ('RHEL', 'RHOCP'):
 
-    for level in ('summary', 'detail'):
-        with return_url(browser_session):
-            if level == 'detail':
-                find_element_by_text(
-                    browser_session, 'First Account', timeout=1).click()
-                time.sleep(1)
+        # Establish expectations based on the current product
+        if tag == 'RHEL':
+            header = 'Red Hat Enterprise Linux'
+            hours = rhel_hours
+            dimensions = (
+                DIM_INSTANCE,
+                DIM_MEMORY,
+                DIM_VCPU,
+            )
+        else:
+            header = 'Red Hat OpenShift Container Platform'
+            hours = rhocp_hours
+            dimensions = (
+                DIM_VCPU,
+                DIM_INSTANCE,
+                DIM_MEMORY,
+            )
 
-            if 'rhel' in tag:
-                # No spaces because there are not spaces between the DOM nodes,
-                # even tho they are rendered separately.
-                assert find_element_by_text(browser_session,
-                                            f'{hours}RHEL Hours')
-            else:
-                assert find_element_by_text(browser_session, '0RHEL Hours')
-            if 'openshift' in tag:
-                assert find_element_by_text(browser_session,
-                                            f'{hours}RHOCP Hours')
-            else:
-                assert find_element_by_text(browser_session, '0RHOCP Hours')
+        # Check the graphs on both the summary and detail pages
+        for level in ('summary', 'detail'):
+
+            # For detail pages, navigate to the image list for the account
+            # and return back afterwards
+            with return_url(browser_session):
+                if level == 'detail':
+                    find_element_by_text(
+                        browser_session, 'First Account', timeout=1).click()
+                    time.sleep(1)
+
+                # Starting with the default dimension for this product,
+                # walk through each via the dropdown menu on the appropriate
+                # graph card and verify the numbers we see based on the
+                # expected hours calculated above.
+                for i, (dim, dropdown) in enumerate(dimensions):
+                    if i > 0:
+                        find_element_by_text(graph_card(header), dropdown,
+                                             timeout=1).click()
+                        time.sleep(0.1)
+
+                    assert find_element_by_text(graph_card(header),
+                                                f'{hours[dim]}{tag}',
+                                                timeout=1)
+
+                    find_element_by_text(graph_card(header), dropdown,
+                                         timeout=1).click()
+                    time.sleep(0.1)
+
+            time.sleep(0.25)
