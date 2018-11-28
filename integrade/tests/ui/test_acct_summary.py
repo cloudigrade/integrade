@@ -160,14 +160,14 @@ def test_running_tags(tag, cloud_account_data, browser_session, ui_acct_list):
                 # No spaces because there are not spaces between the DOM nodes,
                 # even tho they are rendered separately.
                 assert find_element_by_text(browser_session,
-                                            f'{hours}RHEL Hours')
+                                            f'{hours}RHEL')
             else:
-                assert find_element_by_text(browser_session, '0RHEL Hours')
+                assert find_element_by_text(browser_session, '0RHEL')
             if 'openshift' in tag:
                 assert find_element_by_text(browser_session,
-                                            f'{hours}RHOCP Hours')
+                                            f'{hours}RHOCP')
             else:
-                assert find_element_by_text(browser_session, '0RHOCP Hours')
+                assert find_element_by_text(browser_session, '0RHOCP')
 
 
 def test_reused_image(cloud_account_data, browser_session, ui_acct_list):
@@ -446,8 +446,8 @@ def test_summary_cards(cloud_account_data, browser_session, ui_acct_list):
         '.cloudmeter-utilization-graph'
         )
     assert len(cards) == 2
-    assert element_has_text(cards[0], f'{rhel_runtime} RHEL Hours')
-    assert element_has_text(cards[1], f'{openshift_runtime} RHOCP Hours')
+    assert element_has_text(cards[0], f'{rhel_runtime} RHEL')
+    assert element_has_text(cards[1], f'{openshift_runtime} RHOCP')
     assert element_has_text(summary_row[0], '4 Images')
     assert element_has_text(summary_row[0], '7 Instances')
     assert element_has_text(summary_row[0], f'{rhel_runtime} RHEL')
@@ -561,7 +561,7 @@ def test_graph_modes(cloud_account_data, browser_session, ui_acct_list):
                     if i > 0:
                         find_element_by_text(graph_card(header), dropdown,
                                              timeout=1).click()
-                        time.sleep(0.1)
+                        time.sleep(0.25)
 
                     assert find_element_by_text(graph_card(header),
                                                 f'{hours[dim]}{tag}',
@@ -569,6 +569,6 @@ def test_graph_modes(cloud_account_data, browser_session, ui_acct_list):
 
                     find_element_by_text(graph_card(header), dropdown,
                                          timeout=1).click()
-                    time.sleep(0.1)
+                    time.sleep(0.25)
 
             time.sleep(0.25)
