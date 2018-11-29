@@ -9,6 +9,8 @@
 :upstream: yes
 """
 import datetime
+from random import shuffle
+from urllib.parse import urljoin
 
 import pytest
 
@@ -203,6 +205,127 @@ def test_runtime_requests_from_future():
         )
     response_error = response.json()['non_field_errors'][0]
     assert response_error == 'End date must be after start date.'
+
+
+def test_flagged_account_numbers():
+    """Test the number of flagged images in accounts.
+
+    :id: BBD687F5-0B78-4E86-8368-C5C8EEBD9263
+    :description: Test that the number of images reported as flagged matches
+    the flagged/challenged images in accounts.
+
+    :steps:
+        1) Add a cloud account
+        2) Insert RHEL and RHOCP image
+        3) Check number of challenged/flagged RHEL/RHOCP images
+        4) Challenge images
+        5) Check number of challenged/flagged RHEL/RHOCP images
+    :expectedresults:
+        - Challenged RHEL images = 0 when none are challenged
+        - Challenged RHEL images > 0 when one or more are challenged
+        - Challenged RHOCP images = 0 when none are challenged
+        - Challenged RHOCP images > 0 when one or more are challenged
+    """
+    user = utils.create_user_account()
+    auth = utils.get_auth(user)
+    acct = inject_aws_cloud_account(user['id'])
+
+    images = {}
+    for tag in ('rhel', 'openshift'):
+        image_type = tag
+        events = [1, 2]
+        client = api.Client(
+            authenticate=False,
+            response_handler=api.echo_handler
+        )
+        images[tag] = inject_instance_data(
+            acct['id'],
+            image_type,
+            events,
+        )
+
+        report_start, report_end = utils.get_time_range()
+        params = {
+            'start': report_start,
+            'end': report_end,
+            'account_id': acct['id'],
+        }
+    response = client.get(
+        urls.REPORT_ACCOUNTS,
+        params=params,
+        auth=auth
+        ).json()['cloud_account_overviews'][0]
+    assert response['rhel_instances'] == 1
+    assert response['openshift_instances'] == 1
+    assert response['rhel_images_challenged'] == 0
+    assert response['openshift_images_challenged'] == 0
+
+    rhel_image = images.get('rhel')
+    openshift_image = images.get('openshift')
+    images = [rhel_image, openshift_image]
+    # Shuffle images to be sure that each is called first, to ensure that
+    # order doesn't matter
+    shuffle(images)
+    first_image_url = urljoin(urls.IMAGE, str(images[0]['image_id'])) + '/'
+    second_image_url = urljoin(urls.IMAGE, str(images[1]['image_id'])) + '/'
+    first_image_response = client.get(first_image_url, auth=auth).json()
+    second_image = ''
+    challenged_image = ''
+    unchallenged_image = ''
+
+    # Challenge first image
+    if first_image_response['rhel']:
+        first_image_response['rhel_challenged'] = True
+        client.put(
+            first_image_url,
+            first_image_response,
+            auth=auth
+        )
+        first_image = 'rhel'
+        second_image = 'openshift'
+        challenged_image = 'rhel_images_challenged'
+        unchallenged_image = 'openshift_images_challenged'
+    else:
+        first_image_response['openshift_challenged'] = True
+        client.put(
+            first_image_url,
+            first_image_response,
+            auth=auth
+        )
+        first_image = 'openshift'
+        second_image = 'rhel'
+        challenged_image = 'openshift_images_challenged'
+        unchallenged_image = 'rhel_images_challenged'
+    first_response = client.get(
+        urls.REPORT_ACCOUNTS,
+        params=params,
+        auth=auth
+        ).json()['cloud_account_overviews'][0]
+
+    assert first_response[challenged_image] == 1
+    assert first_response[unchallenged_image] == 0
+    assert first_response[f'{second_image}_instances'] == 1
+    assert first_response[f'{first_image}_instances'] == 0
+
+    # Challenge second image
+    second_image_response = client.get(second_image_url, auth=auth).json()
+    second_image_response[f'{second_image}_challenged'] = True
+
+    client.put(
+        second_image_url,
+        second_image_response,
+        auth=auth
+    )
+    second_response = client.get(
+        urls.REPORT_ACCOUNTS,
+        params=params,
+        auth=auth
+        ).json()['cloud_account_overviews'][0]
+
+    assert second_response[challenged_image] == 1
+    assert second_response[unchallenged_image] == 1
+    assert second_response[f'{second_image}_instances'] == 0
+    assert second_response[f'{first_image}_instances'] == 0
 
 
 @pytest.mark.parametrize('impersonate', (False, True))

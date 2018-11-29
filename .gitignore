@@ -112,3 +112,7 @@ Pipfile
 
 # ansible
 *.retry
+
+# local
+.env-pre-setup
+.vscode/

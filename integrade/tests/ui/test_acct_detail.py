@@ -274,6 +274,127 @@ def test_image_flagging(cloud_account_data, browser_session,
         assert hours_before != hours_after
 
 
+def test_flag_icons_on_challenged_accounts(cloud_account_data, browser_session,
+                                           ui_acct_list):
+    """Presence of flag icon should correlate across accounts and images.
+
+    :id: DC7F8495-FDFE-4B55-8B95-858E8021FA7A
+    :description: Check that flags ARE or ARE NOT present for accounts
+        accurately representing the status of their images
+        (challenged/not challenged)
+
+    :steps:
+        1) Given a user with accounts, mock an account with images for
+        each combination of RHEL / Openshift and disputed / undisputed.
+        2) Dispute images such that there are account instances of each of the
+        following:
+        Both RHEL and RHOCP, neither disputed
+        Both RHEL and RHOCP, RHEL disputed
+        Both RHEL and RHOCP, RHOCP disputed
+        Both RHEL and RHOCP, both RHEL and RHOCP disputed
+    :expectedresults:
+        - Accounts with undisputed (non-flagged) images should have no flag
+        - Accounts with a disputed (flagged) image should have a flag by the
+        disputed image tag ('RHEL' or 'RHOCP')
+        - Accounts with both RHEL and RHOCP disputes should have both flagged
+    """
+    selenium = browser_session
+    flagged = False
+    instance_id = 'i-{}'.format(randint(1000, 99999))
+    ec2_ami_id = 'ami-{}'.format(randint(1000, 99999))
+    hours, spare_min, events = get_expected_hours_in_past_30_days([2, 1])
+    hours = round_hours(hours, spare_min)
+    long_css_selector = '.cloudmeter-accountview-list-view-item'
+    cloud_account_data(
+        'rhel',
+        events,
+        instance_id=instance_id,
+        ec2_ami_id=ec2_ami_id,
+        challenged=flagged,
+    )
+    selenium.refresh()
+    time.sleep(0.5)
+    # There are no flags on the account when nothing has been challenged
+    ctn = selenium.find_element_by_css_selector(long_css_selector)
+    assert bool(ctn.find_elements_by_class_name('fa-flag')) == flagged
+    account = find_element_by_text(selenium, CLOUD_ACCOUNT_NAME, timeout=0.5)
+    with return_url(selenium):
+        account.click()
+        time.sleep(1)
+
+        # Challenge current tag
+        check = 'Flag for review'
+        image_id_el = find_element_by_text(selenium, ec2_ami_id)
+        image_id_el.click()
+        time.sleep(0.1)
+        find_element_by_text(selenium, check, selector='label').click()
+
+    # Go back to accounts page and see that flagging matches
+    # (currently one flagged)
+    time.sleep(1)
+    ctn = selenium.find_element_by_css_selector(long_css_selector)
+    flags = ctn.find_elements_by_class_name('fa-flag')
+    assert bool(flags) != flagged
+    assert len(flags) == 1
+
+    # Challenge the other tag (so both are challenged)
+    account = find_element_by_text(selenium, CLOUD_ACCOUNT_NAME, timeout=0.5)
+    with return_url(selenium):
+        account.click()
+        time.sleep(1)
+        image_id_el = find_element_by_text(selenium, ec2_ami_id)
+        image_id_el.click()
+        time.sleep(0.5)
+        find_element_by_text(selenium, check, selector='label').click()
+
+    # Go back to accounts page and see that flagging matches
+    # (currently two flagged)
+    time.sleep(1)
+    ctn = selenium.find_element_by_css_selector(long_css_selector)
+    flags = ctn.find_elements_by_class_name('fa-flag')
+    assert bool(flags) != flagged
+    assert len(flags) == 2
+
+    # Check flagging where 1 image flagged for RHEL and 1 other image
+    # flagged for RHOCP
+    # Create second image in same account
+    second_ec2_ami_id = 'ami-{}'.format(randint(1000, 99999))
+    cloud_account_data(
+        'rhocp',
+        [5],
+        instance_id='i-{}'.format(randint(1000, 99999)),
+        ec2_ami_id=second_ec2_ami_id,
+    )
+    selenium.refresh()
+    time.sleep(0.5)
+    account = find_element_by_text(selenium, CLOUD_ACCOUNT_NAME, timeout=0.5)
+    with return_url(selenium):
+        account.click()
+        time.sleep(1)
+
+        # Unchallenge second flagged item in first image
+        image_id_el = find_element_by_text(selenium, ec2_ami_id)
+        image_id_el.click()
+        time.sleep(0.5)
+        find_element_by_text(selenium,
+                             'Flagged for review', selector='label').click()
+        time.sleep(1)
+        image_id_el.click()
+        time.sleep(0.5)
+
+        # Challenge second item in second image
+        second_image_id_el = find_element_by_text(selenium, second_ec2_ami_id)
+        second_image_id_el.click()
+        time.sleep(0.5)
+        find_element_by_text(selenium, check, selector='label').click()
+
+    # Go back to the accounts page and be sure that both are flagged
+    time.sleep(1)
+    ctn = selenium.find_element_by_css_selector(long_css_selector)
+    flags = ctn.find_elements_by_class_name('fa-flag')
+    assert len(flags) == 2
+
+
 def test_reused_image(cloud_account_data, browser_session, ui_acct_list):
     """Multiple instances uses one image should be reflected properly."""
     selenium = browser_session
