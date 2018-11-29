@@ -269,14 +269,30 @@ DIM_VCPU = ('cpu', 'Core Hours')
 
 def test_graph_modes(drop_account_data, cloud_account_data,
                      browser_session, ui_acct_list):
-    """....
+    """Test the three "dimensions" of both RHEL and RHOCP usage.
 
-    :id:
-    :description:
+    :id: 753b6e47-501a-4cae-af20-a8eece9ef50d
+    :description: Usage of images is measured in instance hours, GB of memory
+        per hour, and vCPU core per hour. RHEL graphs default to Instance
+        Hours while RHOCP default to GB Memory Hours, both can be viewed for
+        either.
     :steps:
-        1)
+        1) Look at an account with both RHEL and RHOCP usage with instances of
+           different types
+        2) Check the default type of each graph and that the value displayed
+           matches
+        3) Change each of the graphs to their two non-default types,
+           confirming each
     :expectedresults:
-        -
+        - RHEL and RHOCP graphs should display Instance Hours and GB Memory
+          Hours, respectively
+        - Each graph can be changed to one of the other dimensions without
+          affecting the other
+        - Navigation returns to the default for each graph
+        - GB Memory Hours displayed reflect the runtime of instances
+          multiplied by the number of GB of the instance type
+        - Core Hours displayed reflect the runtime of instances multiplied by
+          the number of cores of the instance type
     """
     cloud_account_data('rhel', [10], vcpu=2, memory=0.5)
     cloud_account_data('rhel,openshift', [5], vcpu=2, memory=0.5)
@@ -309,13 +325,6 @@ def test_graph_modes(drop_account_data, cloud_account_data,
             browser_session,
             header,
         )
-        # if 'Error retrieving images' in browser_session.page_source:
-        #     browser_session.refresh()
-        #     time.sleep(5)
-        #     el = find_element_by_text(
-        #         browser_session,
-        #         header,
-        #     )
         el = el.find_element_by_xpath('..')
         el = el.find_element_by_xpath('..')
         return el
@@ -367,9 +376,6 @@ def test_graph_modes(drop_account_data, cloud_account_data,
 
                     find_element_by_text(graph_card(header), dropdown,
                                          timeout=1).click()
-                    time.sleep(0.25)
-
-            time.sleep(0.25)
 
 
 def test_account_date_filter(
