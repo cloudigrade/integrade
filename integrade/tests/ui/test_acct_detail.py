@@ -216,7 +216,7 @@ def test_image_flagging(cloud_account_data, browser_session,
 
     instance_id = 'i-{}'.format(randint(1000, 99999))
     ec2_ami_id = 'ami-{}'.format(randint(1000, 99999))
-    hours, spare_min, events = get_expected_hours_in_past_30_days([1, 2])
+    hours, spare_min, events = get_expected_hours_in_past_30_days([2, 1])
     hours = round_hours(hours, spare_min)
     cloud_account_data(
         tag,
@@ -251,10 +251,11 @@ def test_image_flagging(cloud_account_data, browser_session,
         assert product_id_tag_present(selenium, label)
         assert bool(ctn.find_elements_by_class_name('fa-flag')) == flagged
 
-        find_element_by_text(selenium, ec2_ami_id).click()
+        image_id_el = find_element_by_text(selenium, ec2_ami_id)
+        image_id_el.click()
         time.sleep(0.1)
         info = elem_parent(
-            find_element_by_text(selenium, f'{label} Hours', exact=False)
+            find_element_by_text(ctn, f'{label}', exact=False)
         )
         tags_before = len(find_elements_by_text(ctn, label))
         hours_before = get_el_text(info)
@@ -263,7 +264,7 @@ def test_image_flagging(cloud_account_data, browser_session,
         time.sleep(1)
 
         info = elem_parent(
-            find_element_by_text(selenium, f'{label} Hours', exact=False)
+            find_element_by_text(ctn, f'{label}', exact=False)
         )
         tags_after = len(find_elements_by_text(ctn, label))
         hours_after = get_el_text(info)
@@ -296,13 +297,14 @@ def test_reused_image(cloud_account_data, browser_session, ui_acct_list):
 
         time.sleep(1)
 
-        hours_el = find_element_by_text(selenium, f'Hours', exact=False)
+        ctn = selenium.find_element_by_css_selector('.list-view-pf-main-info')
+        hours_el = find_element_by_text(ctn, f'RHEL', exact=False)
         hours_txt = hours_el.get_attribute('innerText')
 
         assert find_element_by_text(selenium, ec2_ami_id, exact=False)
-        label = f'{hours}RHEL Hours'
+        label = f'{hours}RHEL'
         assert find_element_by_text(selenium, label, exact=False),\
-            f'"{hours} Hours" expected; instead, saw "{hours_txt}"'
+            f'"{hours} RHEL" expected; instead, saw "{hours_txt}"'
 
 
 @pytest.mark.parametrize(
@@ -382,10 +384,11 @@ def test_multiple_accounts(
         account_bar.click()
 
         time.sleep(1)
-        hours_el = find_element_by_text(selenium, f'Hours', exact=False)
+        ctn = selenium.find_element_by_css_selector('.list-view-pf-main-info')
+        hours_el = find_element_by_text(ctn, f'RHEL', exact=False)
         hours_txt = hours_el.get_attribute('innerText')
 
-        assert find_element_by_text(selenium, ec2_ami_id, exact=False)
-        label = f'{hours}RHEL Hours'
-        assert find_element_by_text(selenium, label, exact=False),\
-            f'"{hours} RHEL Hours" expected; instead, saw "{hours_txt}"'
+        assert find_element_by_text(ctn, ec2_ami_id, exact=False)
+        label = f'{hours}RHEL'
+        assert find_element_by_text(ctn, label, exact=False),\
+            f'"{hours} RHEL" expected; instead, saw "{hours_txt}"'
