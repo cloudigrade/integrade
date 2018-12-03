@@ -281,6 +281,7 @@ def wait_for_inspection(
     ) as bar:
         while True:
             server_info = client.get(urls.IMAGE, auth=auth)
+            import ipdb; ipdb.set_trace()
             if server_info:
                 server_info = [
                     image for image in server_info['results'] if
@@ -416,6 +417,7 @@ def test_find_running_instances(
 
     # Create cloud account on cloudigrade
     cloud_account = {
+        'name': aws_profile['name'],
         'account_arn': aws_profile['arn'],
         'resourcetype': AWS_ACCOUNT_TYPE
     }
@@ -515,6 +517,7 @@ def test_on_off_events(
     bad_event_aws_profile = deepcopy(aws_profile)
     # Create cloud account on cloudigrade
     cloud_account = {
+        'name': aws_profile['name'],
         'account_arn': aws_profile['arn'],
         'resourcetype': AWS_ACCOUNT_TYPE
     }
