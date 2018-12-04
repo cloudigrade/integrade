@@ -3,6 +3,9 @@ if [[ "$1" ]]; then
 else
     export BRANCH_NAME=$(git rev-parse --abbrev-ref HEAD)
 fi
+if [ -f ".env-pre-setup" ]; then
+    echo source .env-pre-setup
+fi
 export SHORT_NAME=$(echo $BRANCH_NAME | cut -c 1-29)
 
 # Name of your branch

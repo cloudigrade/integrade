@@ -173,7 +173,7 @@ account to images that whos attributes are described in a dictionary. See the
 example file for more details.
 
 For example if one AWS account environment varibles are configured with the
-``${PROFILE_NAME`` of ``CUSTOMER1``, and information matching this profile name
+``${PROFILE_NAME}`` of ``CUSTOMER1``, and information matching this profile name
 is in ``$XDG_CONFIG_HOME/integrade/aws_image_config.yaml``, then the config
 object will contain the following information::
 

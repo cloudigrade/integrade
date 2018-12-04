@@ -20,6 +20,11 @@
       image_id: 'ami-0f94fa2a144c74cf1'
       rhel: False
       openshift: True
+    - name: 'RHEL-7.6_HVM_BETA-20180814-x86_64-0-Access2-GP2' # If this breaks, check that the image still exists aws.amazon.com/console
+      image_id: 'ami-09ae22a8a98cc4f9d'
+      rhel: True
+      openshift: False
+
 
 .marketplace: &marketplace
   marketplace:
@@ -90,6 +95,10 @@ profiles:
             rhel_product_certs_found: True
             rhel_release_files_found: True
             rhel_signed_packages_found: True
+          - name: 'RHEL-7.6_HVM_BETA-20180814-x86_64-0-Access2-GP2' # If this breaks, check that the image still exists aws.amazon.com/console
+            image_id: 'ami-09ae22a8a98cc4f9d'
+            rhel: True
+            openshift: False
 
 
         <<: *private_shared

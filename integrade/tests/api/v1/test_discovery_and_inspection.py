@@ -92,7 +92,10 @@ To add images here, the corresponding information must be present in the aws
 config file. See the README.md in the root integrade directory for more
 information."""
 
-IMAGE_TO_TEST = random.choice(image_test_matrix)
+always_test_images = (
+    'private-shared', 'RHEL-7.6_HVM_BETA-20180814-x86_64-0-Access2-GP2', 'inspected'
+)
+IMAGES_TO_TEST = [always_test_images, random.choice(image_test_matrix)]
 POWER_ON_EVENT_TO_TEST = random.choice(power_on_events)
 POWER_OFF_EVENT_TO_TEST = random.choice(power_off_events)
 BAD_EVENT_TO_TEST = random.choice(bad_events)
@@ -136,28 +139,32 @@ def aws_profile(request):
 
 
 @pytest.fixture(
-    params=[IMAGE_TO_TEST],
+    params=[IMAGES_TO_TEST],
     ids=[''],
     scope='module'
 )
 def image_fixture(request, aws_profile):
     """Power on an instance for use in module and terminate it after tests."""
-    aws_profile_name = aws_profile['name']
-    # Create some instances to detect on creation, random choice from every
-    # configured image type (private, owned, marketplace, community)
-    image_type, image_name, expected_state = request.param
-    source_image = [
-        image for image in aws_profile['images'][image_type]
-        if image['name'] == image_name
-    ][0]
-    # Run an instance
-    instance_id = aws_utils.run_instances_by_name(
-        aws_profile_name, image_type, image_name, count=1)[0]
+    images = []
+    for image_to_test in request.param:
+        aws_profile_name = aws_profile['name']
+        # Create some instances to detect on creation, random choice from every
+        # configured image type (private, owned, marketplace, community)
+        image_type, image_name, expected_state = image_to_test
+        source_image = [
+            image for image in aws_profile['images'][image_type]
+            if image['name'] == image_name
+        ][0]
+        # Run an instance
+        instance_id = aws_utils.run_instances_by_name(
+            aws_profile_name, image_type, image_name, count=1)[0]
+        final_image_data = ImageData(image_type, image_name, source_image, instance_id)
+        images.append(final_image_data)
 
-    yield ImageData(image_type, image_name, source_image, instance_id)
+        # Terminate the instance after the module completes
+        aws_utils.terminate_instance((aws_profile_name, instance_id))
 
-    # Terminate the instance after the module completes
-    aws_utils.terminate_instance((aws_profile_name, instance_id))
+    yield images
 
 
 def get_s3_bucket_name():
@@ -219,7 +226,7 @@ def create_event(instance_id, aws_profile, event_type, time=None,
 
 
 def wait_for_cloudigrade_instance(
-        instance_id, auth, timeout=300, sleep_period=15):
+        instance_id, auth, timeout=800, sleep_period=15):
     """Wait for image to be inspected and assert on findings.
 
     :param instance_id: The ec2 instance id you expect to find.
@@ -281,7 +288,6 @@ def wait_for_inspection(
     ) as bar:
         while True:
             server_info = client.get(urls.IMAGE, auth=auth)
-            import ipdb; ipdb.set_trace()
             if server_info:
                 server_info = [
                     image for image in server_info['results'] if
@@ -367,10 +373,10 @@ def wait_for_instance_event(
 @pytest.mark.inspection
 @aws_image_config_needed
 @pytest.mark.serial_only
-@pytest.mark.parametrize('test_case', image_test_matrix,
+@pytest.mark.parametrize('test_case', IMAGES_TO_TEST,
                          ids=[
                              '{}-{}'.format(item[0], item[1])
-                             for item in image_test_matrix],
+                             for item in IMAGES_TO_TEST],
                          )
 def test_find_running_instances(
         test_case,
@@ -400,12 +406,17 @@ def test_find_running_instances(
         3) The images are eventually inspected.
     """
     image_type, image_name, expected_state = test_case
+    if image_fixture[0].image_name == test_case[1]:
+        image_fixture = image_fixture[0]
+    else:
+        image_fixture = image_fixture[1]
+
     source_image = image_fixture.source_image
     source_image_id = source_image['image_id']
     instance_id = image_fixture.instance_id
     if image_name != image_fixture.image_name \
             or image_type != image_fixture.image_type:
-        pytest.skip(f'Only testing {IMAGE_TO_TEST}')
+        pytest.skip(f'Only testing {IMAGES_TO_TEST}')
     drop_account_data()
 
     auth = get_auth()
