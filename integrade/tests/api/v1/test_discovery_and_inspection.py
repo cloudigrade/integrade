@@ -290,7 +290,6 @@ def wait_for_inspection(
     ) as bar:
         while True:
             server_info = client.get(urls.IMAGE, auth=auth)
-            import ipdb; ipdb.set_trace()
             if server_info:
                 server_info = [
                     image for image in server_info['results'] if
