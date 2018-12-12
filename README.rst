@@ -174,15 +174,9 @@ AWS account to images that whos attributes are described in a dictionary. See
 the example file for more details.
 
 For example if one AWS account environment varibles are configured with the
-<<<<<<< HEAD
 ``${PROFILE_NAME}`` of ``CUSTOMER1``, and information matching this profile
 name is in ``integrade/aws_image_config.yaml``, then the config object will
 contain the following information::
-=======
-``${PROFILE_NAME}`` of ``CUSTOMER1``, and information matching this profile name
-is in ``$XDG_CONFIG_HOME/integrade/aws_image_config.yaml``, then the config
-object will contain the following information::
->>>>>>> Tests for handling cloud access images
 
     {'api_version': 'v1',
      'base_url': 'test.cloudigra.de',
