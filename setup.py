@@ -46,7 +46,6 @@ setup(
         'pytest',
         'pytest-selenium',
         'python-dateutil',
-        'pyxdg',
         'pyyaml',
         'requests',
         'widgetastic.core',

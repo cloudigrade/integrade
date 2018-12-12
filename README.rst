@@ -166,16 +166,17 @@ test run, one for the api pod, one for the celery worker pod, and the third
 for the celery beat pod.
 
 Additionally, there is an **OPTIONAL** config file you can install in your
-``$XDG_CONFIG_HOME/integrade/aws_image_config.yaml``. An example file is
-provided in the base directory with the name ``aws_image_config.yaml``. This
-yaml file contains dictionaries mapping the ``${PROFILE_NAME}`` of each AWS
-account to images that whos attributes are described in a dictionary. See the
-example file for more details.
+``integrade/aws_image_config.yaml``. An example file is
+provided in the base directory at ``aws_image_config_templat.yaml``.
+
+This yaml file contains dictionaries mapping the ``${PROFILE_NAME}`` of each
+AWS account to images that whos attributes are described in a dictionary. See
+the example file for more details.
 
 For example if one AWS account environment varibles are configured with the
-``${PROFILE_NAME}`` of ``CUSTOMER1``, and information matching this profile name
-is in ``$XDG_CONFIG_HOME/integrade/aws_image_config.yaml``, then the config
-object will contain the following information::
+``${PROFILE_NAME}`` of ``CUSTOMER1``, and information matching this profile
+name is in ``integrade/aws_image_config.yaml``, then the config object will
+contain the following information::
 
     {'api_version': 'v1',
      'base_url': 'test.cloudigra.de',

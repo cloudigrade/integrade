@@ -49,7 +49,6 @@ stages:
 .inspect: &inspect
   script:
     - cp aws_image_config_template.yaml integrade/aws_image_config.yaml
-    - export XDG_CONFIG_HOME=$PWD
     - py.test --junitxml="${REPORT_NAME}.xml" -vvv -m 'inspection' integrade/tests/api
   after_script:
     - python scripts/aws_reaper.py --env-cloudtrail-only
@@ -153,7 +152,6 @@ API Quick:
     REPORT_NAME: api_quick
   script:
     - cp aws_image_config_template.yaml integrade/aws_image_config.yaml
-    - export XDG_CONFIG_HOME=$PWD
     - if [[ "${TEST_MODULES}" ]]; then echo "${TEST_MODULES}" | xargs py.test --junitxml="${REPORT_NAME}.xml" -vvv; else py.test --junitxml="${REPORT_NAME}.xml" -vvv $TEST_PATH -m smoketest; fi
 
 UI Quick:

@@ -151,10 +151,12 @@ def image_fixture(request, aws_profile):
         # Create some instances to detect on creation, random choice from every
         # configured image type (private, owned, marketplace, community)
         image_type, image_name, expected_state = image_to_test
-        source_image = [
+        source_images = [
             image for image in aws_profile['images'][image_type]
             if image['name'] == image_name
-        ][0]
+        ]
+        assert source_images, f'Found no images from profile! {aws_profile}'
+        source_image = source_images[0]
         # Run an instance
         instance_id = aws_utils.run_instances_by_name(
             aws_profile_name, image_type, image_name, count=1)[0]
@@ -448,9 +450,6 @@ def test_find_running_instances(
     # upon account creation.
     found_instances = wait_for_cloudigrade_instance(instance_id, auth)
     assert instance_id in found_instances
-
-    # No need for the instance to run any longer
-    aws_utils.stop_instance((aws_profile_name, instance_id))
 
     # Look for images that should have been discovered
     # upon account creation.

@@ -6,8 +6,6 @@ from unittest import mock
 
 import pytest
 
-import xdg
-
 import yaml
 
 from integrade import config, exceptions, injector, utils
@@ -116,26 +114,9 @@ def test_get_aws_image_config():
     """Test that the aws image config function parses the yaml correctly."""
     aws_image_config = yaml.load(MOCK_AWS_CONFIG)
     with mock.patch.object(config, '_CONFIG', {'fake': 'config'}):
-        with mock.patch.object(xdg.BaseDirectory, 'load_config_paths') as lcp:
-            lcp.return_value = ('fake_path',)
-            with mock.patch.object(os.path, 'isfile') as isfile:
-                isfile.return_value = True
-                with mock.patch('builtins.open', mock.mock_open(
-                        read_data=MOCK_AWS_CONFIG)):
-                    assert config.get_aws_image_config() == aws_image_config
-
-
-def test_raise_exception_missing_aws_image_config():
-    """Test that when no aws_image_config file is present, an error is raised.
-
-    This only occurs when the config.get_aws_image_config() function is called.
-    """
-    with mock.patch.object(config, '_AWS_CONFIG', None):
-        with mock.patch.object(xdg.BaseDirectory, 'load_config_paths') as lcp:
-            lcp.return_value = ('fake_path',)
-            with mock.patch.object(os.path, 'isfile') as isfile:
-                isfile.return_value = False
-                with pytest.raises(exceptions.ConfigFileNotFoundError):
-                    # pylint:disable=protected-access
-                    config._get_config_file_path(utils.uuid4(), utils.uuid4())
-        assert isfile.call_count == 1
+        with mock.patch.object(os.path, 'isfile') as isfile:
+            isfile.return_value = True
+            with mock.patch('builtins.open', mock.mock_open(
+                    read_data=MOCK_AWS_CONFIG)):
+                config._AWS_CONFIG = None # reset cache to force reload
+                assert config.get_aws_image_config() == aws_image_config

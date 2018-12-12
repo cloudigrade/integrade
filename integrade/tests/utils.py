@@ -135,11 +135,13 @@ def get_auth(user=None):
     """
     if not user:
         email = f'{uuid4()}@example.com'
+        password = gen_password()
         user = create_user_account({
             'email': email,
-            'password': gen_password(),
+            'password': password,
             'username': email,
         })
+    print(f'USER {email} {password}')
     client = api.Client(authenticate=False)
     response = client.post(urls.AUTH_TOKEN_CREATE, user)
     assert response.status_code == 200

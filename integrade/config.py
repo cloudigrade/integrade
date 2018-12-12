@@ -5,8 +5,6 @@ from copy import deepcopy
 
 import urllib3
 
-from xdg import BaseDirectory
-
 import yaml
 
 from integrade import exceptions, injector, utils
@@ -73,11 +71,7 @@ def get_config(create_superuser=True, need_base_url=True):
         _CONFIG['aws_profiles'] = profiles
 
         missing_config_errors = []
-
-        try:
-            aws_image_config = get_aws_image_config()
-        except exceptions.ConfigFileNotFoundError:
-            aws_image_config = {}
+        aws_image_config = get_aws_image_config()
 
         for i, profile in enumerate(_CONFIG['aws_profiles']):
             profile_name = profile['name'].upper()
@@ -149,35 +143,8 @@ def get_aws_image_config():
     """
     global _AWS_CONFIG  # pylint:disable=global-statement
     if _AWS_CONFIG is None:
-        with open(_get_config_file_path('integrade',
-                                        'aws_image_config.yaml')) as f:
+        path = os.path.join(os.path.dirname(__file__),
+                            'aws_image_config.yaml')
+        with open(path) as f:
             _AWS_CONFIG = yaml.load(f)
     return deepcopy(_AWS_CONFIG)
-
-
-def _get_config_file_path(xdg_config_dir, xdg_config_file):
-    """Search ``XDG_CONFIG_DIRS`` for a config file and return the first found.
-
-    Search each of the standard XDG configuration directories for a
-    configuration file. Return as soon as a configuration file is found. Beware
-    that by the time client code attempts to open the file, it may be gone or
-    otherwise inaccessible.
-
-    :param xdg_config_dir: A string. The name of the directory that is suffixed
-        to the end of each of the ``XDG_CONFIG_DIRS`` paths.
-    :param xdg_config_file: A string. The name of the configuration file that
-        is being searched for.
-    :returns: A string. A path to a configuration file.
-    :raises integrade.exceptions.ConfigFileNotFoundError: If the requested
-        configuration file cannot be found.
-    """
-    path = BaseDirectory.load_first_config(xdg_config_dir, xdg_config_file)
-    if path and os.path.isfile(path):
-        return path
-    raise exceptions.ConfigFileNotFoundError(
-        'Integrade is unable to find an AWS configuration file. The following '
-        '(XDG compliant) paths have been searched: ' + ', '.join([
-            os.path.join(config_dir, xdg_config_dir, xdg_config_file)
-            for config_dir in BaseDirectory.xdg_config_dirs
-        ])
-    )

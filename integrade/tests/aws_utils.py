@@ -163,10 +163,12 @@ def create_instances(
     ``create_instances`` waits to return until the instances are all
     running.
 
-    The profile must be named and have its credentials stored in
-    $XDG_CONFIG_HOME/integrade/.
+    The profile must be named and have its credentials defined in environment
+    variables including the profile name, like:
+        - AWS_ACCESS_KEY_ID_DEV08CUSTOMER=****
+        - AWS_SECRET_ACCESS_KEY_DEV08CUSTOMER=****
     The images are associated with the profiles in
-    $XDG_CONFIG_HOME/integrade/aws_image_config.yaml in the following manner:
+    integrade/aws_image_config.yaml in the following manner:
 
     aws:
       profiles:
@@ -184,6 +186,9 @@ def create_instances(
               is_rhel: False
               image_id: ami-567890234
               other_key: other_value
+    
+    A default version can be found for copying from
+    aws_image_config_template.yaml in the repository.
     """
     cfg = config.get_aws_image_config()
     image_ids = []
