@@ -71,7 +71,10 @@ def get_config(create_superuser=True, need_base_url=True):
         _CONFIG['aws_profiles'] = profiles
 
         missing_config_errors = []
-        aws_image_config = get_aws_image_config()
+        try:
+            aws_image_config = get_aws_image_config()
+        except exceptions.ConfigFileNotFoundError:
+            aws_image_config = {}
 
         for i, profile in enumerate(_CONFIG['aws_profiles']):
             profile_name = profile['name'].upper()

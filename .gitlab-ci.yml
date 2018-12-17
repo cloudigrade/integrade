@@ -73,6 +73,7 @@ Test Integrade:
     - make install-dev
     - pip install codecov
   script:
+    - cp aws_image_config_template.yaml integrade/aws_image_config.yaml
     - make lint
     - make test-coverage
     - codecov

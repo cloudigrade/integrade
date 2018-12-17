@@ -118,5 +118,5 @@ def test_get_aws_image_config():
             isfile.return_value = True
             with mock.patch('builtins.open', mock.mock_open(
                     read_data=MOCK_AWS_CONFIG)):
-                config._AWS_CONFIG = None # reset cache to force reload
+                config._AWS_CONFIG = None  # reset cache to force reload
                 assert config.get_aws_image_config() == aws_image_config

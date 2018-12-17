@@ -186,7 +186,7 @@ def create_instances(
               is_rhel: False
               image_id: ami-567890234
               other_key: other_value
-    
+
     A default version can be found for copying from
     aws_image_config_template.yaml in the repository.
     """

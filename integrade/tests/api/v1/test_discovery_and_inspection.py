@@ -92,9 +92,9 @@ To add images here, the corresponding information must be present in the aws
 config file. See the README.md in the root integrade directory for more
 information."""
 
-always_test_images = (
-    'private-shared', 'RHEL-7.6_HVM_BETA-20180814-x86_64-0-Access2-GP2', 'inspected'
-)
+always_test_images = ('private-shared',
+                      'RHEL-7.6_HVM_BETA-20180814-x86_64-0-Access2-GP2',
+                      'inspected')
 IMAGES_TO_TEST = [always_test_images, random.choice(image_test_matrix)]
 POWER_ON_EVENT_TO_TEST = random.choice(power_on_events)
 POWER_OFF_EVENT_TO_TEST = random.choice(power_off_events)
@@ -160,7 +160,10 @@ def image_fixture(request, aws_profile):
         # Run an instance
         instance_id = aws_utils.run_instances_by_name(
             aws_profile_name, image_type, image_name, count=1)[0]
-        final_image_data = ImageData(image_type, image_name, source_image, instance_id)
+        final_image_data = ImageData(image_type,
+                                     image_name,
+                                     source_image,
+                                     instance_id)
         images.append(final_image_data)
 
         # Terminate the instance after the module completes
@@ -408,8 +411,10 @@ def test_find_running_instances(
         3) The images are eventually inspected.
     """
     image_type, image_name, expected_state = test_case
+    always = False
     if image_fixture[0].image_name == test_case[1]:
         image_fixture = image_fixture[0]
+        always = True
     else:
         image_fixture = image_fixture[1]
 
@@ -456,7 +461,10 @@ def test_find_running_instances(
     list_images = client.get(urls.IMAGE, auth=auth)
     found_images = [image['ec2_ami_id'] for image in list_images['results']]
     assert source_image_id in found_images
-    wait_for_inspection(source_image, expected_state, auth)
+    if always:
+        wait_for_inspection(source_image, expected_state, auth, timeout=200)
+    else:
+        wait_for_inspection(source_image, expected_state, auth)
 
 
 @pytest.mark.inspection
@@ -511,6 +519,7 @@ def test_on_off_events(
     # if it is running, go ahead and stop it so it does not provide
     # a "power_on" event on cloud account registration and circumvent
     # what we are trying to test.
+    image_fixture = image_fixture[1]
     if image_fixture.instance_id in running_instances:
         client.stop_instances(InstanceIds=[image_fixture.instance_id])
 
