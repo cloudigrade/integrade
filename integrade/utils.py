@@ -64,7 +64,8 @@ def get_time_lapsed_in_past_30_days(start, end):
     if end is None:
         utc_offset_hours -= (time.localtime().tm_gmtoff) / (60 * 60)
         hours = (start * 24) + utc_offset_hours + time.localtime().tm_hour
-        spare_min = time.localtime().tm_min
+        t = time.localtime()
+        spare_min = t.tm_min + (t.tm_sec / 60)
         return int(hours), int(spare_min)
     elif end > 30:
         end = 30

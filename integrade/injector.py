@@ -210,24 +210,27 @@ def inject_instance_data(
     )[0]
 
     on = False
+    on_off_when = []
     for event in events:
+        on = not on
         if isinstance(event, int):
             when = date.today() - timedelta(days=event)
         else:
             when = event
+        on_off_when.append(when)
         AwsInstanceEvent.objects.create(
-            event_type='power_on' if not on else 'power_off',
-            machineimage=image1,
+            event_type='power_on' if on else 'power_off',
+            machineimage=image1 if on else None,
             instance=instance1,
             instance_type=instance_type,
             occurred_at=when,
             created_at=when,
         )
-        on = not on
 
     return {
         'image_id': image1.id,
         'instance_id': instance1.id,
+        'on_off_when': on_off_when,
     }
     """, **locals())
 
