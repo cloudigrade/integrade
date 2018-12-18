@@ -171,6 +171,7 @@ UI Quick:
     UI_BROWSER: Chrome
     UI_USE_REMOTE: "true"
   script:
+    - cp aws_image_config_template.yaml integrade/aws_image_config.yaml
     - if [[ "${TEST_MODULES}" ]]; then echo "${TEST_MODULES}" | xargs py.test --junitxml="${REPORT_NAME}.xml" -vvv; else py.test --junitxml="${REPORT_NAME}.xml" -vvv $TEST_PATH -m smoketest; fi
   services:
     - name: selenium/standalone-chrome
