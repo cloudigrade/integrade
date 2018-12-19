@@ -95,7 +95,7 @@ information."""
 always_test_images = ('private-shared',
                       'RHEL-7.6_HVM_BETA-20180814-x86_64-0-Access2-GP2',
                       'inspected')
-IMAGES_TO_TEST = [always_test_images, random.choice(image_test_matrix)]
+IMAGES_TO_TEST = [random.choice(image_test_matrix)]  # always_test_images, 
 POWER_ON_EVENT_TO_TEST = random.choice(power_on_events)
 POWER_OFF_EVENT_TO_TEST = random.choice(power_off_events)
 BAD_EVENT_TO_TEST = random.choice(bad_events)
@@ -264,7 +264,7 @@ def wait_for_cloudigrade_instance(
 
 
 def wait_for_inspection(
-        source_image, expected_state, auth, timeout=1200, sleep_period=30):
+        source_image, expected_state, auth, timeout=2000, sleep_period=30):
     """Wait for image to be inspected and assert on findings.
 
     :param source_image: Dictionary with the following information about
