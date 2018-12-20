@@ -264,7 +264,7 @@ def wait_for_cloudigrade_instance(
 
 
 def wait_for_inspection(
-        source_image, expected_state, auth, timeout=2000, sleep_period=30):
+        source_image, expected_state, auth, timeout=1200, sleep_period=30):
     """Wait for image to be inspected and assert on findings.
 
     :param source_image: Dictionary with the following information about
