@@ -95,7 +95,7 @@ information."""
 always_test_images = ('private-shared',
                       'RHEL-7.6_HVM_BETA-20180814-x86_64-0-Access2-GP2',
                       'inspected')
-IMAGES_TO_TEST = [always_test_images, random.choice(image_test_matrix)]
+IMAGES_TO_TEST = [always_test_images]  # , random.choice(image_test_matrix)
 POWER_ON_EVENT_TO_TEST = random.choice(power_on_events)
 POWER_OFF_EVENT_TO_TEST = random.choice(power_off_events)
 BAD_EVENT_TO_TEST = random.choice(bad_events)
