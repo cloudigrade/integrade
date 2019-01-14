@@ -35,7 +35,14 @@ def test_elements_present_in_modal(cloud_account_data,
     time.sleep(0.25)
     find_element_by_text(browser_session, 'About').click()
 
-    assert find_element_by_text(selenium, 'Username')
-    assert find_element_by_text(selenium, 'Browser Version')
-    assert find_element_by_text(selenium, 'Browser OS')
-    assert find_element_by_text(selenium, 'API Version')
+    for item in ('Username',
+                 'Browser Version',
+                 'Browser OS',
+                 'API Version',
+                 'UI Version',
+                 ):
+        element = find_element_by_text(selenium, item)
+        assert element
+        # Check that returned info is string AND not empty
+        els = element.find_element_by_xpath('..').text.splitlines()
+        assert len(els[1]) > 0
