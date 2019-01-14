@@ -11,8 +11,8 @@
 import calendar
 import datetime
 import random
-import re
 import time
+from math import ceil
 
 from dateutil.relativedelta import relativedelta
 
@@ -324,118 +324,6 @@ DIM_MEMORY = ('gb', 'GB Memory Hours')
 DIM_VCPU = ('cpu', 'Core Hours')
 
 
-def test_graph_modes(drop_account_data, cloud_account_data,
-                     browser_session, ui_acct_list):
-    """Test the three "dimensions" of both RHEL and RHOCP usage.
-
-    :id: 753b6e47-501a-4cae-af20-a8eece9ef50d
-    :description: Usage of images is measured in instance hours, GB of memory
-        per hour, and vCPU core per hour. RHEL graphs default to Instance
-        Hours while RHOCP default to GB Memory Hours, both can be viewed for
-        either.
-    :steps:
-        1) Look at an account with both RHEL and RHOCP usage with instances of
-           different types
-        2) Check the default type of each graph and that the value displayed
-           matches
-        3) Change each of the graphs to their two non-default types,
-           confirming each
-    :expectedresults:
-        - RHEL and RHOCP graphs should display Instance Hours and GB Memory
-          Hours, respectively
-        - Each graph can be changed to one of the other dimensions without
-          affecting the other
-        - Navigation returns to the default for each graph
-        - GB Memory Hours displayed reflect the runtime of instances
-          multiplied by the number of GB of the instance type
-        - Core Hours displayed reflect the runtime of instances multiplied by
-          the number of cores of the instance type
-    """
-    cloud_account_data('rhel', [10], vcpu=2, memory=0.5)
-    cloud_account_data('rhel,openshift', [5], vcpu=2, memory=0.5)
-    cloud_account_data('openshift', [10], vcpu=4, memory=4)
-
-    hours1, min1, events = get_expected_hours_in_past_30_days([10, None])
-    hours2, min2, events = get_expected_hours_in_past_30_days([5, None])
-
-    # RHEL Hours for each "dimension"
-    # image1 for 10 days + image2 for 5 days
-    rhel_hours = {
-        'instance': round_hours(hours1 + hours2, min1 + min2),
-        'gb': round_hours((hours1 + hours2) / 2, (min1 + min2) / 2),
-        'cpu': round_hours(hours1*2 + hours2*2, min1*2 + min2*2),
-    }
-    # RHOCP, image2 for 5 days + image3 for 10 days
-    rhocp_hours = {
-        'instance': round_hours(hours1 + hours2, min1 + min2),
-        'gb': round_hours(hours1*4 + hours2/2, min1*4 + min2/2),
-        'cpu': round_hours(hours1*4 + hours2*2, min1*4 + min2*2),
-    }
-
-    browser_session.refresh()
-
-    # Find the graph card based on the product header
-    def graph_card(header):
-        el = find_element_by_text(
-            browser_session,
-            header,
-        )
-        el = el.find_element_by_xpath('..')
-        el = el.find_element_by_xpath('..')
-        return el
-
-    for tag in ('RHEL', 'RHOCP'):
-
-        # Establish expectations based on the current product
-        if tag == 'RHEL':
-            header = 'Red Hat Enterprise Linux'
-            hours = rhel_hours
-            dimensions = (
-                DIM_INSTANCE,
-                DIM_MEMORY,
-                DIM_VCPU,
-            )
-        else:
-            header = 'Red Hat OpenShift Container Platform'
-            hours = rhocp_hours
-            dimensions = (
-                DIM_VCPU,
-                DIM_INSTANCE,
-                DIM_MEMORY,
-            )
-
-        # Check the graphs on both the summary and detail pages
-        for level in ('summary', 'detail'):
-
-            # For detail pages, navigate to the image list for the account
-            # and return back afterwards
-            with return_url(browser_session):
-                if level == 'detail':
-                    find_element_by_text(
-                        browser_session, 'First Account', timeout=1).click()
-                    time.sleep(1)
-
-                # Starting with the default dimension for this product,
-                # walk through each via the dropdown menu on the appropriate
-                # graph card and verify the numbers we see based on the
-                # expected hours calculated above.
-                for i, (dim, dropdown) in enumerate(dimensions):
-                    if i > 0:
-                        find_element_by_text(graph_card(header), dropdown,
-                                             timeout=1).click()
-                        time.sleep(0.25)
-
-                    html = graph_card(header).get_attribute('outerHTML')
-                    html = re.sub('<svg .*/svg>', '<svg ... />', html)
-                    assert find_element_by_text(graph_card(header),
-                                                f'{hours[dim]}{tag}',
-                                                timeout=1), \
-                        f'"{hours[dim]}{tag}" not in card HTML: {html}'
-
-                    find_element_by_text(graph_card(header), dropdown,
-                                         timeout=1).click()
-
-
 def test_summary_cards(drop_account_data, cloud_account_data,
                        browser_session, ui_acct_list):
     """Ensure the summary cards provide the summary usage information.
@@ -670,3 +558,185 @@ def test_last_thirty_days(drop_account_data, cloud_account_data,
             assert element_has_text(summary_row[0], '1 Instances')
             assert element_has_text(summary_row[0], f'{runtime} RHEL')
             assert element_has_text(summary_row[0], f'{runtime} RHOCP')
+
+
+def test_graph_modes(drop_account_data, cloud_account_data,
+                     browser_session, ui_acct_list):
+    """Test the three "dimensions" of both RHEL and RHOCP usage.
+
+    :id: 753b6e47-501a-4cae-af20-a8eece9ef50d
+    :description: Usage of images is measured in instance hours, GB of memory
+        per hour, and vCPU core per hour. RHEL graphs default to Instance
+        Hours while RHOCP default to GB Memory Hours, both can be viewed for
+        either.
+    :steps:
+        1) Look at an account with both RHEL and RHOCP usage with instances of
+           different types
+        2) Check the default type of each graph and that the value displayed
+           matches
+        3) Change each of the graphs to their two non-default types,
+           confirming each
+    :expectedresults:
+        - RHEL and RHOCP graphs should display Instance Hours and GB Memory
+          Hours, respectively
+        - Each graph can be changed to one of the other dimensions without
+          affecting the other
+        - Navigation returns to the default for each graph
+        - GB Memory Hours displayed reflect the runtime of instances
+          multiplied by the number of GB of the instance type
+        - Core Hours displayed reflect the runtime of instances multiplied by
+          the number of cores of the instance type
+    """
+    #  Check account with running instances having no RHEL or RHOCP
+    cloud_account_data('', [10], vcpu=2, memory=0.5)
+    browser_session.refresh()
+    time.sleep(0.5)
+    css = '.cloudmeter-list-view-card'
+    acct_sum_row = browser_session.find_element_by_css_selector(css)
+    assert find_element_by_text(acct_sum_row, '0RHEL', exact=False)
+    assert find_element_by_text(acct_sum_row, '0RHOCP', exact=False)
+
+    find_element_by_text(browser_session, 'First Account', timeout=1).click()
+    time.sleep(1)
+
+    acct_det_row = browser_session.find_element_by_css_selector(
+            '.list-group-item-header')
+    assert find_element_by_text(acct_det_row, 'N/ARHOCP', exact=False)
+    assert find_element_by_text(acct_det_row, 'N/ARHEL', exact=False)
+
+    cloud_account_data('rhel', [10], vcpu=2, memory=0.5)
+    cloud_account_data('rhel,openshift', [5], vcpu=2, memory=0.5)
+    cloud_account_data('openshift', [10], vcpu=4, memory=4)
+
+    hours1, min1, events = get_expected_hours_in_past_30_days([10, None])
+    hours2, min2, events = get_expected_hours_in_past_30_days([5, None])
+
+    # RHEL Hours for each "dimension"
+    # image1 for 10 days + image2 for 5 days
+    rhel_hours = {
+        'instance': round_hours(hours1 + hours2, min1 + min2),
+        'gb': round_hours((hours1 + hours2) / 2, (min1 + min2) / 2),
+        'cpu': round_hours(hours1*2 + hours2*2, min1*2 + min2*2),
+    }
+    # RHOCP, image2 for 5 days + image3 for 10 days
+    rhocp_hours = {
+        'instance': round_hours(hours1 + hours2, min1 + min2),
+        'gb': round_hours(hours1*4 + hours2/2, min1*4 + min2/2),
+        'cpu': round_hours(hours1*4 + hours2*2, min1*4 + min2*2),
+    }
+
+    # RHEL hours for each "dimension", images separated
+    rhel_image1hours = {
+        'instance': round_hours(hours1, min1),
+        'gb': round_hours(ceil(hours1 / 2), ceil(min1 / 2)),
+        'cpu': round_hours(hours1*2, min1*2),
+    }
+    rhel_image2hours = {
+        'instance': round_hours(hours2, min2),
+        'gb': round_hours(ceil(hours2 / 2), ceil(min2 / 2)),
+        'cpu': round_hours(hours2*2, min2*2),
+    }
+    # RHOCP hours for each "dimension", images separated
+    rhocp_image1hours = {
+        'instance': round_hours(hours2, min2),
+        'gb': round_hours(ceil(hours2/2), ceil(min2/2)),
+        'cpu': round_hours(hours2*2, min2*2),
+    }
+    rhocp_image2hours = {
+        'instance': round_hours(hours1, min1),
+        'gb': round_hours(ceil(hours1 * 4), ceil(min1*4)),
+        'cpu': round_hours(hours1*4, min1*4),
+    }
+
+    browser_session.refresh()
+
+    # Find the graph card based on the product header
+    def graph_card(header):
+        el = find_element_by_text(
+            browser_session,
+            header,
+        )
+        el = el.find_element_by_xpath('..')
+        el = el.find_element_by_xpath('..')
+        return el
+
+    for tag in ('RHEL', 'RHOCP'):
+
+        # Establish expectations based on the current product
+        if tag == 'RHEL':
+            header = 'Red Hat Enterprise Linux'
+            hours = rhel_hours
+            dimensions = (
+                DIM_INSTANCE,
+                DIM_MEMORY,
+                DIM_VCPU,
+            )
+            tag = 'rhel'
+            image1hours = rhel_image1hours
+            image2hours = rhel_image2hours
+        else:
+            header = 'Red Hat OpenShift Container Platform'
+            hours = rhocp_hours
+            dimensions = (
+                DIM_VCPU,
+                DIM_INSTANCE,
+                DIM_MEMORY,
+            )
+            tag = 'rhocp'
+            image1hours = rhocp_image1hours
+            image2hours = rhocp_image2hours
+
+        # Check the graphs on both the summary and detail pages
+        for level in ('summary', 'detail'):
+            # For detail pages, navigate to the image list for the account
+            # and return back afterwards
+            with return_url(browser_session):
+                if level == 'detail':
+                    # Open account details if checking out details
+                    find_element_by_text(
+                        browser_session, 'First Account', timeout=1).click()
+                    time.sleep(1)
+
+                for i, (dim, dropdown) in enumerate(dimensions):
+                    # Starting with the default dimension for this product,
+                    # walk through each via the dropdown menu on the
+                    # appropriate graph card and verify the numbers we see
+                    # based on the expected hours calculated above.
+
+                    # if it's the first time through, no need to select the
+                    # the right dropdown. Otherwise, select dropdown.
+                    if i > 0:
+                        find_element_by_text(graph_card(header), dropdown,
+                                             timeout=1).click()
+                        time.sleep(1)
+                    # Ensure that the hours listed in the graph card are
+                    # correct. This is for either summary or detail view.
+                    stg = graph_card(header).get_attribute('innerText')
+                    gc_hours = [int(s) for s in stg.split() if s.isdigit()][0]
+                    # hours within range because of slight fluctuations that
+                    # come from timing issues during test.
+                    assert gc_hours - 1 <= hours[dim] <= gc_hours + 1
+                    find_element_by_text(graph_card(header), dropdown,
+                                         timeout=1).click()
+                    if level == 'detail':
+                        # Find and collect the hoours text that is reported
+                        # on the page.
+                        reported_hours = []
+                        dt = f'[data-test="{tag}"]'
+                        els = browser_session.find_elements_by_css_selector(dt)
+                        for el in els:
+                            item = el.get_attribute('innerText')
+                            if item == 'N/A':
+                                True
+                            else:
+                                reported_hours.append(int(item))
+                        hrs = reported_hours[0]
+                        hrs2 = reported_hours[1]
+                        ttl_hrs = sum(reported_hours)
+                        im1hrs = image1hours[dim]
+                        im2hrs = image2hours[dim]
+                        # hours within range because of slight fluctuations
+                        # that come from timing issues during test.
+                        assert (im1hrs - 1) <= hrs <= (im1hrs + 1)
+                        assert (im2hrs - 1) <= hrs2 <= (im2hrs + 1)
+                        assert (hours[dim] - 2) <= ttl_hrs <= (hours[dim] + 2)
