@@ -8,11 +8,17 @@
 :testtype: functional
 :upstream: yes
 """
+import random
 import time
-from random import randint
+from random import randint, shuffle
 
 import pytest
 
+from integrade.constants import (
+    CLOUD_ACCESS_AMI_NAME,
+    CLOUD_ACCOUNT_NAME,
+    MARKETPLACE_AMI_NAME,
+)
 from integrade.injector import (
     inject_aws_cloud_account,
     inject_instance_data,
@@ -22,9 +28,6 @@ from integrade.utils import (
     round_hours,
 )
 
-from .conftest import (
-    CLOUD_ACCOUNT_NAME,
-)
 from .utils import (
     elem_parent,
     find_element_by_text,
@@ -50,6 +53,35 @@ def product_id_tag_present(driver, tag):
         return results[0].is_displayed()
     else:
         return False
+
+
+def inject_reasons(browser, account, list_of_reasons):
+    """Inject the data based on the reason/reasons supplied."""
+    ec2_ami_id = str(random.randint(100000, 999999999999))
+    instance_id = str(randint(100000, 999999999999))
+    image_type = ''
+    if 'rhocp_detail_detected' in list_of_reasons:
+        list_of_reasons.remove('rhocp_detail_detected')
+        image_type = 'openshift'
+    if 'is_cloud_access' in list_of_reasons:
+        image_type = 'openshift'
+        text = CLOUD_ACCESS_AMI_NAME
+    elif 'is_marketplace' in list_of_reasons:
+        text = MARKETPLACE_AMI_NAME
+    else:
+        text = ec2_ami_id
+    rhel_reasons = {reason: True for reason in list_of_reasons}
+    inject_instance_data(
+        account['id'],
+        image_type,
+        [5, 1],
+        ec2_ami_id=ec2_ami_id,
+        instance_id=instance_id,
+        **rhel_reasons
+    )
+    browser.refresh()
+    find_element_by_text(browser, 'Hank', timeout=10).click()
+    find_element_by_text(browser, text, timeout=10).click()
 
 
 def test_empty(cloud_account_data, browser_session, ui_acct_list):
@@ -513,3 +545,96 @@ def test_multiple_accounts(
         label = f'{hours}RHEL'
         assert find_element_by_text(ctn, label, exact=False),\
             f'"{hours} RHEL" expected; instead, saw "{hours_txt}"'
+
+
+def test_reasons(cloud_account_data, browser_session,
+                 ui_acct_list, drop_account_data, ui_user):
+    """Test that when RHEL/RHOCP is detected, reasons for detection display.
+
+    :id: c00be604-7428-4320-b9c7-e51bdb9e194d
+    :description: When RHEL/RHOCP are detected, one or more reasons are
+        returned with the inspection_json. The reasons should be visible
+        in the account details. No reason should display if neither is
+        detected. No negative reasons ever display.
+    :steps:
+        1) Given a user with an account, mock images with RHEL detected with
+        each of the following 'reasons' and combinations thereof
+        (1, 2, 3, and all 4 of the reasons):
+            * rhel_enabled_repos_found
+            * rhel_product_certs_found
+            * rhel_release_files_found
+            * rhel_signed_packages_found
+        2) Given a user with an account, mock images with RHOCP detected with
+        the following 'reason':
+            * openshift_detected
+    :expectedresults:
+        When either is detected, a reason or reasons will display.
+        When nothing is detected for either, no reasons will display.
+    """
+    selenium = browser_session
+    account = inject_aws_cloud_account(ui_user['id'], name='Hank')
+    repos = 'rhel_enabled_repos_found'
+    certs = 'rhel_product_certs_found'
+    files = 'rhel_release_files_found'
+    pkges = 'rhel_signed_packages_found'
+    certificate = 'product certificate is detected in /etc/pki/product'
+    repositories = 'Active RHEL repositories are detected'
+    packages = 'repositories are signed by the Red Hat GPG key'
+    rhel_files = 'information is found in one or more /etc/*-release files'
+
+    # Check for Cloud Access reason
+    is_cloud_access = 'is_cloud_access'
+    inject_reasons(selenium, account, [is_cloud_access])
+    container_text = 'Red Hat Enterprise Linux is detected'
+    ctn = find_element_by_text(selenium, container_text, timeout=10)
+    el = ctn.find_element_by_xpath('..')
+    cloud_access_reason = 'Cloud Access enabled subscriptions are found'
+    assert find_element_by_text(el, cloud_access_reason, exact=False)
+
+    #  Check for Marketplace reason
+    is_marketplace = 'is_marketplace'
+    inject_reasons(selenium, account, [is_marketplace])
+    container_text = 'Red Hat Enterprise Linux is not detected'
+    ctn = find_element_by_text(selenium, container_text, timeout=10)
+    el = ctn.find_element_by_xpath('..')
+    marketplace_reason = 'products that are billed through AWS Marketplace'
+    assert find_element_by_text(el, marketplace_reason, exact=False)
+
+    # Check for Openshift reason
+    rhocp_reason = 'rhocp_detail_detected'
+    inject_reasons(selenium, account, [rhocp_reason])
+    container_text = 'Red Hat OpenShift Container Platform is detected'
+    ctn = find_element_by_text(selenium, container_text, timeout=10)
+    el = ctn.find_element_by_xpath('..')
+    openshift_reason = 'cloudigrade-ocp-present custom tag is found'
+    assert find_element_by_text(el, openshift_reason, exact=False)
+
+    # Check for RHEL reasons
+    reasons = [repos, certs, files, pkges]
+    shuffle(reasons)  # randomized to reduce number of tests
+    reasons_to_inject = []
+    counter = 4
+    for num in range(1, counter + 1):
+        reasons_to_inject = reasons[:num]
+        inject_reasons(selenium, account, reasons_to_inject)
+        ctn = find_element_by_text(
+                selenium,
+                'Red Hat Enterprise Linux is detected',
+                exact=False
+                )
+        if certs in reasons_to_inject:
+            el = ctn.find_element_by_xpath('..')
+            assert find_element_by_text(el, certificate, exact=False)
+        if repos in reasons_to_inject:
+            el = ctn.find_element_by_xpath('..')
+            assert find_element_by_text(el, repositories, exact=False)
+        if packages in reasons_to_inject:
+            el = ctn.find_element_by_xpath('..')
+            assert find_element_by_text(el, packages, exact=False)
+        if files in reasons_to_inject:
+            el = ctn.find_element_by_xpath('..')
+            assert find_element_by_text(el, rhel_files, exact=False)
+        # Check that no other reasons appear
+        list_ctn = ctn.find_elements_by_xpath(
+                        "//*[@class='cloudmeter-list']/li")
+        assert len(list_ctn) == num

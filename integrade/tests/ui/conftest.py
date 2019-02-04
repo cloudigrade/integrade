@@ -13,6 +13,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from widgetastic.browser import Browser
 
 from integrade.config import get_config
+from integrade.constants import CLOUD_ACCOUNT_NAME
 from integrade.injector import inject_aws_cloud_account, inject_instance_data
 from integrade.tests.utils import create_user_account, get_auth
 from integrade.utils import base_url
@@ -28,7 +29,6 @@ from ...utils import gen_password, uuid4
 
 logger = logging.getLogger(__name__)
 USER = None
-CLOUD_ACCOUNT_NAME = 'First Account'
 
 
 DRIVERS = {}

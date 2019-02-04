@@ -6,6 +6,10 @@ from shutil import which
 from textwrap import dedent, indent
 
 from integrade import config
+from integrade.constants import (
+    CLOUD_ACCESS_AMI_NAME,
+    MARKETPLACE_AMI_NAME,
+)
 
 
 def run_remote_python(script, **kwargs):
@@ -148,6 +152,12 @@ def inject_instance_data(
     challenged=False,
     vcpu=1,
     memory=1,
+    rhel_enabled_repos_found=False,
+    rhel_product_certs_found=False,
+    rhel_release_files_found=False,
+    rhel_signed_packages_found=False,
+    is_marketplace=False,
+    is_cloud_access=False,
 ):
     """Inject instance and image data for tests.
 
@@ -161,10 +171,21 @@ def inject_instance_data(
     was powered on 10 days ago, powered off 5 days ago, then powered on and
     left on 3 days ago.
     """
+    ami_name = ''
+    owner_id = 841258680906
     if instance_id is None:
         instance_id = str(randint(100000, 999999999999))
     if ec2_ami_id is None:
         ec2_ami_id = str(randint(100000, 999999999999))
+    if is_marketplace:
+        owner_aws_account_id = owner_id
+        ami_name = MARKETPLACE_AMI_NAME
+    if is_cloud_access:
+        owner_aws_account_id = owner_id
+        ami_name = CLOUD_ACCESS_AMI_NAME
+    if is_marketplace and is_cloud_access:
+        raise ValueError('Both is_marketplace and is_cloud_access are True.'
+                         'Only zero or one can be True at a time.')
     return run_remote_python("""
     from datetime import date, timedelta
     import json
@@ -184,14 +205,20 @@ def inject_instance_data(
 
     acct = Account.objects.get_or_create(id=acct_id)[0]
     rhel_detected = True if 'rhel' in image_type else False
+    rhel_detected = rhel_detected or rhel_release_files_found
     image1 = AwsMachineImage.objects.get_or_create(
         ec2_ami_id=ec2_ami_id,
 
         defaults=dict(
             owner_aws_account_id=owner_aws_account_id or acct.aws_account_id,
+            name=ami_name,
             status=AwsMachineImage.INSPECTED,
-            inspection_json=json.dumps(
-                {"rhel_release_files_found": rhel_detected}),
+            inspection_json=json.dumps({
+                'rhel_release_files_found': rhel_detected,
+                'rhel_enabled_repos_found': rhel_enabled_repos_found,
+                'rhel_product_certs_found': rhel_product_certs_found,
+                'rhel_signed_packages_found': rhel_signed_packages_found,
+            }),
             openshift_detected=True if 'openshift' in image_type else False,
 
             rhel_challenged=(challenged and 'rhel' in image_type),
@@ -231,6 +258,10 @@ def inject_instance_data(
         'image_id': image1.id,
         'instance_id': instance1.id,
         'on_off_when': on_off_when,
+        'rhel_enabled_repos_found': rhel_enabled_repos_found,
+        'rhel_product_certs_found': rhel_product_certs_found,
+        'rhel_release_files_found': rhel_release_files_found,
+        'rhel_signed_packages_found': rhel_signed_packages_found,
     }
     """, **locals())
 
