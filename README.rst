@@ -167,10 +167,10 @@ for the celery beat pod.
 
 Additionally, there is an **OPTIONAL** config file you can install in your
 ``integrade/aws_image_config.yaml``. An example file is
-provided in the base directory at ``aws_image_config_templat.yaml``.
+provided in the base directory at ``aws_image_config_template.yaml``.
 
 This yaml file contains dictionaries mapping the ``${PROFILE_NAME}`` of each
-AWS account to images that whos attributes are described in a dictionary. See
+AWS account to images the attributes of which are described in a dictionary. See
 the example file for more details.
 
 For example if one AWS account environment varibles are configured with the
@@ -178,26 +178,40 @@ For example if one AWS account environment varibles are configured with the
 name is in ``integrade/aws_image_config.yaml``, then the config object will
 contain the following information::
 
-    {'api_version': 'v1',
-     'base_url': 'test.cloudigra.de',
-     'aws_profiles': [{'arn': 'arn:aws:iam::439727791560:role/CloudigradeRoleForTestEnv',
-       'name': 'CUSTOMER1',
-       'account_number': '439727791560',
-       'cloudtrail_name': 'cloudigrade-439727791560',
-       'access_key_id': 'SECRET',
-       'access_key': 'ALSOSECRET',
-       'images': {'rhel1': {'is_rhel': True,
-         'image_id': 'ami-09c521cbc20a78b49',
-         'is_shared': False},
-        'rhel2': {'is_rhel': True,
-         'image_id': 'ami-0d2e46db3ba19f204',
-         'is_shared': False},
-        'centos1': {'is_rhel': False,
-         'image_id': 'ami-0bf18d6709ff12ee8',
-         'is_shared': False}}}],
-     'superuser_token': 'ANOTHERSECRET',
-     'scheme': 'http',
-     'ssl-verify': False}
+    {
+        'api_version': 'v1',
+        'base_url': 'test.cloudigra.de',
+        'aws_profiles': [
+            {
+                'arn': 'arn:aws:iam::439727791560:role/CloudigradeRoleForTestEnv',
+                'name': 'CUSTOMER1',
+                'account_number': '439727791560',
+                'cloudtrail_name': 'cloudigrade-439727791560',
+                'access_key_id': 'SECRET',
+                'access_key': 'ALSOSECRET',
+                'images': {
+                    'rhel1': {
+                        'is_rhel': True,
+                        'image_id': 'ami-09c521cbc20a78b49',
+                        'is_shared': False
+                    },
+                    'rhel2': {
+                        'is_rhel': True,
+                        'image_id': 'ami-0d2e46db3ba19f204',
+                        'is_shared': False
+                    },
+                    'centos1': {
+                        'is_rhel': False,
+                        'image_id': 'ami-0bf18d6709ff12ee8',
+                        'is_shared': False
+                    }
+                }
+            }
+        ],
+        'superuser_token': 'ANOTHERSECRET',
+        'scheme': 'http',
+        'ssl-verify': False
+    }
 
 
 Running Integrade

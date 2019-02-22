@@ -14,6 +14,7 @@ import operator
 import os
 import random
 import sys
+import time
 from collections import namedtuple
 from copy import deepcopy
 from datetime import datetime, timezone
@@ -28,6 +29,10 @@ import click
 import pytest
 
 from integrade import api, config, exceptions
+from integrade.constants import (
+    CLOUD_ACCESS_AMI_NAME,
+    MARKETPLACE_AMI_NAME,
+)
 from integrade.exceptions import MissingConfigurationError
 from integrade.tests import aws_utils, urls
 from integrade.tests.aws_utils import aws_image_config_needed
@@ -92,10 +97,18 @@ To add images here, the corresponding information must be present in the aws
 config file. See the README.md in the root integrade directory for more
 information."""
 
-always_test_images = ('private-shared',
-                      'RHEL-7.6_HVM_BETA-20180814-x86_64-0-Access2-GP2',
-                      'inspected')
-IMAGES_TO_TEST = [always_test_images]  # , random.choice(image_test_matrix)
+bypass_inspection_matrix = [
+    ('private-shared', CLOUD_ACCESS_AMI_NAME, 'inspected'),
+    ('private-shared', MARKETPLACE_AMI_NAME, 'inspected'),
+]
+"""List of images that should automatically bypass inspection process due to
+the fact that they have either 'Access2' or 'hourly2' in their name and belong
+to a specific account."""
+
+IMAGES_TO_TEST = [
+    random.choice(bypass_inspection_matrix),
+    random.choice(image_test_matrix),
+]
 POWER_ON_EVENT_TO_TEST = random.choice(power_on_events)
 POWER_OFF_EVENT_TO_TEST = random.choice(power_off_events)
 BAD_EVENT_TO_TEST = random.choice(bad_events)
@@ -144,7 +157,7 @@ def aws_profile(request):
     scope='module'
 )
 def image_fixture(request, aws_profile):
-    """Power on an instance for use in module and terminate it after tests."""
+    """Power on instances for each image and terminate after tests."""
     images = []
     for image_to_test in request.param:
         aws_profile_name = aws_profile['name']
@@ -160,14 +173,16 @@ def image_fixture(request, aws_profile):
         # Run an instance
         instance_id = aws_utils.run_instances_by_name(
             aws_profile_name, image_type, image_name, count=1)[0]
+
+        def terminate_instance():
+            aws_utils.terminate_instance((aws_profile_name, instance_id))
+        request.addfinalizer(terminate_instance)
+
         final_image_data = ImageData(image_type,
                                      image_name,
                                      source_image,
                                      instance_id)
         images.append(final_image_data)
-
-        # Terminate the instance after the module completes
-        aws_utils.terminate_instance((aws_profile_name, instance_id))
 
     yield images
 
@@ -243,6 +258,7 @@ def wait_for_cloudigrade_instance(
     """
     # Wait, keeping track of what images are inspected
     client = api.Client(authenticate=False, response_handler=api.json_handler)
+    start = time.time()
     timepassed = 0
     sys.stdout.write('\n')
     with click.progressbar(
@@ -257,14 +273,15 @@ def wait_for_cloudigrade_instance(
             if instance_id in found_instances:
                 return found_instances
             sleep(sleep_period)
-            timepassed += sleep_period
-            bar.update(timeout / timepassed)
+            now = time.time()
+            timepassed = now - start
+            bar.update(timepassed)
             if timepassed >= timeout:
                 return found_instances
 
 
 def wait_for_inspection(
-        source_image, expected_state, auth, timeout=1200, sleep_period=30):
+        source_image, expected_state, auth, timeout=3600, sleep_period=30):
     """Wait for image to be inspected and assert on findings.
 
     :param source_image: Dictionary with the following information about
@@ -284,6 +301,7 @@ def wait_for_inspection(
     # Wait, keeping track of what images are inspected
     client = api.Client(authenticate=False, response_handler=api.json_handler)
     source_image_id = source_image['image_id']
+    start = time.time()
     timepassed = 0
     sys.stdout.write('\n')
     status = 'ABSENT'
@@ -306,8 +324,10 @@ def wait_for_inspection(
                 break
             if status in ['pending', 'preparing', 'inspecting', 'ABSENT']:
                 sleep(sleep_period)
-                timepassed += sleep_period
-                bar.update(timeout / timepassed)
+                now = time.time()
+                timepassed = now - start
+                bar.update(timepassed)
+
             if status == expected_state:
                 break
             if timepassed >= timeout:
@@ -324,14 +344,27 @@ def wait_for_inspection(
         'rhel_release_files_found',
         'rhel_signed_packages_found'
     ]
-    for key in fact_keys:
-        server_result = server_info[key]
-        known_fact = source_image.get(key)
-        if known_fact:
-            assert server_result == known_fact, \
-                f'Server result for {key} was {server_result}. This does\n' \
-                f'not match expected result {known_fact} for image id\n' \
-                f'{source_image["image_id"]} named {source_image["name"]}\n'
+    bypass_inspection_names = [
+        'Access2',
+        'access2',
+        'Hourly2',
+        'hourly2',
+    ]
+    bypass = False
+    for name in bypass_inspection_names:
+        if name in server_info['name']:
+            assert server_info['status'] == 'inspected'
+            bypass = True
+    if not bypass:
+        for key in fact_keys:
+            server_result = server_info[key]
+            known_fact = source_image.get(key)
+            if known_fact:
+                assert server_result == known_fact, \
+                    f'Server result for {key} was {server_result}. This\n' \
+                    f' does not match expected result {known_fact} for\n' \
+                    f'image id {source_image["image_id"]} named\n' \
+                    f'{source_image["name"]}'
 
 
 def wait_for_instance_event(
@@ -411,12 +444,12 @@ def test_find_running_instances(
         3) The images are eventually inspected.
     """
     image_type, image_name, expected_state = test_case
-    always = False
+    bypass_inspection = False
     if image_fixture[0].image_name == test_case[1]:
         image_fixture = image_fixture[0]
-        always = True
+        bypass_inspection = True
     else:
-        image_fixture = image_fixture[1]
+        image_fixture = image_fixture[-1]
 
     source_image = image_fixture.source_image
     source_image_id = source_image['image_id']
@@ -461,7 +494,7 @@ def test_find_running_instances(
     list_images = client.get(urls.IMAGE, auth=auth)
     found_images = [image['ec2_ami_id'] for image in list_images['results']]
     assert source_image_id in found_images
-    if always:
+    if bypass_inspection:
         wait_for_inspection(source_image, expected_state, auth, timeout=200)
     else:
         wait_for_inspection(source_image, expected_state, auth)

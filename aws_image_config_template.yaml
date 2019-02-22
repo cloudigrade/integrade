@@ -24,7 +24,10 @@
       image_id: 'ami-09ae22a8a98cc4f9d'
       rhel: True
       openshift: False
-
+    - name: 'RHEL-7.6_HVM_GA-20181017-x86_64-0-Hourly2-GP2' # If this breaks, check that the image still exists aws.amazon.com/console
+      image_id: 'ami-011b3ccf1bd6db744'
+      rhel: True
+      openshift: False
 
 .marketplace: &marketplace
   marketplace:
@@ -32,12 +35,12 @@
       image_id: 'ami-a8d369c0' # rhel 7
       rhel: False # we don't want to bill for it
       openshift: False
-    - name: 'ubuntu' # ubuntu 16.04
-      image_id: 'ami-077b0e78'
+    - name: 'ubuntu' # ubuntu 16.04 # TODO
+      image_id: 'ami-05fb04e2687120d6b'
       rhel: False
       openshift: False
-    - name: 'windows'
-      image_id: 'ami-9e4d0ce1' # windows server image
+    - name: 'windows' # Microsoft Windows Server 2019 Base
+      image_id: 'ami-0410d3d3bd6d555f4' # windows server image
       rhel: False
       openshift: False
       is_windows: True
@@ -46,8 +49,8 @@
   community:
     - name: 'ubuntu'
       image_id: 'ami-759bc50a'
-    - name: 'windows' # windows server 2016
-      image_id: 'ami-0327667c'
+    - name: 'windows' # windows server 2016 
+      image_id: 'ami-0aeaed2faa756912c'
     - name: 'opensuse'
       image_id: 'ami-2b170941'
     - name: 'fedora' # fedora 28
@@ -99,6 +102,11 @@ profiles:
             image_id: 'ami-09ae22a8a98cc4f9d'
             rhel: True
             openshift: False
+          - name: 'RHEL-7.6_HVM_GA-20181017-x86_64-0-Hourly2-GP2' # If this breaks, check that the image still exists aws.amazon.com/console
+            image_id: 'ami-011b3ccf1bd6db744'
+            rhel: True
+            openshift: False
+          
 
 
         <<: *private_shared
