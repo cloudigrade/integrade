@@ -30,6 +30,7 @@ stages:
     - oc login ${OPENSHIFT_URL} --token ${GITLAB_CI_SA_TOKEN}
     - oc project ${OPENSHIFT_PROJECT}
     - export USE_HTTPS=true
+    - cp aws_image_config_template.yaml integrade/aws_image_config.yaml
 
 .quick_before_script: &quick_before_script
   before_script:
@@ -41,6 +42,7 @@ stages:
     - oc login ${OPENSHIFT_URL} --token ${GITLAB_CI_SA_TOKEN}
     - oc project ${OPENSHIFT_PROJECT}
     - export USE_HTTPS=true
+    - cp aws_image_config_template.yaml integrade/aws_image_config.yaml
 
 .api_all: &api_all
   script:
@@ -152,7 +154,6 @@ API Quick:
     TEST_PATH: integrade/tests/api/v1/
     REPORT_NAME: api_quick
   script:
-    - cp aws_image_config_template.yaml integrade/aws_image_config.yaml
     - if [[ "${TEST_MODULES}" ]]; then echo "${TEST_MODULES}" | xargs py.test --junitxml="${REPORT_NAME}.xml" -vvv; else py.test --junitxml="${REPORT_NAME}.xml" -vvv $TEST_PATH -m smoketest; fi
 
 UI Quick:
@@ -171,7 +172,6 @@ UI Quick:
     UI_BROWSER: Chrome
     UI_USE_REMOTE: "true"
   script:
-    - cp aws_image_config_template.yaml integrade/aws_image_config.yaml
     - if [[ "${TEST_MODULES}" ]]; then echo "${TEST_MODULES}" | xargs py.test --junitxml="${REPORT_NAME}.xml" -vvv; else py.test --junitxml="${REPORT_NAME}.xml" -vvv $TEST_PATH -m smoketest; fi
   services:
     - name: selenium/standalone-chrome
@@ -364,7 +364,6 @@ Test Cleanup:
     CLOUDIGRADE_BASE_URL: master-integrade.5a9f.insights-dev.openshiftapps.com
     OPENSHIFT_PREFIX: c-master-integrade-
   script:
-    - cp aws_image_config_template.yaml integrade/aws_image_config.yaml
     - python scripts/aws_reaper.py --env-cloudtrail-only
   when: always
 
