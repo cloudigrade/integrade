@@ -46,7 +46,7 @@ stages:
 
 .api_all: &api_all
   script:
-    - py.test --junitxml="${REPORT_NAME}.xml" -vvv --force-flaky -m 'not inspection' integrade/tests/api
+    - py.test -s --junitxml="${REPORT_NAME}.xml" -vvv --force-flaky -m 'not inspection' integrade/tests/api
 
 .inspect: &inspect
   script:
