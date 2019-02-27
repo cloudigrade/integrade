@@ -229,7 +229,7 @@ def inject_instance_data(
     )[0]
     instance1 = AwsInstance.objects.get_or_create(
         ec2_instance_id=instance_id,
-
+        machineimage=image1,
         defaults=dict(
             account=acct,
             region='us-east1',
