@@ -635,7 +635,11 @@ def test_on_off_events(
         power_off_event
     )
 
-
+# @pytest.mark.parametrize('test_case', IMAGES_TO_TEST,
+#                          ids=[
+#                              '{}-{}'.format(item[0], item[1])
+#                              for item in IMAGES_TO_TEST],
+#                          )
 @pytest.mark.inspection
 @aws_image_config_needed
 @pytest.mark.serial_only
@@ -706,4 +710,4 @@ def test_broken_image(
     list_images = client.get(urls.IMAGE, auth=auth)
     found_images = [image['ec2_ami_id'] for image in list_images['results']]
     assert source_image_id in found_images
-    wait_for_inspection(source_image, expected_state, auth)
+    wait_for_inspection(source_image, expected_state, auth, timeout=2400)
