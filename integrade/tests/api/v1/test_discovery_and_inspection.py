@@ -105,9 +105,12 @@ bypass_inspection_matrix = [
 the fact that they have either 'Access2' or 'hourly2' in their name and belong
 to a specific account."""
 
+broken_image = ('private-shared', 'broken centos', 'inspected')
+
 IMAGES_TO_TEST = [
     random.choice(bypass_inspection_matrix),
     random.choice(image_test_matrix),
+    broken_image,
 ]
 POWER_ON_EVENT_TO_TEST = random.choice(power_on_events)
 POWER_OFF_EVENT_TO_TEST = random.choice(power_off_events)
@@ -449,7 +452,7 @@ def test_find_running_instances(
         image_fixture = image_fixture[0]
         bypass_inspection = True
     else:
-        image_fixture = image_fixture[-1]
+        image_fixture = image_fixture[1]
 
     source_image = image_fixture.source_image
     source_image_id = source_image['image_id']
@@ -621,3 +624,81 @@ def test_on_off_events(
         aws_profile_name,
         power_off_event
     )
+
+# @pytest.mark.parametrize('test_case', IMAGES_TO_TEST,
+#                          ids=[
+#                              '{}-{}'.format(item[0], item[1])
+#                              for item in IMAGES_TO_TEST],
+#                          )
+@pytest.mark.inspection
+@aws_image_config_needed
+@pytest.mark.serial_only
+def test_broken_image(
+        aws_profile,
+        cloudtrails_to_delete,
+        image_fixture,
+):
+    """Ensure instances are discovered on account creation.
+
+    :id: 723A10AB-A729-41DE-93B2-966DCC6AD71D
+    :description: Ensure Houndigrade handles broken inspection gracefully.
+    :steps: 1) Create a user and authenticate with their password
+        2) Create instances based off of a broken image
+        3) Send a POST with the cloud account information to 'api/v1/account/'
+        4) Send a GET to 'api/v1/instance/' and expect to get the instances we
+            created
+        5) Send a GET to 'api/v1/image/' and expect to get the image that
+            the instances were based off of.
+        6) Keep checking to see that the images progress from "pending",
+            "preparing", "inspecting", to "inspected"
+    :expectedresults:
+        1) The server returns a 201 response with the information
+            of the created account.
+        2) We get 200 responses for our GET requests and information about
+            the images includes inspection state information.
+        3) The images are eventually inspected.
+    """
+    image_type, image_name, expected_state = broken_image
+    # if image_fixture[2].image_name == 'broken centos':
+    image_fixture = image_fixture[2]
+    source_image = image_fixture.source_image
+    source_image_id = source_image['image_id']
+    instance_id = image_fixture.instance_id
+    drop_account_data()
+
+    auth = get_auth()
+    client = api.Client(authenticate=False, response_handler=api.json_handler)
+    aws_profile_name = aws_profile['name']
+    aws_utils.delete_cloudtrail(
+        (aws_profile_name, aws_profile['cloudtrail_name']))
+    aws_utils.clean_cloudigrade_queues()
+
+    # Create cloud account on cloudigrade
+    cloud_account = {
+        'name': aws_profile['name'],
+        'account_arn': aws_profile['arn'],
+        'resourcetype': AWS_ACCOUNT_TYPE
+    }
+    client.post(
+        urls.CLOUD_ACCOUNT,
+        payload=cloud_account,
+        auth=auth
+    )
+
+    # Cleanup cloudtrail after test so events
+    # don't keep coming into the cloudigrade s3 bucket
+    cloudtrails_to_delete.append(
+        (aws_profile['name'], aws_profile['cloudtrail_name'])
+    )
+
+    # Look for instances that should have been discovered
+    # upon account creation.
+    found_instances = wait_for_cloudigrade_instance(instance_id, auth)
+    assert instance_id in found_instances
+
+    # Look for images that should have been discovered
+    # upon account creation.
+    list_images = client.get(urls.IMAGE, auth=auth)
+    found_images = [image['ec2_ami_id'] for image in list_images['results']]
+    assert source_image_id in found_images
+    wait_for_inspection(source_image, expected_state, auth, timeout=2400)
