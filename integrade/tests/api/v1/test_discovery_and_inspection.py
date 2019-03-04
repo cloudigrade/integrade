@@ -635,11 +635,7 @@ def test_on_off_events(
         power_off_event
     )
 
-# @pytest.mark.parametrize('test_case', IMAGES_TO_TEST,
-#                          ids=[
-#                              '{}-{}'.format(item[0], item[1])
-#                              for item in IMAGES_TO_TEST],
-#                          )
+
 @pytest.mark.inspection
 @aws_image_config_needed
 @pytest.mark.serial_only
