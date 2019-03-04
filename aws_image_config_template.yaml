@@ -28,6 +28,10 @@
       image_id: 'ami-011b3ccf1bd6db744'
       rhel: True
       openshift: False
+    - name: 'CentOS 7.4 minimal for cloudigrade'
+      image_id: 'ami-0b85178a681e2db64'
+      rhel: False
+      openshift: False
 
 .marketplace: &marketplace
   marketplace:
@@ -105,6 +109,10 @@ profiles:
           - name: 'RHEL-7.6_HVM_GA-20181017-x86_64-0-Hourly2-GP2' # If this breaks, check that the image still exists aws.amazon.com/console
             image_id: 'ami-011b3ccf1bd6db744'
             rhel: True
+            openshift: False
+          - name: 'CentOS 7.4 minimal for cloudigrade'
+            image_id: 'ami-0b85178a681e2db64'
+            rhel: False
             openshift: False
           
 

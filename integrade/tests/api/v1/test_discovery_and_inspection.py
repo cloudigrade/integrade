@@ -105,7 +105,10 @@ bypass_inspection_matrix = [
 the fact that they have either 'Access2' or 'hourly2' in their name and belong
 to a specific account."""
 
-broken_image = ('private-shared', 'broken centos', 'inspected')
+broken_image = ('private-shared',
+                'CentOS 7.4 minimal for cloudigrade',
+                'inspected')
+"""Intentionally broken image to test how it is handled."""
 
 IMAGES_TO_TEST = [
     random.choice(bypass_inspection_matrix),
@@ -368,6 +371,9 @@ def wait_for_inspection(
                     f' does not match expected result {known_fact} for\n' \
                     f'image id {source_image["image_id"]} named\n' \
                     f'{source_image["name"]}'
+            # For broken image, while it is inspected, it shouldn't be RHEL
+            if source_image['name'] == 'CentOS 7.4 minimal for cloudigrade':
+                assert server_info['rhel_detected'] is False
 
 
 def wait_for_instance_event(
@@ -625,11 +631,7 @@ def test_on_off_events(
         power_off_event
     )
 
-# @pytest.mark.parametrize('test_case', IMAGES_TO_TEST,
-#                          ids=[
-#                              '{}-{}'.format(item[0], item[1])
-#                              for item in IMAGES_TO_TEST],
-#                          )
+
 @pytest.mark.inspection
 @aws_image_config_needed
 @pytest.mark.serial_only
@@ -659,7 +661,6 @@ def test_broken_image(
         3) The images are eventually inspected.
     """
     image_type, image_name, expected_state = broken_image
-    # if image_fixture[2].image_name == 'broken centos':
     image_fixture = image_fixture[2]
     source_image = image_fixture.source_image
     source_image_id = source_image['image_id']
