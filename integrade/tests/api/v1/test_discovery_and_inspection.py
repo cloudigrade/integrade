@@ -165,6 +165,7 @@ def aws_profile(request):
 def image_fixture(request, aws_profile):
     """Power on instances for each image and terminate after tests."""
     images = []
+    terminate_instances = []
     for image_to_test in request.param:
         aws_profile_name = aws_profile['name']
         # Create some instances to detect on creation, random choice from every
@@ -180,10 +181,7 @@ def image_fixture(request, aws_profile):
         instance_id = aws_utils.run_instances_by_name(
             aws_profile_name, image_type, image_name, count=1)[0]
 
-        def terminate_instance():
-            aws_utils.terminate_instance((aws_profile_name, instance_id))
-        request.addfinalizer(terminate_instance)
-
+        terminate_instances.append((aws_profile_name, instance_id))
         final_image_data = ImageData(image_type,
                                      image_name,
                                      source_image,
@@ -191,6 +189,10 @@ def image_fixture(request, aws_profile):
         images.append(final_image_data)
 
     yield images
+
+    # Teardown
+    for instance in terminate_instances:
+        aws_utils.terminate_instance(instance)
 
 
 def get_s3_bucket_name():
