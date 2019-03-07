@@ -3,13 +3,15 @@ image: registry.gitlab.com/cloudigrade/images/test-container
 stages:
   - Test Integrade
   - Deploy Master
-  - Test Cloudigrade Inspection
   - Test Cloudigrade API
+  - Test Cloudigrade Inspection
   - Test Cloudigrade UI
   - Teardown Cloudigrade
   - Cleanup
 
-## SHARED DEFINITIONS ##
+#####################################################################
+# Shared definitions.
+
 .archive_results: &archive_results
   artifacts:
     when: always
@@ -32,18 +34,6 @@ stages:
     - export USE_HTTPS=true
     - cp aws_image_config_template.yaml integrade/aws_image_config.yaml
 
-.quick_before_script: &quick_before_script
-  before_script:
-    - export TEST_MODULES="$(git diff-tree --diff-filter=d --no-commit-id --name-only -r master..HEAD ${TEST_PATH})"
-    - if [[ -z "${TEST_MODULES}" ]]; then exit 0 ; fi
-    - python --version
-    - oc version
-    - make install-dev
-    - oc login ${OPENSHIFT_URL} --token ${GITLAB_CI_SA_TOKEN}
-    - oc project ${OPENSHIFT_PROJECT}
-    - export USE_HTTPS=true
-    - cp aws_image_config_template.yaml integrade/aws_image_config.yaml
-
 .api_all: &api_all
   script:
     - py.test -s --junitxml="${REPORT_NAME}.xml" -vvv --force-flaky -m 'not inspection' integrade/tests/api
@@ -55,19 +45,25 @@ stages:
   after_script:
     - python scripts/aws_reaper.py --env-cloudtrail-only
 
-.master_variables:
-  variables: &master_variables
-    CLOUDTRAIL_PREFIX: master-integrade-
-    AWS_S3_BUCKET_NAME: master-integrade-cloudigrade-s3
-    AWS_QUEUE_PREFIX: master-integrade-
-    CLOUDIGRADE_BASE_URL: master-integrade.5a9f.insights-dev.openshiftapps.com
-    OPENSHIFT_PREFIX: c-master-integrade-
+.master_variables: &master_variables
+  CLOUDTRAIL_PREFIX: master-integrade-
+  AWS_S3_BUCKET_NAME: master-integrade-cloudigrade-s3
+  AWS_QUEUE_PREFIX: master-integrade-
+  CLOUDIGRADE_BASE_URL: master-integrade.5a9f.insights-dev.openshiftapps.com
+  OPENSHIFT_PREFIX: c-master-integrade-
+
+.branch_variables:  &branch_variables
+  CLOUDTRAIL_PREFIX: review-${CI_COMMIT_REF_SLUG}-
+  AWS_S3_BUCKET_NAME: ${CI_COMMIT_REF_SLUG}-cloudigrade-s3
+  AWS_QUEUE_PREFIX: review-${CI_COMMIT_REF_SLUG}-
 
 .ui_scripts: &ui_scripts
   script:
     - py.test --junitxml="${REPORT_NAME}.xml" -vvv integrade/tests/ui ${EXTRA_PYTEST_ARGS}
 
-## Test Integrade on MRs and Master ##
+#####################################################################
+# Test integrade's own code.
+
 Test Integrade:
   stage: Test Integrade
   before_script:
@@ -81,8 +77,94 @@ Test Integrade:
     - codecov
   coverage: '/\d+\%\s*$/'
 
+#####################################################################
+# Jobs that run ONLY on branches.
+# These should do the same thing as the jobs for master, but these
+# have different environment variables and some are manual because
+# they may be slow. These also require someone else to set up branch
+# review environments for cloudigrade and frontigrade BEFORE these
+# jobs run.
 
-## Deploy Master Review Branches ##
+API (automatic):
+  stage: Test Cloudigrade API
+  variables:
+    <<: *branch_variables
+  except:
+    - master
+    - schedule
+  <<: *before_script
+  <<: *api_all
+  <<: *archive_results
+  after_script:
+    - python scripts/aws_reaper.py --env-cloudtrail-only
+
+Inspection (manual):
+  stage: Test Cloudigrade Inspection
+  variables:
+    <<: *branch_variables
+  except:
+    - master
+    - schedule
+  when: manual
+  <<: *before_script
+  <<: *archive_results
+  <<: *inspect
+
+UI Chrome (manual):
+  stage: Test Cloudigrade UI
+  except:
+    - master
+    - schedule
+  when: manual
+  <<: *before_script
+  <<: *archive_results
+  <<: *ui_scripts
+  variables:
+    <<: *branch_variables
+    REPORT_NAME: ui_chrome
+    UI_BROWSER: Chrome
+    UI_USE_REMOTE: "true"
+  services:
+    - name: selenium/standalone-chrome
+      alias: selenium
+
+UI Firefox (manual):
+  stage: Test Cloudigrade UI
+  except:
+    - master
+    - schedule
+  when: manual
+  <<: *before_script
+  <<: *archive_results
+  <<: *ui_scripts
+  variables:
+    <<: *branch_variables
+    REPORT_NAME: ui_firefox
+    UI_BROWSER: Firefox
+    UI_USE_REMOTE: "true"
+  services:
+    - name: selenium/standalone-firefox
+      alias: selenium
+
+UI Microsoft Edge (manual):
+  stage: Test Cloudigrade UI
+  except:
+    - master
+    - schedule
+  when: manual
+  <<: *before_script
+  <<: *archive_results
+  <<: *ui_scripts
+  variables:
+    <<: *branch_variables
+    REPORT_NAME: ui_edge
+    UI_BROWSER: MicrosoftEdge
+
+#####################################################################
+# Deploy review environments for master jobs only.
+# These tests require a custom "master" review environment because
+# they cannot run against our test and stage environments.
+
 Deploy Master Cloudigrade:
   stage: Deploy Master
   image: registry.gitlab.com/finestructure/pipeline-trigger
@@ -94,7 +176,9 @@ Deploy Master Cloudigrade:
     TARGET_BRANCH: master
     DEPLOYMENT_NAME: integrade
   script:
-    - trigger -a ${API_TOKEN} -p ${CLOUDIGRADE_PIPELINE_TOKEN} -t ${TARGET_BRANCH} -e CHAT_INPUT=${DEPLOYMENT_NAME} ${PROJECT_ID}
+    - >
+      trigger -a ${API_TOKEN} -p ${CLOUDIGRADE_PIPELINE_TOKEN}
+      -t ${TARGET_BRANCH} -e CHAT_INPUT=${DEPLOYMENT_NAME} ${PROJECT_ID}
 
 Deploy Master Frontigrade:
   stage: Deploy Master
@@ -107,133 +191,32 @@ Deploy Master Frontigrade:
     TARGET_BRANCH: master
     DEPLOYMENT_NAME: integrade
   script:
-    - trigger -a ${API_TOKEN} -p ${FRONTIGRADE_PIPELINE_TOKEN} -t ${TARGET_BRANCH} -e CHAT_INPUT=${DEPLOYMENT_NAME} ${PROJECT_ID}
+    - >
+      trigger -a ${API_TOKEN} -p ${FRONTIGRADE_PIPELINE_TOKEN}
+      -t ${TARGET_BRANCH} -e CHAT_INPUT=${DEPLOYMENT_NAME} ${PROJECT_ID}
 
-## JOBS THAT RUN ON MRs ##
-Inspection Manual:
+#####################################################################
+# Jobs that run on master upon commits and on schedule.
+# These should run ALL tests automatically. The content of the tests
+# is the same as when run in a branch, but all "manual" branch jobs
+# are now automatic.
+
+API:
   stage: Test Cloudigrade API
-  variables:
-    CLOUDTRAIL_PREFIX: review-${CI_COMMIT_REF_SLUG}-
-    AWS_S3_BUCKET_NAME: ${CI_COMMIT_REF_SLUG}-cloudigrade-s3
-    AWS_QUEUE_PREFIX: review-${CI_COMMIT_REF_SLUG}-
-  except:
+  only:
     - master
     - schedule
-  when: manual
-  <<: *before_script
-  <<: *archive_results
-  <<: *inspect
-
-API All Manually:
-  stage: Test Cloudigrade API
-  variables:
-    CLOUDTRAIL_PREFIX: review-${CI_COMMIT_REF_SLUG}-
-    AWS_S3_BUCKET_NAME: ${CI_COMMIT_REF_SLUG}-cloudigrade-s3
-    AWS_QUEUE_PREFIX: review-${CI_COMMIT_REF_SLUG}-
-  except:
-    - master
-    - schedule
-  when: manual
+  when: always
   <<: *before_script
   <<: *api_all
   <<: *archive_results
+  variables:
+    <<: *master_variables
+    REPORT_NAME: api_all
   after_script:
     - python scripts/aws_reaper.py --env-cloudtrail-only
 
-API Quick:
-  stage: Test Cloudigrade API
-  when: on_success
-  except:
-    - master
-    - schedule
-  <<: *quick_before_script
-  <<: *archive_results
-  variables:
-    AWS_S3_BUCKET_NAME: ${CI_COMMIT_REF_SLUG}-cloudigrade-s3
-    AWS_QUEUE_PREFIX: review-${CI_COMMIT_REF_SLUG}-
-    TEST_PATH: integrade/tests/api/v1/
-    REPORT_NAME: api_quick
-  script:
-    - if [[ "${TEST_MODULES}" ]]; then echo "${TEST_MODULES}" | xargs py.test --junitxml="${REPORT_NAME}.xml" -vvv; else py.test --junitxml="${REPORT_NAME}.xml" -vvv $TEST_PATH -m smoketest; fi
-
-UI Quick:
-  stage: Test Cloudigrade UI
-  when: always
-  except:
-    - master
-    - schedule
-  <<: *quick_before_script
-  <<: *archive_results
-  variables:
-    AWS_S3_BUCKET_NAME: ${CI_COMMIT_REF_SLUG}-cloudigrade-s3
-    AWS_QUEUE_PREFIX: review-${CI_COMMIT_REF_SLUG}-
-    TEST_PATH: integrade/tests/ui
-    REPORT_NAME: ui_quick
-    UI_BROWSER: Chrome
-    UI_USE_REMOTE: "true"
-  script:
-    - if [[ "${TEST_MODULES}" ]]; then echo "${TEST_MODULES}" | xargs py.test --junitxml="${REPORT_NAME}.xml" -vvv; else py.test --junitxml="${REPORT_NAME}.xml" -vvv $TEST_PATH -m smoketest; fi
-  services:
-    - name: selenium/standalone-chrome
-      alias: selenium
-
-
-UI Chrome (Manually):
-  stage: Test Cloudigrade UI
-  except:
-    - master
-    - schedule
-  when: manual
-  <<: *before_script
-  <<: *archive_results
-  <<: *ui_scripts
-  variables:
-    AWS_S3_BUCKET_NAME: ${CI_COMMIT_REF_SLUG}-cloudigrade-s3
-    AWS_QUEUE_PREFIX: review-${CI_COMMIT_REF_SLUG}-
-    REPORT_NAME: ui_chrome
-    UI_BROWSER: Chrome
-    UI_USE_REMOTE: "true"
-  services:
-    - name: selenium/standalone-chrome
-      alias: selenium
-
-UI Firefox (Manually):
-  stage: Test Cloudigrade UI
-  except:
-    - master
-    - schedule
-  when: manual
-  <<: *before_script
-  <<: *archive_results
-  <<: *ui_scripts
-  variables:
-    AWS_S3_BUCKET_NAME: ${CI_COMMIT_REF_SLUG}-cloudigrade-s3
-    AWS_QUEUE_PREFIX: review-${CI_COMMIT_REF_SLUG}-
-    REPORT_NAME: ui_firefox
-    UI_BROWSER: Firefox
-    UI_USE_REMOTE: "true"
-  services:
-    - name: selenium/standalone-firefox
-      alias: selenium
-
-UI Microsoft Edge (Manually):
-  stage: Test Cloudigrade UI
-  except:
-    - master
-    - schedule
-  when: manual
-  <<: *before_script
-  <<: *archive_results
-  <<: *ui_scripts
-  variables:
-    CLOUDTRAIL_PREFIX: review-${CI_COMMIT_REF_SLUG}-
-    AWS_S3_BUCKET_NAME: ${CI_COMMIT_REF_SLUG}-cloudigrade-s3
-    AWS_QUEUE_PREFIX: review-${CI_COMMIT_REF_SLUG}-
-    REPORT_NAME: ui_edge
-    UI_BROWSER: MicrosoftEdge
-
-## JOBS THAT RUN ON MASTER ##
-Test Inspection:
+Inspection:
   stage: Test Cloudigrade Inspection
   only:
     - master
@@ -242,30 +225,7 @@ Test Inspection:
   <<: *archive_results
   <<: *inspect
   variables:
-    CLOUDTRAIL_PREFIX: master-integrade-
-    AWS_S3_BUCKET_NAME: master-integrade-cloudigrade-s3
-    AWS_QUEUE_PREFIX: master-integrade-
-    CLOUDIGRADE_BASE_URL: master-integrade.5a9f.insights-dev.openshiftapps.com
-    OPENSHIFT_PREFIX: c-master-integrade-
-
-Test API:
-  stage: Test Cloudigrade API
-  only:
-    - master
-    - schedule
-  when: always
-  <<: *before_script
-  <<: *api_all
-  <<: *archive_results
-  variables:
-    CLOUDTRAIL_PREFIX: master-integrade-
-    AWS_S3_BUCKET_NAME: master-integrade-cloudigrade-s3
-    AWS_QUEUE_PREFIX: master-integrade-
-    CLOUDIGRADE_BASE_URL: master-integrade.5a9f.insights-dev.openshiftapps.com
-    OPENSHIFT_PREFIX: c-master-integrade-
-    REPORT_NAME: api_all
-  after_script:
-    - python scripts/aws_reaper.py --env-cloudtrail-only
+    <<: *master_variables
 
 UI Chrome:
   stage: Test Cloudigrade UI
@@ -277,11 +237,7 @@ UI Chrome:
   <<: *archive_results
   <<: *ui_scripts
   variables:
-    CLOUDTRAIL_PREFIX: master-integrade-
-    AWS_S3_BUCKET_NAME: master-integrade-cloudigrade-s3
-    AWS_QUEUE_PREFIX: master-integrade-
-    CLOUDIGRADE_BASE_URL: master-integrade.5a9f.insights-dev.openshiftapps.com
-    OPENSHIFT_PREFIX: c-master-integrade-
+    <<: *master_variables
     REPORT_NAME: ui_chrome
     UI_BROWSER: Chrome
     UI_USE_REMOTE: "true"
@@ -299,11 +255,7 @@ UI Firefox:
   <<: *archive_results
   <<: *ui_scripts
   variables:
-    CLOUDTRAIL_PREFIX: master-integrade-
-    AWS_S3_BUCKET_NAME: master-integrade-cloudigrade-s3
-    AWS_QUEUE_PREFIX: master-integrade-
-    CLOUDIGRADE_BASE_URL: master-integrade.5a9f.insights-dev.openshiftapps.com
-    OPENSHIFT_PREFIX: c-master-integrade-
+    <<: *master_variables
     REPORT_NAME: ui_firefox
     UI_BROWSER: Firefox
     UI_USE_REMOTE: "true"
@@ -321,23 +273,26 @@ UI Microsoft Edge:
   <<: *archive_results
   <<: *ui_scripts
   variables:
-    CLOUDTRAIL_PREFIX: master-integrade-
-    AWS_S3_BUCKET_NAME: master-integrade-cloudigrade-s3
-    AWS_QUEUE_PREFIX: master-integrade-
-    CLOUDIGRADE_BASE_URL: master-integrade.5a9f.insights-dev.openshiftapps.com
-    OPENSHIFT_PREFIX: c-master-integrade-
+    <<: *master_variables
     REPORT_NAME: ui_edge
     UI_BROWSER: MicrosoftEdge
     EXTRA_PYTEST_ARGS: "-x --ff"
 
-# Clean up master review environments
+#####################################################################
+# Clean up master review environments.
+
 .stop_master_review: &stop_master_review
   stage: Teardown Cloudigrade
   only:
     - master
     - schedule
   when: always
-  script: curl --request POST --header "${AUTH}" https://gitlab.com/api/v4/projects/${PROJECT_ID}/environments/$(curl --header "${AUTH}" https://gitlab.com/api/v4/projects/${PROJECT_ID}/environments | jq '.[] | select(.name=="review/master-integrade") | .id')/stop
+  script: >
+    curl --request POST --header "${AUTH}"
+    https://gitlab.com/api/v4/projects/${PROJECT_ID}/environments/$(
+      curl --header "${AUTH}" https://gitlab.com/api/v4/projects/${PROJECT_ID}/environments |
+      jq '.[] | (.name=="review/master-integrade") | .id'
+    )/stop
 
 Teardown Cloudigrade (Master):
   <<: *stop_master_review
@@ -353,16 +308,14 @@ Teardown Frontigrade (Master):
     PROJECT_ID: 7449617
     AUTH: "PRIVATE-TOKEN: ${API_TOKEN}"
 
-# Cleans up customer accounts between test runs
+#####################################################################
+# Clean up customer accounts at the end of each pipeline run.
+
 Test Cleanup:
   stage: Cleanup
   <<: *before_script
   variables:
-    CLOUDTRAIL_PREFIX: master-integrade-
-    AWS_S3_BUCKET_NAME: master-integrade-cloudigrade-s3
-    AWS_QUEUE_PREFIX: master-integrade-
-    CLOUDIGRADE_BASE_URL: master-integrade.5a9f.insights-dev.openshiftapps.com
-    OPENSHIFT_PREFIX: c-master-integrade-
+    <<: *master_variables
   script:
     - python scripts/aws_reaper.py --env-cloudtrail-only
   when: always
