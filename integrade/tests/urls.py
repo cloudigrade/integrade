@@ -1,4 +1,4 @@
-"""Contants for the API URL paths."""
+"""Constants for the API URL paths."""
 
 AUTH_ME = '/auth/me/'
 AUTH_PASSWORD = '/auth/password/'
@@ -13,3 +13,4 @@ REPORT_INSTANCES = '/api/v1/report/instances/'
 IMAGE = '/api/v1/image/'
 INSTANCE = '/api/v1/instance/'
 SYSCONFIG = '/api/v1/sysconfig/'
+SYSCONFIG_V2 = '/api/v2/sysconfig'

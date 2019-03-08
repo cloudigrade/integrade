@@ -134,7 +134,7 @@ class Client(object):
         >>> from integrade import api
         >>> client = api.Client()
         >>> # I can now make requests to the Cloudigrade server
-        >>> # using relative paths, because the base url is
+        >>> # using relative paths, because the base url
         >>> # was set using information from my enviroment.
         >>>
         >>> client.get()
