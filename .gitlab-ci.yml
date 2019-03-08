@@ -92,6 +92,7 @@ API (automatic):
   except:
     - master
     - schedule
+  allow_failure: true  # allow inspection or UI tests to run if API fails
   <<: *before_script
   <<: *api_all
   <<: *archive_results
@@ -106,6 +107,7 @@ Inspection (manual):
     - master
     - schedule
   when: manual
+  allow_failure: true  # allows UI tests to run if inspection fails
   <<: *before_script
   <<: *archive_results
   <<: *inspect
