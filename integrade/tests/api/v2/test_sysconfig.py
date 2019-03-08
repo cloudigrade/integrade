@@ -44,7 +44,6 @@ def test_sysconfig():
     :expectedresults: The server returns a 200 response with the expected
         configuration information.
     """
-
     qa = 'api.access.qa.cloud.paas.upshift.redhat.com'
     qa_end = '/r/insights/platform/cloudigrade/api/v2/sysconfig/'
     creds = ('mpierce@redhat.com', 'redhat')
