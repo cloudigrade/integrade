@@ -706,4 +706,4 @@ def test_broken_image(
     list_images = client.get(urls.IMAGE, auth=auth)
     found_images = [image['ec2_ami_id'] for image in list_images['results']]
     assert source_image_id in found_images
-    wait_for_inspection(source_image, expected_state, auth, timeout=2400)
+    wait_for_inspection(source_image, expected_state, auth)
