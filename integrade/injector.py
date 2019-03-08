@@ -32,13 +32,18 @@ def run_remote_python(script, **kwargs):
     script = script.encode('utf8')
 
     if which('oc'):
+        cmd = (
+            f'oc rsh -c {container_name} $(oc get pods'
+            ' -o jsonpath="{.items[*].metadata.name}" -l'
+            f' name={container_name})'
+            ' scl enable rh-python36'
+            ' -- python -W ignore manage.py shell'
+        )
+        print(cmd)
         result = subprocess.run(['sh',
                                  '-c',
-                                 f'oc rsh -c {container_name} $(oc get pods'
-                                 ' -o jsonpath="{.items[*].metadata.name}" -l'
-                                 f' name={container_name})'
-                                 ' scl enable rh-python36'
-                                 ' -- python -W ignore manage.py shell'],
+                                 cmd
+                                 ],
                                 stdout=subprocess.PIPE,
                                 stderr=subprocess.PIPE,
                                 input=script,

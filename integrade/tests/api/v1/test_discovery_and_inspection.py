@@ -287,7 +287,7 @@ def wait_for_cloudigrade_instance(
 
 
 def wait_for_inspection(
-        source_image, expected_state, auth, timeout=3600, sleep_period=30):
+        source_image, expected_state, auth, timeout=4800, sleep_period=30):
     """Wait for image to be inspected and assert on findings.
 
     :param source_image: Dictionary with the following information about
@@ -311,6 +311,7 @@ def wait_for_inspection(
     timepassed = 0
     sys.stdout.write('\n')
     status = 'ABSENT'
+    inspection_json = None
     with click.progressbar(
             length=timeout,
             label=f'Waiting for inspection of {source_image["image_id"]}'
@@ -326,7 +327,7 @@ def wait_for_inspection(
                     server_info = server_info[0]
                     status = server_info['status']
                     inspection_json = pformat(server_info['inspection_json'])
-            if status == 'error' and expected_state != 'error':
+            if status == 'error':
                 break
             if status in ['pending', 'preparing', 'inspecting', 'ABSENT']:
                 sleep(sleep_period)
@@ -339,8 +340,11 @@ def wait_for_inspection(
             if timepassed >= timeout:
                 break
     # assert the image did reach expected state before timeout
-    assert status == expected_state, f'\nState was {status} and inspection ' \
-                                     f' json was:\n{inspection_json}'
+    assert status == expected_state, (
+                        f'\nState was {status} instead of expected:'
+                        f'\n{expected_state} and inspection json was:'
+                        f'\n{inspection_json}'
+                    )
 
     fact_keys = [
         'rhel',
@@ -702,4 +706,4 @@ def test_broken_image(
     list_images = client.get(urls.IMAGE, auth=auth)
     found_images = [image['ec2_ami_id'] for image in list_images['results']]
     assert source_image_id in found_images
-    wait_for_inspection(source_image, expected_state, auth, timeout=2400)
+    wait_for_inspection(source_image, expected_state, auth)
