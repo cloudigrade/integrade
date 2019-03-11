@@ -39,7 +39,6 @@ def run_remote_python(script, **kwargs):
             ' scl enable rh-python36'
             ' -- python -W ignore manage.py shell'
         )
-        print(cmd)
         result = subprocess.run(['sh',
                                  '-c',
                                  cmd
