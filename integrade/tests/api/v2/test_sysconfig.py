@@ -24,10 +24,10 @@ def is_on_local_network():
     url = 'https://api.access.stage.cloud.paas.upshift.redhat.com'
     try:
         requests.get(url, verify=False)
-        return True
     except requests.exceptions.ConnectionError as e:
         print(e)
         return False
+    return True
 
 
 @pytest.mark.skipif(not is_on_local_network(),
