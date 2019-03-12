@@ -34,10 +34,9 @@ def test_get_config(ssl, protocol):
             use_https = 'True' if protocol == 'https' else 'False'
             account_number = int(time.time())
             cloudtrail_prefix = random.choice([
-                'aardvark',
                 'aardvark-',
                 'flying-aardvark-',
-                '42',
+                '42-',
                 utils.uuid4(),
             ])
             bucket_name = 'flying-aardvark-s3'
@@ -59,7 +58,7 @@ def test_get_config(ssl, protocol):
             assert len(cfg['aws_profiles']) == 1
             assert cfg['aws_profiles'][0]['name'] == 'CUSTOMER1'
             assert cfg['aws_profiles'][0]['cloudtrail_name'] == (
-                f'{cloudtrail_prefix}{account_number}'
+                f'{cloudtrail_prefix[:-1]}{account_number}'
             )
             assert cfg['cloudigrade_s3_bucket'] == bucket_name
 
