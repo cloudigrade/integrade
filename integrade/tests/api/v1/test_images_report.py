@@ -188,7 +188,7 @@ def test_runtime_requests_from_future():
     rhel_runtime_seconds = response_data['rhel_runtime_seconds']
     openshift_runtime_seconds = response_data['openshift_runtime_seconds']
 
-    assert rhel_instances is None
+    assert rhel_instances == 0
     assert openshift_instances is None
     assert rhel_runtime_seconds is None
     assert openshift_runtime_seconds is None
