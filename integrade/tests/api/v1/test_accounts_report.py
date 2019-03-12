@@ -92,7 +92,7 @@ def test_filter_by_account_id(accounts_report_data, superuser):
     assert len(cloud_account_overviews) == 1, cloud_account_overviews
     account = cloud_account_overviews[0]
     second_account_id = second_account['aws_account_id']
-    cloud_account_id = format(account['cloud_account_id'], '.0f')
+    cloud_account_id = account['cloud_account_id']
     assert second_account_id == cloud_account_id
     assert account['images'] == 1, repr(account)
     assert account['instances'] == 1, repr(account)
@@ -139,7 +139,7 @@ def test_filter_by_name(accounts_report_data, superuser):
     assert len(results) == 2, results
     for expected, account in zip((first_account, third_account), results):
         expected_id = expected['aws_account_id']
-        cloud_account_id = format(account['cloud_account_id'], '.0f')
+        cloud_account_id = account['cloud_account_id']
         assert expected_id == cloud_account_id
         assert account['images'] == 1, repr(account)
         assert account['instances'] == 1, repr(account)
@@ -203,7 +203,7 @@ def test_filter_by_account_id_and_name(accounts_report_data, superuser):
     assert len(cloud_account_overviews) == 1, cloud_account_overviews
     account = cloud_account_overviews[0]
     first_account_id = first_account['aws_account_id']
-    cloud_account_id = format(account['cloud_account_id'], '.0f')
+    cloud_account_id = account['cloud_account_id']
     assert first_account_id == cloud_account_id
     assert account['images'] == 1, repr(account)
     assert account['instances'] == 1, repr(account)
