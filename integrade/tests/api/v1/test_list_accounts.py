@@ -321,8 +321,8 @@ def test_list_account_with_multiple():
     account = accounts[0]
     account2 = accounts[1]
 
-    assert format(account['cloud_account_id'], '.0f') == acct['aws_account_id']
-    assert account2['cloud_account_id'] == acct2['aws_account_id']
+    assert str(int(account['cloud_account_id'])) == acct['aws_account_id']
+    assert str(int(account2['cloud_account_id'])) == acct2['aws_account_id']
     assert account['images'] == exp_images, repr(account)
     assert account['instances'] == exp_inst, repr(account)
     assert account['rhel_instances'] == exp_rhel, repr(account)
@@ -356,16 +356,16 @@ def test_multiple_runs_counted_once():
 
     start, end = utils.get_time_range()
     params = {
-        'start': start,
-        'end': end,
-    }
+            'start': start,
+            'end': end,
+            }
 
     events = [
-        20,
-        15,
-        10,
-        5,
-    ]
+                20,
+                15,
+                10,
+                5,
+            ]
     inject_instance_data(acct['id'], image_type, events)
 
     response = client.get(urls.REPORT_ACCOUNTS, params=params, auth=auth)

@@ -29,10 +29,12 @@ EXPECTED_REPORT_DATA = {
     'daily_usage': [
         {
             'date': '2018-01-07T00:00:00Z',
+            'openshift_images': 1,
             'openshift_instances': 1,
             'openshift_runtime_seconds': 86400.0,
             'openshift_memory_seconds': 86400.0,
             'openshift_vcpu_seconds': 86400.0,
+            'rhel_images': 0,
             'rhel_instances': 0,
             'rhel_runtime_seconds': 0.0,
             'rhel_memory_seconds': 0.0,
@@ -40,17 +42,20 @@ EXPECTED_REPORT_DATA = {
         },
         {
             'date': '2018-01-08T00:00:00Z',
+            'openshift_images': 1,
             'openshift_instances': 1,
-            'openshift_runtime_seconds': 86400.0,
             'openshift_memory_seconds': 86400.0,
+            'openshift_runtime_seconds': 86400.0,
             'openshift_vcpu_seconds': 86400.0,
+            'rhel_images': 1,
             'rhel_instances': 1,
-            'rhel_runtime_seconds': 68400.0,
             'rhel_memory_seconds': 68400.0,
-            'rhel_vcpu_seconds': 68400.0,
+            'rhel_runtime_seconds': 68400.0,
+            'rhel_vcpu_seconds': 68400.0
         },
         {
             'date': '2018-01-09T00:00:00Z',
+            'openshift_images': 2,
             'openshift_instances': 2,
             'openshift_runtime_seconds': 140400.0,
             'openshift_memory_seconds':
@@ -60,6 +65,7 @@ EXPECTED_REPORT_DATA = {
                 # following days
                 140400.0 + hour2sec(15),
             'openshift_vcpu_seconds': 140400.0,
+            'rhel_images': 2,
             'rhel_instances': 2,
             'rhel_runtime_seconds': 140400.0,
             'rhel_memory_seconds':
@@ -72,17 +78,20 @@ EXPECTED_REPORT_DATA = {
         },
         {
             'date': '2018-01-10T00:00:00Z',
+            'openshift_images': 2,
             'openshift_instances': 2,
+            'openshift_memory_seconds': 259200.0,
             'openshift_runtime_seconds': 172800.0,
-            'openshift_memory_seconds': 172800.0 + hour2sec(24),
             'openshift_vcpu_seconds': 172800.0,
+            'rhel_images': 2,
             'rhel_instances': 2,
+            'rhel_memory_seconds': 190800.0,
             'rhel_runtime_seconds': 104400.0,
-            'rhel_memory_seconds': 104400.0 + hour2sec(24),
-            'rhel_vcpu_seconds': 104400.0,
+            'rhel_vcpu_seconds': 104400.0
         },
         {
             'date': '2018-01-11T00:00:00Z',
+            'openshift_images': 2,
             'openshift_instances': 3,
             'openshift_runtime_seconds': 234000.0,
             'openshift_memory_seconds': 234000.0 + hour2sec(24),
@@ -90,6 +99,7 @@ EXPECTED_REPORT_DATA = {
                 # An extra 17 hours of vCPU time comes from running a 2x vCPU
                 # instance from the 11th to he 13th
                 234000.0 + hour2sec(17),
+            'rhel_images': 2,
             'rhel_instances': 2,
             'rhel_runtime_seconds': 97200.0,
             'rhel_memory_seconds': 97200.0 + hour2sec(24),
@@ -97,6 +107,7 @@ EXPECTED_REPORT_DATA = {
         },
         {
             'date': '2018-01-12T00:00:00Z',
+            'openshift_images': 2,
             'openshift_instances': 3,
             'openshift_runtime_seconds': 259200.0,
             'openshift_memory_seconds': 259200.0 + hour2sec(24),
@@ -104,6 +115,7 @@ EXPECTED_REPORT_DATA = {
                 # An extra 24 hours of vCPU time comes from running a 2x vCPU
                 # instance from the 11th to he 13th
                 259200.0 + hour2sec(24),
+            'rhel_images': 2,
             'rhel_instances': 2,
             'rhel_runtime_seconds': 162000.0,
             'rhel_memory_seconds': 162000.0 + hour2sec(24),
@@ -114,6 +126,7 @@ EXPECTED_REPORT_DATA = {
         },
         {
             'date': '2018-01-13T00:00:00Z',
+            'openshift_images': 2,
             'openshift_instances': 3,
             'openshift_runtime_seconds': 190800.0,
             'openshift_memory_seconds': 190800.0 + hour2sec(24),
@@ -121,6 +134,7 @@ EXPECTED_REPORT_DATA = {
                 # An extra 7 hours of vCPU time comes from running a 2x vCPU
                 # instance from the 11th to he 13th
                 190800.0 + hour2sec(5),
+            'rhel_images': 2,
             'rhel_instances': 1,
             'rhel_runtime_seconds': 86400.0,
             'rhel_memory_seconds': 86400.0 + hour2sec(24),
@@ -128,10 +142,12 @@ EXPECTED_REPORT_DATA = {
         },
         {
             'date': '2018-01-14T00:00:00Z',
+            'openshift_images': 2,
             'openshift_instances': 2,
             'openshift_runtime_seconds': 118800.0,
             'openshift_memory_seconds': 118800.0 + hour2sec(9),
             'openshift_vcpu_seconds': 118800.0,
+            'rhel_images': 2,
             'rhel_instances': 1,
             'rhel_runtime_seconds': 32400.0,
             'rhel_memory_seconds': 32400.0 + hour2sec(9),
@@ -139,10 +155,13 @@ EXPECTED_REPORT_DATA = {
         },
         {
             'date': '2018-01-15T00:00:00Z',
+            'openshift_images': 2,
             'openshift_instances': 1,
             'openshift_runtime_seconds': 86400.0,
             'openshift_memory_seconds': 86400.0,
             'openshift_vcpu_seconds': 86400.0,
+            'rhel_images': 2,
+
             'rhel_instances': 0,
             'rhel_runtime_seconds': 0.0,
             'rhel_memory_seconds': 0.0,
