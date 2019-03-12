@@ -168,7 +168,9 @@ EXPECTED_REPORT_DATA = {
         },
     ],
     'instances_seen_with_openshift': 3,
-    'instances_seen_with_rhel': 3
+    'instances_seen_with_openshift_challenged': 0,
+    'instances_seen_with_rhel': 3,
+    'instances_seen_with_rhel_challenged': 0,
 }
 
 
