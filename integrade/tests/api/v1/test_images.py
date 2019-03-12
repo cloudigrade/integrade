@@ -132,7 +132,7 @@ def test_list_all_images(images_data, superuser):
     start, end = utils.get_time_range()
     params = None
     if superuser:
-        # fisrt check if superuser is able to fetch all images
+        # first check if superuser is able to fetch all images
         response = client.get(urls.IMAGE).json()
         assert response['count'] == len(images1) + len(images2), response
         images = response['results']
@@ -143,7 +143,6 @@ def test_list_all_images(images_data, superuser):
         # Now restrict the results to an specific user
         params = {'user_id': user1['id']}
     response = client.get(urls.IMAGE, auth=auth1, params=params).json()
-
     assert len(images1) == response['count']
     images = response['results']
 

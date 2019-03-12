@@ -189,9 +189,9 @@ def test_runtime_requests_from_future():
     openshift_runtime_seconds = response_data['openshift_runtime_seconds']
 
     assert rhel_instances == 0
-    assert openshift_instances is None
-    assert rhel_runtime_seconds is None
-    assert openshift_runtime_seconds is None
+    assert openshift_instances == 0
+    assert int(rhel_runtime_seconds) == 0
+    assert (openshift_runtime_seconds) == 0
     past_date = datetime.datetime.now() + datetime.timedelta(-30)
     backwards_params = {
         'start': report_start,
