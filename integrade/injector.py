@@ -192,6 +192,7 @@ def inject_instance_data(
 
     from account.models import Account, AwsInstance, AwsInstanceEvent
     from account.models import AwsMachineImage, AwsEC2InstanceDefinitions
+    from account.util import recalculate_runs
 
     instance_type = 'xx.fake-' + str(vcpu) + '-' + str(memory)
 
@@ -245,7 +246,7 @@ def inject_instance_data(
         else:
             when = event
         on_off_when.append(when)
-        AwsInstanceEvent.objects.create(
+        instanceevent = AwsInstanceEvent.objects.create(
             event_type='power_on' if on else 'power_off',
             machineimage=image1 if on else None,
             instance=instance1,
@@ -253,7 +254,10 @@ def inject_instance_data(
             occurred_at=when,
             created_at=when,
         )
-
+        # Need to reload event from DB, otherwise occurred_at is passed
+        # as a date object instead of a datetime object.
+        instanceevent.refresh_from_db()
+        recalculate_runs(instanceevent)
     return {
         'image_id': image1.id,
         'instance_id': instance1.id,
