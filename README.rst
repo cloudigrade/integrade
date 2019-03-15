@@ -327,6 +327,38 @@ The UI tests can be easily run either on Chrome or Firefox:
     py.test -v integrade/tests/ui/ --driver Firefox
 
 
+Troubleshooting Test Runs
+=========================
+
+Are tests failing unexpectedly? Check these items to ensure a healthy run.
+
+* Do you have a local login session with OpenShift? Use ``oc whoami`` and
+  ``oc projects`` to check that the correct OpenShift host and project are
+  selected. If that fails, you may need to go to your OpenShift web console,
+  use ``Copy Login Command``, and paste the session connection string into
+  your local terminal.
+* Is the inspection cluster running? If it's left "stuck" from a previous test
+  run, you may need to manually scale it down or else inspection-related tests
+  may fail. Go to the AWS web console's ECS screen, find the appropriate
+  cluster, view its ECS Instances, and edit the Auto Scaling configuration to
+  set Desired Capacity, Min, and Max all to ``0``.
+* Are you using the correct ``houndigrade`` image? If you are testing changes
+  to the inspection process, you may need to configure the OpenShift project to
+  use a nonstandard image name and tag. Find the appropriate Config Map and
+  verify ``aws-houndigrade-ecs-image-name`` and
+  ``aws-houndigrade-ecs-image-tag`` have the correct value. You may need to
+  redeploy the ``-w`` pod(s) so the Celery workers pick up any config changes.
+* Does the target customer AWS cloud account have too many cloud trails? AWS
+  has a limit of 5 trails per region per account, but our heavily-used test
+  accounts may attempt and fail to exceed that limit. Check the AWS console in
+  the customer's account and delete any old trails.
+* Is the deployed environment somehow tainted? When all else fails, destroy the
+  review environment and start over. Use the GitLab pipeline to run the
+  "Teardown Cloudigrade" and "Teardown Frontigrade" jobs. When they complete,
+  verify that the OpenShift applications, AWS ECS cluster, AWS SQS queues, and
+  customer AWS CloudTrail trails are all gone. Manually remove any that remain.
+
+
 .. |license| image:: https://img.shields.io/github/license/cloudigrade/integrade.svg
    :target: https://github.com/cloudigrade/cloudigrade/blob/master/LICENSE
 .. |gitlabci| image:: https://gitlab.com/cloudigrade/integrade/badges/master/pipeline.svg
