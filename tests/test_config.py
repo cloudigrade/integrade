@@ -34,9 +34,10 @@ def test_get_config(ssl, protocol):
             use_https = 'True' if protocol == 'https' else 'False'
             account_number = int(time.time())
             cloudtrail_prefix = random.choice([
+                'aardvark',
                 'aardvark-',
                 'flying-aardvark-',
-                '42-',
+                '42',
                 utils.uuid4(),
             ])
             bucket_name = 'flying-aardvark-s3'
