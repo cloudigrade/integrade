@@ -19,6 +19,9 @@ from integrade import api
 from integrade.tests import urls
 from integrade.tests.utils import get_auth
 
+logger = logging.getLogger(__name__)
+
+
 def is_on_local_network():
     """Check if on internal RH network. This matters because we can ONLY access
     3scale from inside Red Hat network. API V2 tests should be skipped if this
