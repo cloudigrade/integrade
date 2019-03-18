@@ -356,16 +356,16 @@ def test_multiple_runs_counted_once():
 
     start, end = utils.get_time_range()
     params = {
-            'start': start,
-            'end': end,
-            }
+        'start': start,
+        'end': end,
+    }
 
     events = [
-                20,
-                15,
-                10,
-                5,
-            ]
+        20,
+        15,
+        10,
+        5,
+    ]
     inject_instance_data(acct['id'], image_type, events)
 
     response = client.get(urls.REPORT_ACCOUNTS, params=params, auth=auth)
