@@ -8,9 +8,15 @@
 :testtype: functional
 :upstream: yes
 """
+
+import logging
+
 import pytest
 
 import requests
+
+
+logger = logging.getLogger(__name__)
 
 
 def is_on_local_network():
@@ -24,7 +30,7 @@ def is_on_local_network():
     try:
         requests.get(url, verify=False)
     except requests.exceptions.ConnectionError as e:
-        print(e)
+        logging.warning(e)
         return False
     return True
 
