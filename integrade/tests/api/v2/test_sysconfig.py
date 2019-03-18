@@ -23,10 +23,12 @@ logger = logging.getLogger(__name__)
 
 
 def is_on_local_network():
-    """Check if on internal RH network. This matters because we can ONLY access
-    3scale from inside Red Hat network. API V2 tests should be skipped if this
-    returns False - ie. if running in gitlab CI"""
+    """Check if on internal RH network.
 
+    This matters because we can ONLY access 3scale from inside RedHat network
+    API V2 tests should be skipped if this returns False - ie. if running in
+    gitlab CI.
+    """
     url = 'https://api.access.stage.cloud.paas.upshift.redhat.com'
     try:
         requests.get(url, verify=False)
