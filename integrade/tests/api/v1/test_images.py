@@ -132,6 +132,8 @@ def test_list_all_images(images_data, superuser):
     start, end = utils.get_time_range()
     params = None
     if superuser:
+        pytest.skip(
+            f'see issue https://gitlab.com/cloudigrade/integrade/issues/139')
         # first check if superuser is able to fetch all images
         response = client.get(urls.IMAGE).json()
         assert response['count'] == len(images1) + len(images2), response
@@ -149,8 +151,8 @@ def test_list_all_images(images_data, superuser):
     for image, expected in zip(images, images1):
         for key, value in expected.items():
             assert image[key] == value, images
-
-
+@pytest.mark.skip(
+    reason='https://gitlab.com/cloudigrade/integrade/issues/139')
 def test_list_specific_image(images_data):
     """Test if a specific image can be fetched.
 
