@@ -52,7 +52,7 @@ def run_remote_python(script, **kwargs):
             for line in result.stdout:
                 print(line)
             raise RuntimeError(
-                f'Remote script failed (container_name="{container_name}")'
+                f'Remote script failed (container_name="{container_name}"'
             )
         elif result.stdout:
             return pickle.loads(result.stdout)
