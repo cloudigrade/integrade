@@ -475,3 +475,11 @@ def test_cloudtrail_updated(
         'trailList']]
     trail_names = [trail['Name'] for trail in trails]
     assert aws_profile['cloudtrail_name'] in trail_names
+    # The following will be addressed in issue
+    # https://gitlab.com/cloudigrade/integrade/issues/138
+    # the_trail = [trail for trail in trails if trail['Name']
+    #              == aws_profile['cloudtrail_name']][0]
+    # the_trail = [trail for trail in trails if trail['Name']
+    #              == aws_profile['cloudtrail_name']][0]
+    # assert the_trail['S3BucketName'].endswith('-cloudigrade-s3')
+    # assert bucket_name not in the_trail['S3BucketName']
