@@ -48,10 +48,9 @@ def test_list_accounts_empty(create_user_account):
         'end': end,
     }
     response = client.get(urls.REPORT_ACCOUNTS, params=params, auth=auth)
-
     account = response.json()['cloud_account_overviews'][0]
 
-    assert account['cloud_account_id'] == acct['cloud_account_id']
+    assert account['cloud_account_id'] == acct['aws_account_id']
     assert account['images'] == 0, repr(account)
     assert account['instances'] == 0, repr(account)
     assert account['rhel_instances'] == 0, repr(account)
@@ -143,7 +142,7 @@ def test_list_account_tagging(conf):
 
     account = response.json()['cloud_account_overviews'][0]
 
-    assert account['cloud_account_id'] == acct['cloud_account_id']
+    assert account['cloud_account_id'] == acct['aws_account_id']
     assert account['images'] == exp_images, repr(account)
     assert account['instances'] == exp_inst, repr(account)
     assert account['rhel_instances'] == exp_rhel, repr(account)
@@ -215,7 +214,7 @@ def test_future_instances(param):
     else:
         info = 'Account created during window'
 
-    assert account['cloud_account_id'] == acct['cloud_account_id']
+    assert account['cloud_account_id'] == acct['aws_account_id']
 
     if param.unknown:
         exp = None
@@ -273,7 +272,7 @@ def test_list_account_while_impersonating(impersonate):
 
     account = response.json()['cloud_account_overviews'][0]
 
-    assert account['cloud_account_id'] == acct['cloud_account_id']
+    assert account['cloud_account_id'] == acct['aws_account_id']
     assert account['images'] == exp_images, repr(account)
     assert account['instances'] == exp_inst, repr(account)
     assert account['rhel_instances'] == exp_rhel, repr(account)
@@ -321,7 +320,7 @@ def test_list_account_with_multiple():
     account = accounts[0]
     account2 = accounts[1]
 
-    assert account['cloud_account_id'] == acct['cloud_account_id']
+    assert account['cloud_account_id'] == acct['aws_account_id']
     assert account2['cloud_account_id'] == acct2['aws_account_id']
     assert account['images'] == exp_images, repr(account)
     assert account['instances'] == exp_inst, repr(account)
@@ -372,7 +371,7 @@ def test_multiple_runs_counted_once():
 
     account = response.json()['cloud_account_overviews'][0]
 
-    assert account['cloud_account_id'] == acct['cloud_account_id']
+    assert account['cloud_account_id'] == acct['aws_account_id']
     assert account['images'] == exp_images, repr(account)
     assert account['instances'] == exp_inst, repr(account)
     assert account['rhel_instances'] == exp_rhel, repr(account)
