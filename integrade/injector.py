@@ -28,8 +28,8 @@ def run_remote_python(script, **kwargs):
         'def _codewrapper():\n'
     wrap_end = '\n_retval = _codewrapper()\n' \
         '_sys.stdout.buffer.write(_pickle.dumps(_retval))\n'
-    script = wrap_start + indent(script, '  ') + wrap_end
-    script = script.encode('utf8')
+    wrapped_script = wrap_start + indent(script, '  ') + wrap_end
+    wrapped_script = wrapped_script.encode('utf8')
 
     if which('oc'):
         result = subprocess.run(['sh',
@@ -41,14 +41,17 @@ def run_remote_python(script, **kwargs):
                                  ' -- python -W ignore manage.py shell'],
                                 stdout=subprocess.PIPE,
                                 stderr=subprocess.PIPE,
-                                input=script,
+                                input=wrapped_script,
                                 timeout=60
                                 )
         if result.returncode != 0:
-            for line in result.stdout:
-                print(line)
             raise RuntimeError(
-                f'Remote script failed (container_name="{container_name}"'
+                f'Remote script failed\n'
+                f'container_name = {container_name}\n'
+                f'stdout = {result.stdout}\n'
+                f'stderr = {result.stderr}\n'
+                f'data = {kwargs}\n'
+                f'script = {script}\n'
             )
         elif result.stdout:
             return pickle.loads(result.stdout)
