@@ -151,6 +151,8 @@ def test_list_all_images(images_data, superuser):
     for image, expected in zip(images, images1):
         for key, value in expected.items():
             assert image[key] == value, images
+
+
 @pytest.mark.skip(
     reason='https://gitlab.com/cloudigrade/integrade/issues/139')
 def test_list_specific_image(images_data):
