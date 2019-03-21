@@ -646,10 +646,12 @@ def test_broken_image(
         cloudtrails_to_delete,
         image_fixture,
 ):
-    """Ensure instances are discovered on account creation.
+    """Ensure Houndigrade handles broken image inspection gracefully.
 
     :id: 723A10AB-A729-41DE-93B2-966DCC6AD71D
-    :description: Ensure Houndigrade handles broken inspection gracefully.
+    :description: When an instance is created from an image that is flawed
+        (ie- garbled files -> yum.conf, /var/lib/rpm), it still gets
+        inspected.
     :steps: 1) Create a user and authenticate with their password
         2) Create instances based off of a broken image
         3) Send a POST with the cloud account information to 'api/v1/account/'
