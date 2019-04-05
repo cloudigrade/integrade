@@ -2,7 +2,6 @@
 import atexit
 import logging
 import os
-import time
 
 import pytest
 
@@ -13,23 +12,24 @@ from selenium.webdriver.support.ui import WebDriverWait
 from widgetastic.browser import Browser
 
 from integrade.config import get_config
-from integrade.constants import CLOUD_ACCOUNT_NAME
-from integrade.injector import inject_aws_cloud_account, inject_instance_data
 from integrade.tests.utils import create_user_account, get_auth
 from integrade.utils import base_url
 
-from .utils import (
-    fill_input_by_label,
-    find_element_by_text,
-    wait_for_page_text,
-)
+from .utils import wait_for_page_text
 from .views import LoginView
-from ...utils import gen_password, uuid4
 
 
 logger = logging.getLogger(__name__)
 USER = None
 
+USER1 = {
+    'username': 'user1@example.com',
+    'password': 'user1@example.com',
+}
+USER2 = {
+    'username': 'user2@example.com',
+    'password': 'user2@example.com',
+}
 
 DRIVERS = {}
 BROWSERS = os.environ.get('UI_BROWSER', 'Chrome').split(',')
@@ -122,67 +122,18 @@ def browser_session(request, scope='function'):
         del DRIVERS[browser]
 
 
-@pytest.fixture
-def cloud_account(ui_user, drop_account_data):
-    """Create a cloud account, return the auth object and account details."""
-    return inject_aws_cloud_account(ui_user['id'], name=CLOUD_ACCOUNT_NAME)
-
-
-@pytest.fixture
-def cloud_account_data(cloud_account, ui_user):
-    """Create a factory to create cloud account data.
-
-    This fixture creates a factory (a function) which will insert data into a
-    newly created cloud account. Repeated calls will insert the data into the
-    same cloud account. Data is inserted with a given image tag and a series
-    of instance events, given in either `datetime` objects or day offsets from
-    the current time.
-
-    Create one instance with a RHEL image that was powered on 5 days ago:
-
-        cloud_account_data("rhel", [5])
-
-    Create three instances from a single non-RHEL, non-OpenShift image that
-    ran for two weeks in September:
-
-        image_id = "my_image_id"
-        start = datetime(2018, 9, 1)
-        stop = datetime(2018, 9, 14)
-        for i in range(3):
-            cloud_account_data("", [start, stop], ec2_ami_id=image_id)
-    """
-    def factory(tag, events, **kwargs):
-        name = kwargs.pop('name', None)
-        if name:
-            inject_aws_cloud_account(ui_user['id'], name=name)
-        inject_instance_data(cloud_account['id'], tag, events, **kwargs)
-    return factory
-
-
-@pytest.fixture()
-def ui_user():
+def ui_user(user_info):
     """Create a user for use in a UI test."""
-    global USER
-    if USER:
-        return USER
-    else:
-        username = uuid4() + '@example.com'
-        password = gen_password()
-        user = create_user_account({
-            'username': username,
-            'email': username,
-            'password': password,
-        })
-        get_auth(user)
-        logger.debug('user: %s / %s', username, password)
+    user = create_user_account(user_info)
+    get_auth(user)
+    logger.debug('user: %s / %s', user['username'], user['password'])
 
-        USER = user
-        return user
+    return user
 
 
 @pytest.fixture()
-def ui_loginpage_empty(browser_session, ui_user):
-    """Fixture factory to navigate to the login page."""
+def ui_loginpage_empty(browser_session):
+    """Tool to navigate to the login page."""
     selenium = browser_session
 
     def _():
@@ -200,9 +151,8 @@ def ui_loginpage_empty(browser_session, ui_user):
     return _
 
 
-@pytest.fixture()
 def ui_loginpage(ui_loginpage_empty, ui_user):
-    """Fixture factory to navigate to the login and fill in the username."""
+    """Tool to navigate to the login and fill in the username."""
     def _():
         browser, login = ui_loginpage_empty()
         login.username.fill(ui_user['username'])
@@ -210,9 +160,8 @@ def ui_loginpage(ui_loginpage_empty, ui_user):
     return _
 
 
-@pytest.fixture
 def ui_dashboard(browser_session, ui_loginpage, ui_user):
-    """Fixture to navigate to the dashboard by logging in."""
+    """Tool to navigate to the dashboard by logging in."""
     selenium = browser_session
     if 'Welcome to Cloud Meter' in selenium.page_source:
         browser = Browser(selenium)
@@ -242,9 +191,8 @@ def ui_dashboard(browser_session, ui_loginpage, ui_user):
     return browser, login
 
 
-@pytest.fixture
 def ui_acct_list(browser_session, ui_loginpage, ui_user):
-    """Fixture to navigate to the account list by logging in."""
+    """Tool to navigate to the account list by logging in."""
     selenium = browser_session
     if 'Welcome to Cloud Meter' in selenium.page_source:
         browser = Browser(selenium)
@@ -269,49 +217,49 @@ def ui_acct_list(browser_session, ui_loginpage, ui_user):
     return browser, login
 
 
-@pytest.fixture
-def ui_addacct_page1(browser_session, ui_dashboard):
-    """Open the Add Account dialog."""
-    selenium = browser_session
-    browser, login = ui_dashboard
-
-    browser.refresh()
-    time.sleep(0.25)
-
-    btn_add_account = find_element_by_text(selenium, 'Add Account')
-    btn_add_account.click()
-
-    dialog = selenium.find_element_by_css_selector('[role=dialog]')
-
-    return {
-        'dialog': dialog,
-        'dialog_next': find_element_by_text(dialog, 'Next'),
-    }
+@pytest.fixture()
+def u1_user():
+    """Create User1 for UI tests."""
+    return ui_user(USER1)
 
 
-@pytest.fixture
-def ui_addacct_page2(browser_session, ui_addacct_page1):
-    """Navigate to the second page of the Add Account dialog."""
-    selenium = browser_session
-    profile_name = 'My Account'
-    dialog = ui_addacct_page1['dialog']
-
-    fill_input_by_label(selenium, dialog, 'Account Name', profile_name)
-    ui_addacct_page1['dialog_next'].click()
-
-    return ui_addacct_page1
+@pytest.fixture()
+def u2_user():
+    """Create User2 for UI tests."""
+    return ui_user(USER2)
 
 
-@pytest.fixture
-def ui_addacct_page3(ui_addacct_page2):
-    """Navigate to the 3rd page of the dialog, with the ARN field."""
-    dialog = ui_addacct_page2['dialog']
-    dialog_next = ui_addacct_page2['dialog_next']
+@pytest.fixture()
+def u1_loginpage(ui_loginpage_empty, u1_user):
+    """Fixture factory to navigate/login and fill in user1 username."""
+    return ui_loginpage(ui_loginpage_empty, u1_user)
 
-    dialog_next.click()
 
-    dialog_add = find_element_by_text(dialog, 'Add')
-    assert dialog_add.get_attribute('disabled')
+@pytest.fixture()
+def u2_loginpage(ui_loginpage_empty, u2_user):
+    """Fixture factory to navigate/login and fill in user2 username."""
+    return ui_loginpage(ui_loginpage_empty, u2_user)
 
-    ui_addacct_page2['dialog_add'] = dialog_add
-    return ui_addacct_page2
+
+@pytest.fixture()
+def u1_dashboard(browser_session, u1_loginpage, u1_user):
+    """Fixture to navigate to the dashboard user1 by logging in."""
+    return ui_dashboard(browser_session, u1_loginpage, u1_user)
+
+
+@pytest.fixture()
+def u2_dashboard(browser_session, u2_loginpage, u2_user):
+    """Fixture to navigate to the dashboard user2 by logging in."""
+    return ui_dashboard(browser_session, u2_loginpage, u2_user)
+
+
+@pytest.fixture()
+def u1_acct_list(browser_session, u1_loginpage, u1_user):
+    """Fixture to navigate to user1 account list by logging in."""
+    return ui_acct_list(browser_session, u1_loginpage, u1_user)
+
+
+@pytest.fixture()
+def u2_acct_list(browser_session, u2_loginpage, u2_user):
+    """Fixture to navigate to user2 account list by logging in."""
+    return ui_acct_list(browser_session, u2_loginpage, u2_user)

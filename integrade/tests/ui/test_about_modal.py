@@ -17,8 +17,7 @@ from .utils import find_element_by_text
 logger = logging.getLogger(__name__)
 
 
-def test_elements_present_in_modal(cloud_account_data,
-                                   browser_session, ui_dashboard):
+def test_elements_present_in_modal(browser_session, u1_dashboard):
     """Confirm that necessary elements are on the cloudigrade about modal.
 
     :id: 85eac06a-7300-422a-9a3a-f83dd55cdb61
@@ -30,10 +29,18 @@ def test_elements_present_in_modal(cloud_account_data,
         - Modal with app information shows up
     """
     selenium = browser_session
-    menu = selenium.find_element_by_id('app-help-dropdown')
-    menu.click()
+    menu_bar_items = selenium.find_elements_by_xpath(
+        '//div[@class="pf-l-toolbar__item"]'
+        )
+    about_dropdown = menu_bar_items[0]
+    about_dropdown.click()
     time.sleep(0.25)
-    find_element_by_text(browser_session, 'About').click()
+
+    about_button = menu_bar_items[0].find_elements_by_xpath(
+        '//ul/li/button[text()="About"]'
+        )
+    about_button[0].click()
+    time.sleep(0.25)
 
     for item in ('Username',
                  'Browser Version',

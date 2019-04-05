@@ -7,7 +7,7 @@ import urllib3
 
 import yaml
 
-from integrade import exceptions, injector, utils
+from integrade import exceptions
 
 
 # Suppress HTTPS warnings against our test server without a cert
@@ -21,7 +21,7 @@ _CONFIG = None
 _AWS_CONFIG = None
 
 
-def get_config(create_superuser=True, need_base_url=True):
+def get_config(need_base_url=True):
     """Return a copy of the global config dictionary.
 
     This method makes use of a cache. If the cache is empty, the configuration
@@ -113,25 +113,6 @@ def get_config(create_superuser=True, need_base_url=True):
             raise exceptions.MissingConfigurationError(
                 '\n'.join(missing_config_errors)
             )
-        super_username = os.environ.get(
-            'CLOUDIGRADE_USER', utils.uuid4()
-        )
-        _CONFIG['super_user_name'] = super_username
-        super_password = os.environ.get(
-            'CLOUDIGRADE_PASSWORD', utils.gen_password()
-        )
-        _CONFIG['super_user_password'] = super_password
-        token = os.environ.get('CLOUDIGRADE_TOKEN', False)
-        if not token and create_superuser:
-            try:
-                token = injector.make_super_user(
-                    super_username, super_password)
-            except RuntimeError as e:
-                raise exceptions.MissingConfigurationError(
-                    'Could not create a super user or token, error:\n'
-                    f'{repr(e)}'
-                )
-        _CONFIG['superuser_token'] = token
     return deepcopy(_CONFIG)
 
 

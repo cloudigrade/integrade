@@ -8,7 +8,7 @@ import pytest
 
 import yaml
 
-from integrade import config, exceptions, injector, utils
+from integrade import config, utils
 
 MOCK_AWS_CONFIG = """
 profiles:
@@ -51,7 +51,6 @@ def test_get_config(ssl, protocol):
             os.environ['USE_HTTPS'] = use_https
             os.environ['SSL_VERIFY'] = 'True' if ssl else 'False'
             cfg = config.get_config()
-            assert cfg['superuser_token'] == token
             assert cfg['base_url'] == 'example.com'
             assert cfg['scheme'] == protocol
             assert cfg['ssl-verify'] == ssl
@@ -62,52 +61,6 @@ def test_get_config(ssl, protocol):
                 f'{cloudtrail_prefix[:-1]}{account_number}'
             )
             assert cfg['cloudigrade_s3_bucket'] == bucket_name
-
-
-def test_negative_super_user_creation_fails():
-    """Test that if super user creation fails, we get the right exception.
-
-    If no super user token is provided, then config.get_config will call
-    injector.make_super_user. If this fails, we want config.get_config
-    to bail out with as informative of a message as possible, so tests
-    can fail more gracefully and we can know what happened.
-
-    This test ensures that if injector.make_super_user throws a RuntimeError,
-    that config.get_config raises an exceptions.MissingConfigurationError so
-    so that integrade.tests.conftest.check_superuser can catch that and let
-    the user know what happened.
-    """
-    with mock.patch.object(config, '_CONFIG', None):
-        with mock.patch.dict(os.environ, {}, clear=True):
-            account_number = int(time.time())
-            os.environ['CLOUDIGRADE_USER'] = 'bob'
-            os.environ['CLOUDIGRADE_PASSWORD'] = 'bob123'
-            os.environ['CLOUDIGRADE_BASE_URL'] = 'example.com'
-            os.environ['CLOUDIGRADE_ROLE_CUSTOMER1'] = '{}:{}:{}'.format(
-                utils.uuid4(), account_number, utils.uuid4())
-            os.environ['AWS_ACCESS_KEY_ID_CUSTOMER1'] = utils.uuid4()
-            with mock.patch.object(
-                    injector, 'make_super_user') as make_super_user:
-                make_super_user.side_effect = RuntimeError()
-                with pytest.raises(exceptions.MissingConfigurationError):
-                    config.get_config()
-
-
-def test_negative_get_config_missing():
-    """If a base url is specified in the environment, we use it."""
-    with mock.patch.object(config, '_CONFIG', None):
-        with mock.patch.dict(os.environ, {}, clear=True):
-            with mock.patch.object(
-                    injector, 'make_super_user') as make_super_user:
-                make_super_user.return_value = utils.uuid4()
-                os.environ['CLOUDIGRADE_ROLE_CUSTOMER1'] = '{}:{}:{}'.format(
-                    utils.uuid4(), '1234', utils.uuid4())
-                try:
-                    config.get_config()
-                except exceptions.MissingConfigurationError as e:
-                    msg = str(e)
-                    msg.replace('\n', ' ')
-                    assert 'AWS access key id' in msg
 
 
 def test_get_aws_image_config():

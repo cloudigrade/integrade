@@ -8,7 +8,7 @@ from urllib.parse import urljoin
 
 import pytest
 
-from integrade import api, config, exceptions
+from integrade import api
 from integrade.tests import urls, utils
 from integrade.tests.aws_utils import (
     delete_bucket_and_cloudtrail,
@@ -48,19 +48,6 @@ def create_user_account():
             account = client.get(
                 urls.CLOUD_ACCOUNT, auth=auth).json()['results'][0]
             client.delete(urljoin(urls.CLOUD_ACCOUNT, str(account['id'])))
-
-
-@pytest.fixture(scope='session', autouse=True)
-def check_superuser():
-    """Ensure that we have a valid superuser for the test run."""
-    try:
-        config.get_config()
-        client = api.Client(response_handler=api.echo_handler)
-        response = client.get(urls.AUTH_ME)
-        assert response.status_code == 200, response.url
-    except (AssertionError, exceptions.MissingConfigurationError) as e:
-        pytest.fail('Super user creation must have failed. '
-                    f'Error: {repr(e)}')
 
 
 @pytest.fixture(scope='session', autouse=True)

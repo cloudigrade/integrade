@@ -10,6 +10,8 @@
 """
 import random
 
+import pytest
+
 from integrade import api
 from integrade.config import get_config
 from integrade.injector import inject_aws_cloud_account
@@ -18,6 +20,7 @@ from integrade.tests.utils import create_user_account, get_auth
 from integrade.utils import gen_password, uuid4
 
 
+@pytest.skip(reason='this doesn\'t seem like an actual test. No assertion.')
 def test_create():
     """Ensure user accounts can be created with username and password.
 
@@ -37,6 +40,7 @@ def test_create():
     })
 
 
+@pytest.skip(reason='this doesn\'t seem like an actual test. No assertion.')
 def test_create_with_email():
     """Ensure user accounts can be created with username, email and password.
 
@@ -56,6 +60,7 @@ def test_create_with_email():
     })
 
 
+@pytest.skip(reason='superuser')
 def test_user_list(drop_account_data):
     """Super users can request lists of created user accounts.
 

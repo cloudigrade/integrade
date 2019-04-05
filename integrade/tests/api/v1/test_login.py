@@ -17,6 +17,7 @@ from integrade.tests.utils import create_user_account
 from integrade.utils import uuid4
 
 
+@pytest.skip(reason='injector, also redundant?')
 @pytest.mark.smoketest
 def test_login_logout():
     """Test that we can login, make requests and logout to the server.
@@ -66,6 +67,7 @@ def test_login_logout():
     assert json_response['detail'] == 'Invalid token.'
 
 
+@pytest.skip(reason='superuser, injector')
 def test_superuser_login():
     """Test that we can login as a super user and identify we are super.
 
@@ -94,6 +96,7 @@ def test_superuser_login():
     assert json_response['is_superuser']
 
 
+@pytest.skip(reason='Redundant?')
 @pytest.mark.parametrize(
     'endpoint', ('account', 'event', 'instance', 'image', 'report/instances'))
 def test_token_negative(endpoint):

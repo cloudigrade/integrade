@@ -4,7 +4,7 @@ import copy
 from datetime import datetime, time, timedelta, timezone
 from multiprocessing import Pool
 
-from integrade import api, config, injector
+from integrade import api, config
 from integrade.tests import aws_utils, urls
 from integrade.utils import gen_password, uuid4
 
@@ -38,7 +38,6 @@ def create_cloud_account(auth, n, cloudtrails_to_delete=None, name=_SENTINEL):
         auth=auth
     )
     assert create_response.status_code == 201
-    injector.clear_images(create_response.json()['id'])
 
     if isinstance(cloudtrails_to_delete, list):
         cloudtrails_to_delete.append(
@@ -63,11 +62,6 @@ def create_user_account(user=None):
     else:
         user = copy.deepcopy(user)
 
-    user['id'] = injector.run_remote_python("""
-        from django.contrib.auth.models import User
-        return User.objects.create_user(**user).id
-    """, **locals())
-
     return user
 
 
@@ -81,30 +75,6 @@ def delete_cloudtrails(cloudtrails_to_delete=None):
         with Pool() as p:
             p.map(
                 aws_utils.delete_cloudtrail, cloudtrails_to_delete)
-
-
-def drop_account_data():
-    """Drop all account data from the cloudigrade's database."""
-    injector.run_remote_python("""
-    from account.models import Account
-    from account.models import AwsMachineImage, AwsMachineImageCopy
-    # Must delete AwsMachineImageCopy first because they reference
-    # AwsMachineImage objects
-    AwsMachineImageCopy.objects.all().delete()
-    AwsMachineImage.objects.all().delete()
-    Account.objects.all().delete()
-    """)
-
-
-def drop_image_data():
-    """Drop all image data from the cloudigrade's database."""
-    injector.run_remote_python("""
-    from account.models import AwsMachineImage, AwsMachineImageCopy
-    # Must delete AwsMachineImageCopy first because they reference
-    # AwsMachineImage objects
-    AwsMachineImageCopy.objects.all().delete()
-    AwsMachineImage.objects.all().delete()
-    """)
 
 
 def get_auth(user=None):

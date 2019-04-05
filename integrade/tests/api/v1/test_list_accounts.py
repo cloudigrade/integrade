@@ -24,39 +24,6 @@ from integrade.tests import (
 )
 
 
-def test_list_accounts_empty(create_user_account):
-    """Test accounts without any instance or image history have empty summaries.
-
-    :id: 2a152ef6-fcd8-491c-b3cc-bda81699453a
-    :description: Test that an account without any instances or images shows up
-        in the results with 0 counts.
-    :steps:
-        1) Add a cloud account
-        2) GET from the account report endpoint
-    :expectedresults:
-        - The account is in the response and matches the created account
-        - Instances, images, RHEL, and Openshift all have 0 counts
-    """
-    user = create_user_account()
-    auth = utils.get_auth(user)
-    acct = inject_aws_cloud_account(user['id'])
-    client = api.Client(authenticate=False)
-
-    start, end = utils.get_time_range()
-    params = {
-        'start': start,
-        'end': end,
-    }
-    response = client.get(urls.REPORT_ACCOUNTS, params=params, auth=auth)
-    account = response.json()['cloud_account_overviews'][0]
-
-    assert account['cloud_account_id'] == acct['aws_account_id']
-    assert account['images'] == 0, repr(account)
-    assert account['instances'] == 0, repr(account)
-    assert account['rhel_instances'] == 0, repr(account)
-    assert account['openshift_instances'] == 0, repr(account)
-
-
 class InstanceTagParams(namedtuple('InstanceTagParams',
                                    'name '
                                    'image_type '
@@ -93,6 +60,7 @@ class InstanceTagParams(namedtuple('InstanceTagParams',
     """
 
 
+@pytest.skip(reason='Maybe remove- check unit and UI tests first.')
 @pytest.mark.parametrize('conf', [
     # No tagged images, started today and 2 weeks ago
     InstanceTagParams('untagged today', '', 1, 1, 0, 0, 0, None, 0),
@@ -162,6 +130,7 @@ class FutureParam(namedtuple('FutureParam', 'acct_age unknown')):
     """
 
 
+@pytest.skip(reason='At least fix docstring. Also, uses injector. Remove?')
 @pytest.mark.parametrize('param', [
     # We assume to know the information if the account existed during any
     # part of the date range
@@ -226,6 +195,7 @@ def test_future_instances(param):
     assert account['openshift_instances'] == exp, info
 
 
+@pytest.skip(reason='Superuser, injector')
 @pytest.mark.parametrize('impersonate', (False, True))
 def test_list_account_while_impersonating(impersonate):
     """Test account data fetched via impersonating a user as a superuser.
@@ -279,6 +249,7 @@ def test_list_account_while_impersonating(impersonate):
     assert account['openshift_instances'] == exp_openshift, repr(account)
 
 
+@pytest.skip(reason='Should be tested via UI')
 def test_list_account_with_multiple():
     """Test that a user with multiple accounts can list all.
 
@@ -328,6 +299,7 @@ def test_list_account_with_multiple():
     assert account['openshift_instances'] == exp_openshift, repr(account)
 
 
+@pytest.skip(reason='Tested via UI and unit tests')
 def test_multiple_runs_counted_once():
     """Test instances being run a different times in the same period count once.
 
