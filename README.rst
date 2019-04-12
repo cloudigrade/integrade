@@ -47,7 +47,7 @@ will help you do a development installation so you can send your great
 contributions.
 
 To do a development installation you have to clone the repository and install
-the develpment requirements. Run the following commands to do that::
+the development requirements. Run the following commands to do that::
 
     git clone git@gitlab.com:cloudigrade/integrade.git
     cd integrade
@@ -59,7 +59,7 @@ starting point:
 
 * ``integrade`` directory: place where all integrade automation framework
   modules are created. There you will find, for example, an API client,
-  utilities funtions, etc...
+  utilities functions, etc...
 * ``integrade/tests`` directory: place where all cloudigrade's functional tests
   are created. There you will find modules for testing cloudigrade's projects
   and features.
@@ -103,7 +103,7 @@ Create a file `.env-pre-setup` in the integrade root directory::
     export AWS_SECRET_ACCESS_KEY_DEV08CUSTOMER=XXX
     export CLOUDIGRADE_ROLE_DEV08CUSTOMER=XXX
 
-If you do know know which credentials to use ask another integrade developer
+If you don't know which credentials to use ask another integrade developer
 for assistance.
 
 Automatic setup configures your environment to run tests against a remote
@@ -233,7 +233,7 @@ those repositories with the name of your branch, for example
 ``update_integrade_tools``.
 
 To run ``integrade`` locally against an MR environment, it is necessary to log your
-local ``oc`` (the command line OpenShift client` into the test environment. You
+local ``oc`` (the command line `OpenShift client`) into the test environment. You
 can do this by logging in through the web UI and in the menu opened by clicking
 on your user name, there is an option to ``Copy Login Command``. Paste this to
 the terminal to log the ``oc`` client into that OpenShift cluster.
