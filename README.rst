@@ -326,6 +326,34 @@ The UI tests can be easily run either on Chrome or Firefox:
     py.test -v integrade/tests/ui/ --driver Chrome
     py.test -v integrade/tests/ui/ --driver Firefox
 
+Running tests via Selenium-driven local browsers will require use of
+Selenium with so called `WebDrivers` to remote control
+the browser's interface with introspection.
+
+Download the `WebDriver` for the browser you plan to use with the tests:
+
+* Chrome (chromedriver) https://sites.google.com/a/chromium.org/chromedriver/
+* Firefox (geckdodriver) https://github.com/mozilla/geckodriver
+
+Then install the `WebDriver` binary in a directory available in the environment
+variable `PATH`, like `/usr/local/bin/` or `~/bin/`.
+
+Integrade by default will run the tests on Chrome, to customize the
+browser selection, just define the environment variable `UI_BROWSER`
+to the one you want to run the tests on, for example `Chrome` or `Firefox`.
+
+If you want to watch the browser action during the tests, export
+the environment variable `UITEST_SHOW` with `true`, otherwise
+the tests will run in headless mode.
+
+Running the tests on Firefox:
+
+.. code::
+
+    geckodriver --version
+    export UI_BROWSER=Firefox
+    export UITEST_SHOW=true
+    py.test -v integrade/tests/ui/
 
 Troubleshooting Test Runs
 =========================
