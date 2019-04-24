@@ -58,6 +58,26 @@ class wait_for_result(object):
         return None
 
 
+def back_in_time(session, months):
+    """Manipulate browser to go to previous months.
+
+    :param months: A timespan of how far back you want to go measured in a
+        number of months.
+    :param session: Pass browser_session from current location in call.
+    :returns: Nothing. The browser window should be updated to the new date
+    filter.
+    """
+    dropdown = find_element_by_text(session, 'Last 30 Days')
+    dropdown.click()
+    time.sleep(0.25)
+    toolbar = session.find_elements_by_xpath(
+        '//form[@class="toolbar-pf-actions"]')
+    dropdowns = toolbar[0].find_elements_by_xpath('//div[@class="form-group"]')
+    desired_month = dropdowns[0].find_elements_by_xpath('//ul/li/a')
+    desired_month[months].click()
+    time.sleep(0.25)
+
+
 def get_element_depth(element):
     """Determine the depth of the element in the page, counting from body.
 
@@ -310,3 +330,48 @@ class return_url:
     def __exit__(self, *args):
         """Return to original URL outside context."""
         self.browser.get(self.url)
+
+
+def unflag_everything(browser_session):
+    """Check that all flaggable boxes are not flagged."""
+    flag_path = '//span/span[contains(@class, "fa-flag")]'
+    # check if on summary or detail page (url ends in '/accounts')
+    current_url = browser_session.current_url
+    last_word = current_url.rsplit('/', 1)[1]
+    summary_page = bool(last_word == 'accounts')
+    while browser_session.find_elements_by_xpath(flag_path):
+        if summary_page:
+            # Since on summary page, go to detail page to interact with flags.
+            # Find flagged item
+            flag_ctns = browser_session.find_elements_by_xpath(flag_path)
+            # find it's parent div to get to detail page
+            ctn = flag_ctns[0].find_element_by_xpath('../../..')
+            ctn.click()
+            time.sleep(0.25)
+
+        # Expand details to expose flag interface
+        ami_id = browser_session.find_element_by_class_name(
+            'list-view-pf-description')
+        ami_id.click()
+        time.sleep(0.25)
+
+        ctn = browser_session.find_elements_by_xpath(
+            '//div[@class="cloudmeter-list-container"]')
+        ctn = ctn[0]
+        flags = find_elements_by_text(ctn, 'Flagged for review')
+
+        # flags is a list of nested divs that all contain the text 'Flagged for
+        # review by virtue of their child dev containing the text. I only want
+        # to click on the inner-most one. So of the 8 returned, the third and
+        # seventh are the ones.
+        if bool(flags) and len(flags) == 4:
+            flags[3].click()
+        elif bool(flags) and len(flags) == 8:
+            flags[3].click()
+            flags[7].click()
+        # Go back to the main page if that's where you started
+        if summary_page:
+            accounts = browser_session.find_elements_by_class_name(
+                'cloudmeter-breadcrumb')[0]
+            link = find_element_by_text(accounts, 'Accounts')
+            link.click()

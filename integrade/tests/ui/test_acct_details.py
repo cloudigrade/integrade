@@ -12,9 +12,10 @@
 import time
 
 from .utils import (
+    back_in_time,
     find_element_by_text,
     find_elements_by_text,
-    return_url,
+    unflag_everything,
 )
 
 
@@ -27,8 +28,8 @@ def product_id_tag_present(driver, tag):
     """
     time.sleep(0.5)
     results = driver.find_elements_by_xpath(
-        '//div[contains(@class,\'list-view-pf-main-info\')]'
-        f'//*[text()=\'{tag}\']'
+        "//div[contains(@class,'list-view-pf-main-info')]"
+        f"//*[text()='{tag}']"
     )
     if results:
         return results[0].is_displayed()
@@ -36,20 +37,23 @@ def product_id_tag_present(driver, tag):
         return False
 
 
-def test_empty(browser_session, u1_acct_list):
+def test_empty(new_session, browser_session, u1_acct_list):
     """Test that accounts with no activity have no detail view.
 
     :id: fb671b8a-92b7-4493-b706-b13bf76036b2
     :description: Test accounts with no activity have no detail view.
     :steps:
-        1) Create a user and a cloud account.
-        2) Assert the account with no usage have no detail view.
+        1) Logon to user1 account.
+        2) Click on user1clount2.
+        3) Assert the account with no usage have no detail view.
     :expectedresults:
         Only accounts with usage have detail views.
     """
     selenium = browser_session
     clount = 'user1clount2'
-    account = find_element_by_text(selenium, clount, timeout=1)
+    account = find_element_by_text(selenium, clount, timeout=3)
+    print('Account innerText: ')
+    print(account.get_attribute('innerText'))
     account.click()
     assert find_element_by_text(
         selenium,
@@ -68,8 +72,8 @@ def test_hours_image(new_session, u2_acct_list, browser_session):
     :description: Test that the account detail view shows the detailed
         breakdown of hours used per image.
     :steps:
-        1) Given a user and cloud account, mock usage for an image.
-        2) Navigate to the account detail view.
+        1) Log in as user2.
+        2) Navigate to the clount3 detail view.
         3) Assert that the image is listed.
         4) Assert that the image has the correct number of hours displayed.
     :expectedresults:
@@ -77,24 +81,26 @@ def test_hours_image(new_session, u2_acct_list, browser_session):
         used displayed correctly.
     """
     selenium = browser_session
-    clount = 'user2clount3'
-    account = find_element_by_text(selenium, clount, timeout=2)
+    unflag_everything(selenium)
+    back_in_time(selenium, 1)
+    clount2 = find_elements_by_text(
+        browser_session, 'user2clount2', exact=False)
+    account = clount2[19].find_element_by_xpath(
+        '../../../..')
+    account.click()
+    time.sleep(1)
+    ec2_ami_id = 'ami-8f6ad3ef'
+    assert find_element_by_text(selenium, ec2_ami_id, exact=False,
+                                timeout=0.5)
+    info_bar = browser_session.find_element_by_css_selector(
+        '.cloudmeter-list-view-card'
+    )
+    assert find_element_by_text(info_bar, f'1364RHOCP', exact=False), \
+        f'seen: {info_bar.get_attribute("innerText")}, ' \
+        f'expected: 1 RHEL'
 
-    with return_url(selenium):
-        account.click()
-        time.sleep(1)
-        ec2_ami_id = 'Joshua Perez-Access2'
-        assert find_element_by_text(selenium, ec2_ami_id, exact=False,
-                                    timeout=0.5)
-        info_bar = browser_session.find_element_by_css_selector(
-            '.cloudmeter-list-view-card'
-        )
-        assert find_element_by_text(info_bar, f'1RHEL', exact=False), \
-            f'seen: {info_bar.get_attribute("innerText")}, ' \
-            f'expected: 1 RHEL'
 
-
-def test_image_flagging(browser_session, u2_acct_list):
+def test_image_flagging(new_session, browser_session, u2_acct_list):
     """Flagging images should negate the detected states w/ proper indication.
 
     :id: 5c9b8d7c-9b0d-43b5-ab1a-220556adf99c
@@ -111,39 +117,21 @@ def test_image_flagging(browser_session, u2_acct_list):
         - The graph should be updated with new data
     """
     selenium = browser_session
+    # Be sure to start test with nothing flagged:
+    unflag_everything(selenium)
+    assert find_element_by_text(selenium, '3 Instances', timeout=1.5)
 
-    assert find_element_by_text(selenium, '3 Instances', timeout=1)
-
-    account = find_element_by_text(selenium, 'user2clount1', timeout=0.5)
+    account = find_element_by_text(selenium, 'user2clount2', timeout=0.5)
 
     account.click()
     time.sleep(1)
 
     # test data should be old so it's not updating/changing
-    dropdown = find_element_by_text(selenium, 'Last 30 Days')
-    dropdown.click()
-    time.sleep(0.25)
-    march = find_element_by_text(selenium, '2019 March')
-    march.click()
-    time.sleep(0.25)
-
+    back_in_time(selenium, 1)
     ami_id = selenium.find_elements_by_xpath(
-        '//div/span/strong/span[text()="ami-31dda77f"]')
+        '// div/span/strong/span[text()="ami-8f6ad3ef"]')
     ami_id[0].click()
     time.sleep(0.25)
-
-    # Be sure to start test with nothing flagged:
-    ctn = selenium.find_elements_by_xpath(
-        '//div[@class="cloudmeter-list-container"]')
-    ctn = ctn[0]
-    flags = find_elements_by_text(ctn, 'Flagged for review')
-    # flags is a list of nested divs that all contain the text 'Flagged for
-    # review by virtue of their child dev containing the text. I only want
-    # to click on the inner-most one. So of the 8 returned, the third and
-    # seventh are the ones.
-    if bool(flags):
-        flags[3].click()
-        flags[7].click()
 
     list_header = selenium.find_elements_by_class_name(
         'list-group-item-header')
@@ -164,7 +152,7 @@ def test_image_flagging(browser_session, u2_acct_list):
     time.sleep(0.25)
 
     # check that flagged, RHEL displays hours and a flag
-    assert find_element_by_text(list_header, f'877RHEL', exact=False)
+    assert find_element_by_text(list_header, f'744RHEL', exact=False)
     # check that the flag is present
     rhel_flag = rhel_ctn.find_elements_by_xpath(
         '//span/span[contains(@class, "fa-flag")]')
@@ -178,12 +166,12 @@ def test_image_flagging(browser_session, u2_acct_list):
         '//input[@type="checkbox"]')
     rhocp_checkbox = rhocp_checkbox[1]
     # check that unflagged, RHOCP is not detected in the info bar
-    assert find_element_by_text(list_header, f'N/ARHOCP', exact=False)
+    assert find_element_by_text(list_header, f'1364RHOCP', exact=False)
     # flag/challenge RHOCP
     rhocp_checkbox.click()
     time.sleep(0.25)
     # check that flagged, RHOCP displays hours and a flag
-    assert find_element_by_text(list_header, f'2642RHOCP', exact=False)
+    assert find_element_by_text(list_header, f'N/ARHOCP', exact=False)
     # check that the flag is present
     rhocp_flag = rhocp_ctn.find_elements_by_xpath(
         '//span/span[contains(@class, "fa-flag")]')

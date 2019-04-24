@@ -11,14 +11,14 @@
 import pytest
 
 from integrade import api
-from integrade.injector import (
-    inject_aws_cloud_account,
-    inject_instance_data,
-)
+# from integrade.injector import (
+#     inject_aws_cloud_account,
+#     inject_instance_data,
+# )
 from integrade.tests import urls, utils
 
 
-@pytest.skip(reason='TODO refactor')
+@pytest.mark.skip(reason='TODO refactor')
 def test_past_without_instances():
     """Test accounts with instances only after the filter period.
 
@@ -35,7 +35,8 @@ def test_past_without_instances():
     """
     user = utils.create_user_account()
     auth = utils.get_auth(user)
-    acct = inject_aws_cloud_account(user['id'])
+    # TODO: refactor inject_aws_cloud_account to use seed data
+    acct = ''  # inject_aws_cloud_account(user['id'])
     client = api.Client(authenticate=False)
 
     # ask for last 30 days
@@ -52,11 +53,12 @@ def test_past_without_instances():
     assert images == [], repr(images)
 
     # No tagged images, started 60 days ago and stopped 45 days ago
-    image_type = ''
+    # image_type = ''
     instance_start = 60
     instance_end = 45
     events = [instance_start, instance_end]
-    inject_instance_data(acct['id'], image_type, events)
+    print(events)
+    # inject_instance_data(acct['id'], image_type, events)
 
     # test that still have no images in report
     response = client.get(urls.REPORT_IMAGES, params=params, auth=auth)

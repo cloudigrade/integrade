@@ -23,10 +23,15 @@ def test_sysconfig():
     :steps: Do an authenticated GET requests to /api/v1/sysconfig/ and check
         the response.
     :expectedresults: The server returns a 201 response with the expected
-        configuration information.
+        configuration information. The api.json_handler will raise an error if
+        the response_code isn't a successful one - ie 2XX OK, 4XX or 5XX NOK.
     """
-    auth = get_auth()
-    client = api.Client(response_handler=api.json_handler)
+    user = {
+        'username': 'user1@example.com',
+        'password': 'user1@example.com',
+    }
+    auth = get_auth(user)
+    client = api.Client(response_handler=api.json_handler, token=auth)
     response = client.get(urls.SYSCONFIG, auth=auth)
     assert set(response.keys()) == set((
         'aws_account_id',

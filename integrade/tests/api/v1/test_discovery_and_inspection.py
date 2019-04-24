@@ -38,7 +38,7 @@ from integrade.exceptions import MissingConfigurationError
 from integrade.tests import aws_utils, urls
 from integrade.tests.aws_utils import aws_image_config_needed
 from integrade.tests.constants import AWS_ACCOUNT_TYPE
-from integrade.tests.utils import drop_account_data, get_auth
+from integrade.tests.utils import get_auth
 
 ImageData = namedtuple(
     'ImageData',
@@ -197,7 +197,7 @@ def get_s3_bucket_name():
     bucket_name = config.get_config()['cloudigrade_s3_bucket']
     if not bucket_name:
         raise MissingConfigurationError(
-            'Need to know the name of cloudigrade\'s s3'
+            "Need to know the name of cloudigrade's s3"
             ' bucket to mock events!'
         )
     return bucket_name
@@ -469,7 +469,6 @@ def test_find_running_instances(
     if image_name != image_fixture.image_name \
             or image_type != image_fixture.image_type:
         pytest.skip(f'Only testing {IMAGES_TO_TEST}')
-    drop_account_data()
 
     auth = get_auth()
     client = api.Client(authenticate=False, response_handler=api.json_handler)
@@ -547,8 +546,6 @@ def test_on_off_events(
         4) The bad events are ignored.
         5) The power on events events eventually recorded.
     """
-    drop_account_data()
-
     # check and make sure the instance is not running
     client = aws_utils.aws_session(aws_profile['name']).client('ec2')
     reservations = client.describe_instances(Filters=[{
@@ -670,7 +667,6 @@ def test_broken_image(
     source_image = image_fixture.source_image
     source_image_id = source_image['image_id']
     instance_id = image_fixture.instance_id
-    drop_account_data()
 
     auth = get_auth()
     client = api.Client(authenticate=False, response_handler=api.json_handler)

@@ -11,25 +11,19 @@
 import pytest
 
 from integrade import api, config
-from integrade.injector import (
-    inject_aws_cloud_account,
-)
 from integrade.tests import urls
 from integrade.tests.utils import (
-    create_user_account,
     get_auth,
     needed_aws_profiles_present,
 )
 from integrade.utils import uuid4
 
 
-@pytest.skip(reason='refactor with seed data')
+@pytest.mark.skip(reason='refactor with seed data')
 @pytest.mark.serial_only
 @pytest.mark.skipif(not needed_aws_profiles_present(2),
                     reason='needs at least 2 aws profile')
-def test_create_multiple_cloud_accounts(
-        drop_account_data,
-        cloudtrails_to_delete):
+def test_create_multiple_cloud_accounts(cloudtrails_to_delete):
     """Ensure cloud accounts can be registered to a user.
 
     :id: f1db2617-fd15-4270-b9d3-595db001e1e7
@@ -72,12 +66,12 @@ def test_create_multiple_cloud_accounts(
         assert acct in list_response.json()['results']
 
 
-@pytest.skip(reason='refactor with seed data')
+@pytest.mark.skip(reason='refactor with seed data')
 @pytest.mark.serial_only
 @pytest.mark.skipif(not needed_aws_profiles_present(2),
                     reason='needs at least 2 aws profile')
 def test_create_cloud_account_duplicate_names_different_users(
-    drop_account_data, cloudtrails_to_delete
+    cloudtrails_to_delete
 ):
     """Ensure cloud accounts can be registered to a user.
 
@@ -97,13 +91,15 @@ def test_create_cloud_account_duplicate_names_different_users(
         3) The account cannot be deleted and attempts to do so receive a 405
             response.
     """
-    user = create_user_account()
+    # TODO: refactor inject_aws_cloud_account to use seed data
+    user = ''  # create_user_account()
     auth = get_auth(user)
     client = api.Client(authenticate=False, response_handler=api.echo_handler)
     cfg = config.get_config()
     aws_profile = cfg['aws_profiles'][0]
-    profile_name = aws_profile['name']
-    inject_aws_cloud_account(user['id'], name=profile_name)
+    # TODO: refactor inject_aws_cloud_account to use seed data
+    profile_name = ''  # aws_profile['name']
+    # inject_aws_cloud_account(user['id'], name=profile_name)
 
     # Now try to reuse the name
     auth = get_auth()

@@ -61,7 +61,6 @@ def create_user_account(user=None):
         })
     else:
         user = copy.deepcopy(user)
-
     return user
 
 
@@ -98,7 +97,7 @@ def get_auth(user=None):
 
         from integrade.tests import urls
         client = api.client(authenticate=False)
-        auth1 = get_user_and_auth()
+        auth1 = get_auth()
         client.get(urls.CLOUD_ACCOUNT, auth=auth1)
 
     :returns: instance of api.TokenAuth

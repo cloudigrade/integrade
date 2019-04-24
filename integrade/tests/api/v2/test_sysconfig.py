@@ -36,7 +36,7 @@ def is_on_local_network():
 
 
 @pytest.mark.skipif(not is_on_local_network(),
-                    reason='Can\'t run outside of local RH network')
+                    reason="Can't run outside of local RH network")
 def test_sysconfig():
     """Ensure API v2 sysconfig returns expected configuration information.
 
