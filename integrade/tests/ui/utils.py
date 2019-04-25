@@ -332,6 +332,18 @@ class return_url:
         self.browser.get(self.url)
 
 
+def expand(browser):
+    """Ensure that the account details row view is expanded."""
+    dropdown_ctn = browser.find_element_by_class_name(
+        'list-group-item-header')
+    expanded = dropdown_ctn.find_elements_by_class_name('active')
+    if not len(expanded) > 0:
+        ami_id = browser.find_element_by_class_name(
+            'list-view-pf-description')
+        ami_id.click()
+        time.sleep(0.25)
+
+
 def unflag_everything(browser_session):
     """Check that all flaggable boxes are not flagged."""
     flag_path = '//span/span[contains(@class, "fa-flag")]'
@@ -349,29 +361,27 @@ def unflag_everything(browser_session):
             ctn.click()
             time.sleep(0.25)
 
-        # Expand details to expose flag interface
-        ami_id = browser_session.find_element_by_class_name(
-            'list-view-pf-description')
-        ami_id.click()
-        time.sleep(0.25)
-
-        ctn = browser_session.find_elements_by_xpath(
-            '//div[@class="cloudmeter-list-container"]')
-        ctn = ctn[0]
-        flags = find_elements_by_text(ctn, 'Flagged for review')
+        # Expand details to expose flag interface unless it's already expanded
+        expand(browser_session)
+        ctn_class = 'cloudmeter-accountview-list-view-item'
+        ctn = browser_session.find_element_by_class_name(ctn_class)
+        rhel_ctn = ctn.find_elements_by_class_name('col-xs-6')[0]
+        rhocp_ctn = ctn.find_elements_by_class_name('col-xs-6')[1]
+        rhel_flags = find_elements_by_text(rhel_ctn, 'Flagged for review')
+        rhocp_flags = find_elements_by_text(rhocp_ctn, 'Flagged for review')
 
         # flags is a list of nested divs that all contain the text 'Flagged for
         # review by virtue of their child dev containing the text. I only want
         # to click on the inner-most one. So of the 8 returned, the third and
         # seventh are the ones.
-        if bool(flags) and len(flags) == 4:
-            flags[3].click()
-        elif bool(flags) and len(flags) == 8:
-            flags[3].click()
-            flags[7].click()
+        if bool(rhel_flags):
+            rhel_flags[3].click()
+        if bool(rhocp_flags):
+            rhocp_flags[3].click()
         # Go back to the main page if that's where you started
         if summary_page:
             accounts = browser_session.find_elements_by_class_name(
                 'cloudmeter-breadcrumb')[0]
             link = find_element_by_text(accounts, 'Accounts')
             link.click()
+    time.sleep(0.5)
