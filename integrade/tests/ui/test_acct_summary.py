@@ -147,7 +147,7 @@ def test_running_tags(new_session, browser_session, u1_acct_list):
             time.sleep(1)
             assert find_element_by_text(browser_session,
                                         '48RHEL')
-            assert find_element_by_text(browser_session, '168RHEL')
+            assert find_element_by_text(browser_session, '150RHEL')
             assert find_element_by_text(browser_session,
                                         '4608RHOCP')
         else:

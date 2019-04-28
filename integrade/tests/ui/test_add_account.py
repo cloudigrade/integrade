@@ -343,13 +343,12 @@ def test_aws_policy(new_session, browser_session,
     :expectedresults: The policy named traditional_inspection from the API
         should match the policy contents in the UI precisely.
     """
-    el = browser_session.find_element_by_class_name('cloudmeter-copy-input')
-    ui_policy = json.loads(el.get_attribute('value'))
-    sleep(1)
     client = api.Client(authenticate=False, response_handler=api.json_handler)
     auth = get_auth(user=u1_user)
     response = client.get(urls.SYSCONFIG, auth=auth)
     api_policy = response['aws_policies']['traditional_inspection']
+    el = browser_session.find_element_by_class_name('cloudmeter-copy-input')
+    ui_policy = json.loads(el.get_attribute('value'))
     assert api_policy == ui_policy, \
         f'ui_policy seen: {ui_policy}' \
         f'api_policy seen: {api_policy}'
