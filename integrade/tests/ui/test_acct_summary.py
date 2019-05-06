@@ -149,12 +149,12 @@ def test_running_tags(new_session, browser_session, u1_acct_list):
                                         '48RHEL')
             assert find_element_by_text(browser_session, '168RHEL')
             assert find_element_by_text(browser_session,
-                                        '96RHOCP')
+                                        '4608RHOCP')
         else:
             assert find_element_by_text(browser_session, '0RHOCP')
             assert find_element_by_text(browser_session, '0RHEL')
             assert find_element_by_text(browser_session, '384RHEL')
-            assert find_element_by_text(browser_session, '96RHOCP')
+            assert find_element_by_text(browser_session, '4608RHOCP')
 
 
 def test_reused_image(new_session, browser_session, u2_acct_list):
@@ -272,7 +272,7 @@ def test_account_date_filter(new_session, browser_session, u1_acct_list):
     assert find_element_by_text(div, '3 Images')
     assert find_element_by_text(div, '3 Instances')
     assert find_element_by_text(div, '384RHEL')
-    assert find_element_by_text(div, '96RHOCP')
+    assert find_element_by_text(div, '4608RHOCP')
 
 
 DIM_INSTANCE = ('instance', 'Instance Hours')
@@ -305,40 +305,52 @@ def test_summary_cards(new_session, browser_session, u2_acct_list):
     """
     # Expected results cards
     last_30_days = {
-        'clount1_images': '0',
-        'clount1_instances': '0',
-        'clount1_rhel_hours': '',
-        'clount1_rhocp_hours': '',
+        'clount1_images': '1 Images',
+        'clount1_instances': '3 Instances',
+        'clount1_rhel_hours': '0RHEL',
+        'clount1_rhocp_hours': '0RHOCP',
         'clount2_images': '1 Images',
         'clount2_instances': '2 Instances',
+        'clount2_rhel_hours': '0RHEL',
+        'clount2_rhocp_hours': '',  # seed data instance still running/changing
         'clount3_images': '2 Images',
         'clount3_instances': '2 Instances',
-        'rhel_card': '1RHEL',  # seed data instance still running/changing
+        'clount3_rhel_hours': '1RHEL',
+        'clount3_rhocp_hours': '0RHOCP',
+        'rhel_card': '1RHEL',
         'rhocp_card': '',  # seed data instance still running/changing
     }
     last_month = {
-        'clount1_images': '',
-        'clount1_instances': '',
-        'clount1_rhel_hours': '',
-        'clount1_rhocp_hours': '',
+        'clount1_images': '1 Images',
+        'clount1_instances': '3 Instances',
+        'clount1_rhel_hours': '0RHEL',
+        'clount1_rhocp_hours': '0RHOCP',
         'clount2_images': '1 Images',
         'clount2_instances': '2 Instances',
-        'clount3_images': '0 Images',
-        'clount3_instances': '0 Instances',
-        'rhel_card': '0RHEL',
-        'rhocp_card': '1364RHOCP',
+        'clount2_rhel_hours': '0RHEL',
+        'clount2_rhocp_hours': '1392RHOCP',
+        'clount3_images': '2 Images',
+        'clount3_instances': '2 Instances',
+        'clount3_rhel_hours': '1RHEL',
+        'clount3_rhocp_hours': '0RHOCP',
+        'rhel_card': '1RHEL',
+        'rhocp_card': '1392RHOCP',
     }
     months_ago_2 = {
-        'clount1_images': '',
-        'clount1_instances': '',
-        'clount1_rhel_hours': '',
-        'clount1_rhocp_hours': '',
+        'clount1_images': '0 Images',
+        'clount1_instances': '0 Instances',
+        'clount1_rhel_hours': '0RHEL',
+        'clount1_rhocp_hours': '0RHOCP',
         'clount2_images': '1 Images',
         'clount2_instances': '2 Instances',
+        'clount2_rhel_hours': '0RHEO',
+        'clount2_rhocp_hours': '1488RHOCP',
         'clount3_images': '0 Images',
         'clount3_instances': '0 Instances',
+        'clount3_rhel_hours': '0RHEL',
+        'clount3_rhocp_hours': '0RHOCP',
         'rhel_card': '0RHEL',
-        'rhocp_card': '374RHOCP',
+        'rhocp_card': '1488RHOCP',
     }
     # Start the test with nothing flagged
     unflag_everything(browser_session)

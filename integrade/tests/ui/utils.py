@@ -225,8 +225,7 @@ def fill_input_by_label(driver, element, label, value, timeout=None):
     def _():
         nonlocal input
         el = find_element_by_text(element or driver, label,
-                                  timeout=0.2, selector='label')
-
+                                  timeout=0.25, selector='label')
         el.click()
         input = driver.execute_script('return document.activeElement')
         try:

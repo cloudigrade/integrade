@@ -2,6 +2,7 @@
 import atexit
 import logging
 import os
+import time
 
 import pytest
 
@@ -15,7 +16,11 @@ from integrade.config import get_config
 from integrade.tests.utils import create_user_account, get_auth
 from integrade.utils import base_url
 
-from .utils import wait_for_page_text
+from .utils import (
+    fill_input_by_label,
+    find_element_by_text,
+    wait_for_page_text,
+    )
 from .views import LoginView
 
 
@@ -263,3 +268,52 @@ def u1_acct_list(browser_session, u1_loginpage, u1_user):
 def u2_acct_list(browser_session, u2_loginpage, u2_user):
     """Fixture to navigate to user2 account list by logging in."""
     return ui_acct_list(browser_session, u2_loginpage, u2_user)
+
+
+@pytest.fixture
+def ui_addacct_page1(browser_session, u1_loginpage, u1_user):
+    """Open the Add Account dialog."""
+    # If the dialog box is still open, close it.
+    if find_element_by_text(browser_session, 'Cancel'):
+        find_element_by_text(browser_session, 'Cancel').click()
+        time.sleep(0.25)
+    if find_element_by_text(browser_session, 'Yes'):
+        find_element_by_text(browser_session, 'Yes').click()
+        time.sleep(0.25)
+    selenium = browser_session
+    ui_dashboard(selenium, u1_loginpage, u1_user)
+    btn_add_account = find_element_by_text(selenium, 'Add Account')
+    btn_add_account.click()
+    dialog = selenium.find_element_by_css_selector('[role=dialog]')
+
+    return {
+        'dialog': dialog,
+        'dialog_next': find_element_by_text(dialog, 'Next'),
+    }
+
+
+@pytest.fixture
+def ui_addacct_page2(browser_session, ui_addacct_page1):
+    """Navigate to the second page of the Add Account dialog."""
+    selenium = browser_session
+    profile_name = 'My Account'
+    dialog = ui_addacct_page1['dialog']
+    fill_input_by_label(selenium, dialog, 'Account Name', profile_name)
+    ui_addacct_page1['dialog_next'].click()
+
+    return ui_addacct_page1
+
+
+@pytest.fixture
+def ui_addacct_page3(ui_addacct_page2):
+    """Navigate to the 3rd page of the dialog, with the ARN field."""
+    dialog = ui_addacct_page2['dialog']
+    dialog_next = ui_addacct_page2['dialog_next']
+
+    dialog_next.click()
+
+    dialog_add = find_element_by_text(dialog, 'Add')
+    assert dialog_add.get_attribute('disabled')
+
+    ui_addacct_page2['dialog_add'] = dialog_add
+    return ui_addacct_page2

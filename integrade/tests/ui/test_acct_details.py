@@ -82,6 +82,7 @@ def test_hours_image(new_session, u2_acct_list, browser_session):
     """
     selenium = browser_session
     unflag_everything(selenium)
+    # go back a month for stable data
     back_in_time(selenium, 1)
     clount2 = find_elements_by_text(
         browser_session, 'user2clount2', exact=False)
@@ -95,7 +96,7 @@ def test_hours_image(new_session, u2_acct_list, browser_session):
     info_bar = browser_session.find_element_by_css_selector(
         '.cloudmeter-list-view-card'
     )
-    assert find_element_by_text(info_bar, f'1364RHOCP', exact=False), \
+    assert find_element_by_text(info_bar, f'1392RHOCP', exact=False), \
         f'seen: {info_bar.get_attribute("innerText")}, ' \
         f'expected: 1 RHEL'
 
@@ -152,7 +153,7 @@ def test_image_flagging(new_session, browser_session, u2_acct_list):
     time.sleep(0.25)
 
     # check that flagged, RHEL displays hours and a flag
-    assert find_element_by_text(list_header, f'744RHEL', exact=False)
+    assert find_element_by_text(list_header, f'696RHEL', exact=False)
     # check that the flag is present
     rhel_flag = rhel_ctn.find_elements_by_xpath(
         '//span/span[contains(@class, "fa-flag")]')
@@ -166,7 +167,7 @@ def test_image_flagging(new_session, browser_session, u2_acct_list):
         '//input[@type="checkbox"]')
     rhocp_checkbox = rhocp_checkbox[1]
     # check that unflagged, RHOCP is not detected in the info bar
-    assert find_element_by_text(list_header, f'1364RHOCP', exact=False)
+    assert find_element_by_text(list_header, f'1392RHOCP', exact=False)
     # flag/challenge RHOCP
     rhocp_checkbox.click()
     time.sleep(0.25)
