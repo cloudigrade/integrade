@@ -18,28 +18,13 @@ import requests
 from integrade.tests.constants import (
     TEST_URL,
 )
+from integrade.tests.utils import is_on_local_network
 
 logger = logging.getLogger(__name__)
 
 
-def is_on_local_network():
-    """Check if on internal RH network.
-
-    This matters because we can ONLY access 3scale from inside RedHat network
-    API V2 tests should be skipped if this returns False - ie. if running in
-    gitlab CI.
-    """
-    url = 'https://api.access.stage.cloud.paas.upshift.redhat.com'
-    try:
-        requests.get(url, verify=False)
-    except requests.exceptions.ConnectionError as e:
-        logging.warning(e)
-        return False
-    return True
-
-
-# @pytest.mark.skipif(not is_on_local_network(),
-#                     reason="Can't run outside of local RH network")
+@pytest.mark.skipif(not is_on_local_network(),
+                    reason="Can't run outside of local RH network")
 def test_sysconfig():
     """Ensure API v2 sysconfig returns expected configuration information.
 

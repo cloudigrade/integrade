@@ -2,9 +2,11 @@
 
 import calendar
 import copy
-from datetime import datetime, time, timedelta, timezone
 import logging
+from datetime import datetime, time, timedelta, timezone
 from multiprocessing import Pool
+
+import requests
 
 from integrade import api, config
 from integrade.tests import aws_utils, urls
@@ -156,3 +158,19 @@ def days_in_month(year, month):
     :returns: An integer with the number of days a given month has.
     """
     return calendar.monthrange(year, month)[1]
+
+
+def is_on_local_network():
+    """Check if on internal RH network.
+
+    This matters because we can ONLY access 3scale from inside RedHat network
+    API V2 tests should be skipped if this returns False - ie. if running in
+    gitlab CI.
+    """
+    url = 'https://stage.cloud.paas.upshift.redhat.com'
+    try:
+        requests.get(url, verify=False)
+    except requests.exceptions.ConnectionError as e:
+        logging.warning(e)
+        return False
+    return True
