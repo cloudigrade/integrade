@@ -1,13 +1,16 @@
 """Utilities functions for tests."""
+
 import calendar
 import copy
 from datetime import datetime, time, timedelta, timezone
+import logging
 from multiprocessing import Pool
 
 from integrade import api, config
 from integrade.tests import aws_utils, urls
 from integrade.utils import gen_password, uuid4
 
+logger = logging.getLogger(__name__)
 
 _SENTINEL = object()
 
