@@ -19,7 +19,7 @@ from integrade.tests.constants import (
     TEST_URL
 )
 from integrade.tests.utils import (
-    is_on_local_network,
+    get_credentials, is_on_local_network
 )
 from integrade.utils import (
     uuid4,
@@ -30,7 +30,7 @@ logger = logging.getLogger(__name__)
 
 def fetch_accounts():
     """Return account data for available accounts."""
-    creds = ('mpierce@redhat.com', 'redhat')
+    creds = get_credentials()
     qa_branch = '554-create-delete-v2'
     accounts_url = f'{TEST_URL}accounts/'
     test_headers = {
@@ -62,7 +62,7 @@ def test_create_cloud_account(cloudtrails_to_delete):
     """
     accts = []
     account_id = 0
-    creds = ('mpierce@redhat.com', 'redhat')
+    creds = get_credentials()
     qa_branch = '554-create-delete-v2'
     accounts_url = f'{TEST_URL}accounts/'
     cfg = config.get_config()

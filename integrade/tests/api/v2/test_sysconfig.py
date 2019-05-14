@@ -18,7 +18,9 @@ import requests
 from integrade.tests.constants import (
     TEST_URL,
 )
-from integrade.tests.utils import is_on_local_network
+from integrade.tests.utils import (
+    get_credentials, is_on_local_network
+)
 
 logger = logging.getLogger(__name__)
 
@@ -35,7 +37,7 @@ def test_sysconfig():
     :expectedresults: The server returns a 200 response with the expected
         configuration information.
     """
-    creds = ('mpierce@redhat.com', 'redhat')
+    creds = get_credentials()
     qa_branch = '554-create-delete-v2'
     qa_url = f'{TEST_URL}/sysconfig/'
     test_headers = {'X-4Scale-Env': 'ci', 'X-4Scale-Branch': qa_branch}

@@ -55,6 +55,11 @@ def get_config(need_base_url=True):
             f'c-review-{ref_slug[:29]}-',
         )
 
+        credentials = os.getenv(
+            'CLOUDIGRADE_CREDENTIALS', 'mpierce@redhat.com:redhat'
+        )
+        _CONFIG['credentials'] = tuple(credentials.split(':'))
+
         # pull all customer roles out of environ
 
         def is_role(string):

@@ -174,3 +174,8 @@ def is_on_local_network():
         logging.warning(e)
         return False
     return True
+
+
+def get_credentials():
+    """Get credentials to use with requests for authentication."""
+    return config.get_config().get('credentials', ())
