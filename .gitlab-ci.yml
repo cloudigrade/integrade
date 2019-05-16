@@ -66,6 +66,8 @@ stages:
 
 Test Integrade:
   stage: Test Integrade
+  tags:
+    - shared
   before_script:
     - python --version
     - make install-dev
@@ -87,6 +89,8 @@ Test Integrade:
 
 API (automatic):
   stage: Test Cloudigrade API
+  tags:
+    - shared
   variables:
     <<: *branch_variables
   except:
@@ -101,6 +105,8 @@ API (automatic):
 
 Inspection (manual):
   stage: Test Cloudigrade Inspection
+  tags:
+    - shared
   variables:
     <<: *branch_variables
   except:
@@ -114,6 +120,8 @@ Inspection (manual):
 
 UI Chrome (manual):
   stage: Test Cloudigrade UI
+  tags:
+    - shared
   except:
     - master
     - schedule
@@ -132,6 +140,8 @@ UI Chrome (manual):
 
 UI Firefox (manual):
   stage: Test Cloudigrade UI
+  tags:
+    - shared
   except:
     - master
     - schedule
@@ -150,6 +160,8 @@ UI Firefox (manual):
 
 UI Microsoft Edge (manual):
   stage: Test Cloudigrade UI
+  tags:
+    - shared
   except:
     - master
     - schedule
@@ -169,6 +181,8 @@ UI Microsoft Edge (manual):
 
 Deploy Master Cloudigrade:
   stage: Deploy Master
+  tags:
+    - shared
   image: registry.gitlab.com/finestructure/pipeline-trigger
   only:
     - master
@@ -184,6 +198,8 @@ Deploy Master Cloudigrade:
 
 Deploy Master Frontigrade:
   stage: Deploy Master
+  tags:
+    - shared
   image: registry.gitlab.com/finestructure/pipeline-trigger
   only:
     - master
@@ -205,6 +221,8 @@ Deploy Master Frontigrade:
 
 API:
   stage: Test Cloudigrade API
+  tags:
+    - shared
   only:
     - master
     - schedule
@@ -220,6 +238,8 @@ API:
 
 Inspection:
   stage: Test Cloudigrade Inspection
+  tags:
+    - shared
   only:
     - master
     - schedule
@@ -231,6 +251,8 @@ Inspection:
 
 UI Chrome:
   stage: Test Cloudigrade UI
+  tags:
+    - shared
   only:
     - master
     - schedule
@@ -249,6 +271,8 @@ UI Chrome:
 
 UI Firefox:
   stage: Test Cloudigrade UI
+  tags:
+    - shared
   only:
     - master
     - schedule
@@ -267,6 +291,8 @@ UI Firefox:
 
 UI Microsoft Edge:
   stage: Test Cloudigrade UI
+  tags:
+    - shared
   only:
     - master
     - schedule
@@ -285,6 +311,8 @@ UI Microsoft Edge:
 
 .stop_master_review: &stop_master_review
   stage: Teardown Cloudigrade
+  tags:
+    - shared
   only:
     - master
     - schedule
@@ -302,6 +330,8 @@ Teardown Cloudigrade (Master):
     GIT_STRATEGY: none
     PROJECT_ID: 7449616
     AUTH: "PRIVATE-TOKEN: ${API_TOKEN}"
+  tags:
+    - shared
 
 Teardown Frontigrade (Master):
   <<: *stop_master_review
@@ -309,12 +339,16 @@ Teardown Frontigrade (Master):
     GIT_STRATEGY: none
     PROJECT_ID: 7449617
     AUTH: "PRIVATE-TOKEN: ${API_TOKEN}"
+  tags:
+    - shared
 
 #####################################################################
 # Clean up customer accounts at the end of each pipeline run.
 
 Test Cleanup:
   stage: Cleanup
+  tags:
+    - shared
   <<: *before_script
   variables:
     <<: *master_variables
@@ -324,6 +358,8 @@ Test Cleanup:
 
 Nightly Cleanup:on-schedule:
   stage: Cleanup
+  tags:
+    - shared
   only:
     - schedules
   # will only run on the scheduled pipeline,
