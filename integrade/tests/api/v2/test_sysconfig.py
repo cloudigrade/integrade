@@ -10,6 +10,7 @@
 """
 
 import logging
+import os
 
 import pytest
 
@@ -38,8 +39,9 @@ def test_sysconfig():
         configuration information.
     """
     creds = get_credentials()
-    qa_branch = '554-create-delete-v2'
-    qa_url = f'{TEST_URL}/sysconfig/'
+    qa_branch = os.environ.get('BRANCH_NAME')
+    print(f'Branch Name: {qa_branch}')
+    qa_url = f'{TEST_URL}sysconfig/'
     test_headers = {'X-4Scale-Env': 'ci', 'X-4Scale-Branch': qa_branch}
     qa_response = requests.get(
                     qa_url,
@@ -47,7 +49,7 @@ def test_sysconfig():
                     headers=test_headers,
                     verify=False
                 )
-    stage_url = f'{TEST_URL}/sysconfig/'
+    stage_url = f'{TEST_URL}sysconfig/'
     stage_headers = {'X-4Scale-Env': 'ci', 'X-4Scale-Branch': qa_branch}
     stage_response = requests.get(
         stage_url,
@@ -55,7 +57,6 @@ def test_sysconfig():
         headers=stage_headers,
         verify=False
     )
-
     # check that the config is able to access the test env
     assert qa_response.status_code == 200
     # check that the config is able to access the stage env
