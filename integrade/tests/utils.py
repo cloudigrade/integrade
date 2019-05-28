@@ -1,12 +1,79 @@
 """Utilities functions for tests."""
+
 import calendar
 import copy
+import logging
 from datetime import datetime, time, timedelta, timezone
 from multiprocessing import Pool
+
+import requests
 
 from integrade import api, config
 from integrade.tests import aws_utils, urls
 from integrade.utils import gen_password, uuid4
+
+logger = logging.getLogger(__name__)
+
+
+class Timer():
+    """Class that represents a Timer."""
+
+    def __init__(self):
+        """Create a new Timer."""
+        self.reset()
+
+    def reset(self):
+        """Reset timer to the current time in seconds since the Epoch."""
+        self.start = time.time()
+
+    @staticmethod
+    def now():
+        """Return the current time in fractions of seconds since the Epoch."""
+        return time.time()
+
+    def time_elapsed(self):
+        """Return the elapsed time in fractions of seconds."""
+        return self.now() - self.start
+
+
+class Waiter(Timer):
+    """Class that represents a Waiter."""
+
+    def __init__(self, timeout):
+        """Create a new Waiter.
+
+        :param timeout: The timeout in seconds.
+        """
+        assert timeout >= 0
+        Timer.__init__(self)
+        self.timeout = timeout
+
+    def wait(self, seconds):
+        """Wait (sleep) for the number of seconds.
+
+        :param seconds: the number of seconds to sleep.
+        :returns: the total time elapsed in seconds."
+        """
+        assert seconds >= 0
+        time.sleep(seconds)
+        return self.time_elapsed()
+
+    def wait_and_check_for_timeout(self, seconds):
+        """Wait (sleep) for the number of seconds and check timeout.
+
+        :param seconds: the number of seconds to sleep.
+        :returns: check if it has timed out and the total time elapsed.
+        """
+        assert seconds >= 0
+        self.wait(seconds)
+        return self.has_timedout(), self.time_elapsed()
+
+    def has_timedout(self):
+        """Check if has been timed out.
+
+        :returns: the value True if it has timed out.
+        """
+        return self.time_elapsed() >= self.timeout
 
 
 _SENTINEL = object()
@@ -153,3 +220,24 @@ def days_in_month(year, month):
     :returns: An integer with the number of days a given month has.
     """
     return calendar.monthrange(year, month)[1]
+
+
+def is_on_local_network():
+    """Check if on internal RH network.
+
+    This matters because we can ONLY access 3scale from inside RedHat network
+    API V2 tests should be skipped if this returns False - ie. if running in
+    gitlab CI.
+    """
+    url = 'https://stage.cloud.paas.upshift.redhat.com'
+    try:
+        requests.get(url, verify=False)
+    except requests.exceptions.ConnectionError as e:
+        logging.warning(e)
+        return False
+    return True
+
+
+def get_credentials():
+    """Get credentials to use with requests for authentication."""
+    return config.get_config().get('credentials', ())

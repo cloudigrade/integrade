@@ -10,11 +10,14 @@
 """
 import re
 
+import pytest
+
 from integrade import api
 from integrade.tests import urls
 from integrade.tests.utils import get_auth
 
 
+@pytest.mark.skip(reason='v1 authentication no longer works - this is v2')
 def test_sysconfig():
     """Ensure sysconfig returns expected configuration information.
 
@@ -41,6 +44,7 @@ def test_sysconfig():
     assert re.match(r'\d+', response['aws_account_id'])
 
 
+@pytest.mark.skip(reason='v1 authentication no longer works - this is v2')
 def test_sysconfig_negative():
     """Ensure unauthenticated requests can't access configuration information.
 

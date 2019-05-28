@@ -54,6 +54,15 @@ def get_config(need_base_url=True):
             'OPENSHIFT_PREFIX',
             f'c-review-{ref_slug[:29]}-',
         )
+        credentials = os.getenv(
+            'CLOUDIGRADE_CREDENTIALS',
+            'user@example.com:password'
+        )
+        if ':' in credentials:
+            credentials = credentials.split(':')
+        else:
+            credentials = [credentials, '']  # empty password
+        _CONFIG['credentials'] = tuple(credentials)
 
         # pull all customer roles out of environ
 
@@ -84,7 +93,7 @@ def get_config(need_base_url=True):
                     str.isdigit,
                     acct_arn.split(':'))][0]
             profile['account_number'] = acct_num
-            profile['cloudtrail_name'] = f'{cloudtrail_prefix[:-1]}{acct_num}'
+            profile['cloudtrail_name'] = f'{cloudtrail_prefix}{acct_num}'
             profile['access_key_id'] = os.environ.get(
                 f'AWS_ACCESS_KEY_ID_{profile_name}')
             profile['images'] = aws_image_config.get('profiles', {}).get(

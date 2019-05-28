@@ -6,3 +6,6 @@ AWS_ACCOUNT_TYPE = 'AwsAccount'
 
 EC2_TERMINATED_CODE = 48
 """Terminated EC2 instances have the state code of 48."""
+
+TEST_URL = 'https://qa.cloud.paas.upshift.redhat.com' \
+    '/api/cloudigrade/v2/'

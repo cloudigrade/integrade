@@ -15,24 +15,14 @@ import pytest
 
 import requests
 
+from integrade.tests.constants import (
+    TEST_URL,
+)
+from integrade.tests.utils import (
+    get_credentials, is_on_local_network
+)
 
 logger = logging.getLogger(__name__)
-
-
-def is_on_local_network():
-    """Check if on internal RH network.
-
-    This matters because we can ONLY access 3scale from inside RedHat network
-    API V2 tests should be skipped if this returns False - ie. if running in
-    gitlab CI.
-    """
-    url = 'https://api.access.stage.cloud.paas.upshift.redhat.com'
-    try:
-        requests.get(url, verify=False)
-    except requests.exceptions.ConnectionError as e:
-        logging.warning(e)
-        return False
-    return True
 
 
 @pytest.mark.skipif(not is_on_local_network(),
@@ -47,12 +37,9 @@ def test_sysconfig():
     :expectedresults: The server returns a 200 response with the expected
         configuration information.
     """
-    qa = 'api.access.qa.cloud.paas.upshift.redhat.com'
-    qa_end = '/r/insights/platform/cloudigrade/api/v2/sysconfig/'
-    creds = ('mpierce@redhat.com', 'redhat')
-    V2_QA_URL = f'https://{qa}{qa_end}'
-    qa_branch = '3scale-investigation'
-    qa_url = V2_QA_URL
+    creds = get_credentials()
+    qa_branch = '554-create-delete-v2'
+    qa_url = f'{TEST_URL}/sysconfig/'
     test_headers = {'X-4Scale-Env': 'ci', 'X-4Scale-Branch': qa_branch}
     qa_response = requests.get(
                     qa_url,
@@ -60,20 +47,16 @@ def test_sysconfig():
                     headers=test_headers,
                     verify=False
                 )
-
-    stage = 'api.access.stage.cloud.paas.upshift.redhat.com'
-    stage_end = '/r/insights/platform/cloudigrade/auth/"'
-    V2_STAGE_URL = f'https://{stage}{stage_end}'
-    stage_url = V2_STAGE_URL
-    stage_headers = {'X-4Scale-Env': 'qa'}
+    stage_url = f'{TEST_URL}/sysconfig/'
+    stage_headers = {'X-4Scale-Env': 'ci', 'X-4Scale-Branch': qa_branch}
     stage_response = requests.get(
-                        stage_url,
-                        auth=creds,
-                        headers=stage_headers,
-                        verify=False
-                    )
+        stage_url,
+        auth=creds,
+        headers=stage_headers,
+        verify=False
+    )
 
-    # check that the config is able to access the stage env
-    assert stage_response.status_code == 200
     # check that the config is able to access the test env
     assert qa_response.status_code == 200
+    # check that the config is able to access the stage env
+    assert stage_response.status_code == 200

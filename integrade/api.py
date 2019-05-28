@@ -253,3 +253,38 @@ class Client(object):
         kwargs['headers'] = headers
         kwargs.setdefault('verify', self.verify)
         return self.response_handler(requests.request(method, url, **kwargs))
+
+
+class ClientV2(object):
+    """A lightweight client for interacting with the cloudigrade API V2.
+
+    This class is a wrapper around the ``requests.api`` module provided by
+    `Requests`_.
+
+    .. _Requests: http://docs.python-requests.org/en/master/
+    """
+
+    def __init__(self, url):
+        """Initialize this object, collecting base URL."""
+        self.url = url
+        cfg = config.get_config()
+        self.verify = cfg.get('ssl-verify', False)
+        self.auth = cfg.get('credentials')
+        qa_branch = '554-create-delete-v2'
+        self.headers = {
+            'X-4Scale-Env': 'ci',
+            'X-4Scale-Branch': qa_branch,
+        }
+
+    def request(self, method, endpoint, **kwargs):
+        """Send an HTTP request."""
+        url = urljoin(self.url, endpoint)
+        response = requests.request(
+            method=method,
+            url=url,
+            headers=self.headers,
+            auth=self.auth,
+            verify=self.verify,
+            **kwargs
+        )
+        return response

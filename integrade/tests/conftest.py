@@ -74,8 +74,8 @@ def timemetric(name):
 class TimeMetricContext:
     """Conext manager meausure the time blocks of code take.
 
-    Each timer is given a name and all of the timers of the same name are added
-    up and the total time can be reported at the end of the test via the
+    Each timer is given a name and all of the timers of the same name are
+    added up and the total time can be reported at the end of the test via the
     report_timers() atexit callback.
     """
 
@@ -101,27 +101,27 @@ def report_timers():
         print(f'Timer "{t}": {TIMINGS[t]:.2f}s')
 
 
-@pytest.fixture()
-def drop_account_data():
-    """Drop non-user data from the database.
+# @pytest.fixture()
+# def drop_account_data():
+#     """Drop non-user data from the database.
 
-    We do not drop user data because we want to keep our super user, and tests
-    should create new users. There is deduplicatoin of ARNs used to create
-    cloud accounts, however, and we would like to re-use test data across
-    different tests. For this reason, we can drop account data before a test
-    runs by using this fixture.
+#     We do not drop user data because we want to keep our super user, and
+#     tests should create new users. There is deduplicatoin of ARNs used to
+#     create cloud accounts, however, and we would like to re-use test data
+#     across different tests. For this reason, we can drop account data before
+#     a test runs by using this fixture.
 
-    The side effect is that these tests cannot be run in parallel with any
-    other tests. For that reason, mark any test using this fixture with
-    "@pytest.mark.serial_only".
-    """
-    # global T
-    # start = time()
-    with timemetric('drop_account_data()'):
-        utils.drop_account_data()
-    # end = time()
-    # T += (end - start)
-    # print(f'T={T}')
+#     The side effect is that these tests cannot be run in parallel with any
+#     other tests. For that reason, mark any test using this fixture with
+#     "@pytest.mark.serial_only".
+#     """
+#     # global T
+#     # start = time()
+#     with timemetric('drop_account_data()'):
+#         utils.drop_account_data()
+#     # end = time()
+#     # T += (end - start)
+#     # print(f'T={T}')
 
 
 @pytest.fixture()

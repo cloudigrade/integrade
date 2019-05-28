@@ -58,7 +58,7 @@ def test_get_config(ssl, protocol):
             assert len(cfg['aws_profiles']) == 1
             assert cfg['aws_profiles'][0]['name'] == 'CUSTOMER1'
             assert cfg['aws_profiles'][0]['cloudtrail_name'] == (
-                f'{cloudtrail_prefix[:-1]}{account_number}'
+                f'{cloudtrail_prefix}{account_number}'
             )
             assert cfg['cloudigrade_s3_bucket'] == bucket_name
 
