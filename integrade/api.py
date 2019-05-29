@@ -6,6 +6,7 @@ on the context.
 
 """
 import logging
+import os
 from json import JSONDecodeError
 from pprint import pformat
 from urllib.parse import urljoin, urlunparse
@@ -15,6 +16,9 @@ from requests.auth import AuthBase
 from requests.exceptions import HTTPError
 
 from integrade import config, exceptions
+from integrade.tests.utils import (
+    get_credentials
+)
 
 AUTHORIZATION_HEADER = 'Authorization'
 logger = logging.getLogger(__name__)
@@ -269,8 +273,8 @@ class ClientV2(object):
         self.url = url
         cfg = config.get_config()
         self.verify = cfg.get('ssl-verify', False)
-        self.auth = cfg.get('credentials')
-        qa_branch = '554-create-delete-v2'
+        self.auth = get_credentials()
+        qa_branch = os.environ.get('BRANCH_NAME')
         self.headers = {
             'X-4Scale-Env': 'ci',
             'X-4Scale-Branch': qa_branch,
