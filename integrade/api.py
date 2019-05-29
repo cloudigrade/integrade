@@ -16,6 +16,7 @@ from requests.auth import AuthBase
 from requests.exceptions import HTTPError
 
 from integrade import config, exceptions
+from integrade.exceptions import MissingConfigurationError
 from integrade.tests.utils import (
     get_credentials
 )
@@ -268,16 +269,27 @@ class ClientV2(object):
     .. _Requests: http://docs.python-requests.org/en/master/
     """
 
-    def __init__(self, url):
+    def __init__(self, url, response_handler=None, env='ci'):
         """Initialize this object, collecting base URL."""
         self.url = url
         cfg = config.get_config()
         self.verify = cfg.get('ssl-verify', False)
         self.auth = get_credentials()
-        qa_branch = os.environ.get('BRANCH_NAME')
+        self.qa_branch = os.environ.get('BRANCH_NAME')
+
+        if not self.qa_branch:
+            raise MissingConfigurationError(
+                'BRANCH_NAME is missing.'
+            )
+
+        if response_handler is None:
+            self.response_handler = code_handler
+        else:
+            self.response_handler = response_handler
+
         self.headers = {
-            'X-4Scale-Env': 'ci',
-            'X-4Scale-Branch': qa_branch,
+            'X-4Scale-Env': env,
+            'X-4Scale-Branch': self.qa_branch,
         }
 
     def request(self, method, endpoint, **kwargs):
@@ -291,4 +303,4 @@ class ClientV2(object):
             verify=self.verify,
             **kwargs
         )
-        return response
+        return self.response_handler(response)

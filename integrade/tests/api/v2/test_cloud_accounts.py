@@ -15,7 +15,7 @@ import pytest
 
 from integrade import api, config
 from integrade.tests.constants import (
-    TEST_URL
+    QA_URL
 )
 from integrade.tests.utils import (
     aws_utils, is_on_local_network
@@ -29,7 +29,7 @@ logger = logging.getLogger(__name__)
 
 def fetch_api_accounts():
     """Return account data for available accounts."""
-    client = api.ClientV2(TEST_URL)
+    client = api.ClientV2(QA_URL)
     response = client.request('get', 'accounts/')
     assert response.status_code == 200, \
         'Could not retrieve any account information' \
@@ -56,7 +56,7 @@ def delete_preexisting_accounts(aws_profile):
     """
     arn = aws_profile['arn']
     accounts = fetch_api_accounts()
-    client = api.ClientV2(TEST_URL)
+    client = api.ClientV2(QA_URL)
     for acct in accounts:
         if acct['content_object']['account_arn'] == arn:
             account_id = acct['account_id']
@@ -86,7 +86,7 @@ def test_create_cloud_account(cloudtrails_to_delete, aws_profile, request):
     """
     account_id = 0
     arn = aws_profile['arn']
-    client = api.ClientV2(TEST_URL)
+    client = api.ClientV2(QA_URL)
     acct_data_params = {
         'account_arn': arn,
         'name': uuid4(),
