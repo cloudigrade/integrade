@@ -51,6 +51,7 @@ stages:
   AWS_QUEUE_PREFIX: master-integrade-
   CLOUDIGRADE_BASE_URL: master-integrade.5a9f.insights-dev.openshiftapps.com
   OPENSHIFT_PREFIX: c-master-integrade-
+  BRANCH_NAME: master
 
 .branch_variables:  &branch_variables
   CLOUDTRAIL_PREFIX: review-${CI_COMMIT_REF_SLUG}-
