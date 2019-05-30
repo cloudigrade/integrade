@@ -295,6 +295,8 @@ class ClientV2(object):
     def request(self, method, endpoint, **kwargs):
         """Send an HTTP request."""
         url = urljoin(self.url, endpoint)
+        print(url)
+        print(self.headers)
         response = requests.request(
             method=method,
             url=url,
