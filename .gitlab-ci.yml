@@ -1,6 +1,7 @@
 image: registry.gitlab.com/cloudigrade/images/test-container
 
 stages:
+  - Deploy Images
   - Test Integrade
   - Deploy Master
   - Test Cloudigrade API
@@ -46,11 +47,11 @@ stages:
     - python scripts/aws_reaper.py --env-cloudtrail-only
 
 .master_variables: &master_variables
-  CLOUDTRAIL_PREFIX: master-integrade-
-  AWS_S3_BUCKET_NAME: master-integrade-cloudigrade-s3
-  AWS_QUEUE_PREFIX: master-integrade-
-  CLOUDIGRADE_BASE_URL: master-integrade.5a9f.insights-dev.openshiftapps.com
-  OPENSHIFT_PREFIX: c-master-integrade-
+  CLOUDTRAIL_PREFIX: review-master-integrade-
+  AWS_S3_BUCKET_NAME: review-master-integrade-cloudigrade-s3
+  AWS_QUEUE_PREFIX: review-master-integrade-
+  CLOUDIGRADE_BASE_URL: review-master-integrade.5a9f.insights-dev.openshiftapps.com
+  OPENSHIFT_PREFIX: c-review-master-integrade-
   BRANCH_NAME: master
 
 .branch_variables:  &branch_variables
@@ -64,12 +65,36 @@ stages:
     - py.test --junitxml="${REPORT_NAME}.xml" -vvv integrade/tests/ui ${EXTRA_PYTEST_ARGS}
 
 #####################################################################
+# Deploy images every morning so we have some inspections to look at
+
+Deploy Images:
+  stage: Deploy Images
+  tags:
+    - shared
+  only:
+    refs:
+      - schedules
+    variables:
+      - $ONLY_DEPLOY_IMAGES == "true"
+  before_script:
+    - python --version
+    - make install-dev
+    - pip install codecov
+    - cp aws_image_config_template.yaml integrade/aws_image_config.yaml
+  script:
+    - python scripts/aws_instigator.py
+  coverage: '/\d+\%\s*$/'
+
+#####################################################################
 # Test integrade's own code.
 
 Test Integrade:
   stage: Test Integrade
   tags:
     - shared
+  except:
+    refs:
+      - schedules
   before_script:
     - python --version
     - make install-dev
@@ -96,8 +121,9 @@ API (automatic):
   variables:
     <<: *branch_variables
   except:
-    - master
-    - schedule
+    refs:
+      - master
+      - schedules
   allow_failure: true  # allow inspection or UI tests to run if API fails
   <<: *before_script
   <<: *api_all
@@ -112,8 +138,9 @@ Inspection (manual):
   variables:
     <<: *branch_variables
   except:
-    - master
-    - schedule
+    refs:
+      - schedules
+      - master
   when: manual
   allow_failure: true  # allows UI tests to run if inspection fails
   <<: *before_script
@@ -126,7 +153,7 @@ UI Chrome (manual):
     - shared
   except:
     - master
-    - schedule
+    - schedules
   when: manual
   <<: *before_script
   <<: *archive_results
@@ -146,7 +173,7 @@ UI Firefox (manual):
     - shared
   except:
     - master
-    - schedule
+    - schedules
   when: manual
   <<: *before_script
   <<: *archive_results
@@ -166,7 +193,7 @@ UI Microsoft Edge (manual):
     - shared
   except:
     - master
-    - schedule
+    - schedules
   when: manual
   <<: *before_script
   <<: *archive_results
@@ -187,8 +214,12 @@ Deploy Master Cloudigrade:
     - shared
   image: registry.gitlab.com/finestructure/pipeline-trigger
   only:
-    - master
-    - schedule
+    refs:
+      - master
+      - schedules
+  except:
+    variables:
+      - $ONLY_DEPLOY_IMAGES == "true"
   variables:
     PROJECT_ID: 7449616
     TARGET_BRANCH: master
@@ -198,22 +229,22 @@ Deploy Master Cloudigrade:
       trigger -a ${API_TOKEN} -p ${CLOUDIGRADE_PIPELINE_TOKEN}
       -t ${TARGET_BRANCH} -e CHAT_INPUT=${DEPLOYMENT_NAME} ${PROJECT_ID}
 
-Deploy Master Frontigrade:
-  stage: Deploy Master
-  tags:
-    - shared
-  image: registry.gitlab.com/finestructure/pipeline-trigger
-  only:
-    - master
-    - schedule
-  variables:
-    PROJECT_ID: 7449617
-    TARGET_BRANCH: master
-    DEPLOYMENT_NAME: integrade
-  script:
-    - >
-      trigger -a ${API_TOKEN} -p ${FRONTIGRADE_PIPELINE_TOKEN}
-      -t ${TARGET_BRANCH} -e CHAT_INPUT=${DEPLOYMENT_NAME} ${PROJECT_ID}
+# Deploy Master Frontigrade:
+#   stage: Deploy Master
+#   tags:
+#     - shared
+#   image: registry.gitlab.com/finestructure/pipeline-trigger
+#   only:
+#     - master
+#     - schedules
+#   variables:
+#     PROJECT_ID: 7449617
+#     TARGET_BRANCH: master
+#     DEPLOYMENT_NAME: integrade
+#   script:
+#     - >
+#       trigger -a ${API_TOKEN} -p ${FRONTIGRADE_PIPELINE_TOKEN}
+#       -t ${TARGET_BRANCH} -e CHAT_INPUT=${DEPLOYMENT_NAME} ${PROJECT_ID}
 
 #####################################################################
 # Jobs that run on master upon commits and on schedule.
@@ -226,8 +257,12 @@ API:
   tags:
     - shared
   only:
-    - master
-    - schedule
+    refs:
+      - master
+      - schedules
+  except:
+    variables:
+      - $ONLY_DEPLOY_IMAGES == "true"
   when: always
   <<: *before_script
   <<: *api_all
@@ -238,75 +273,75 @@ API:
   after_script:
     - python scripts/aws_reaper.py --env-cloudtrail-only
 
-Inspection:
-  stage: Test Cloudigrade Inspection
-  tags:
-    - shared
-  only:
-    - master
-    - schedule
-  <<: *before_script
-  <<: *archive_results
-  <<: *inspect
-  variables:
-    <<: *master_variables
+# Inspection:
+#   stage: Test Cloudigrade Inspection
+#   tags:
+#     - shared
+#   only:
+#     - master
+#     - schedules
+#   <<: *before_script
+#   <<: *archive_results
+#   <<: *inspect
+#   variables:
+#     <<: *master_variables
 
-UI Chrome:
-  stage: Test Cloudigrade UI
-  tags:
-    - shared
-  only:
-    - master
-    - schedule
-  when: always
-  <<: *before_script
-  <<: *archive_results
-  <<: *ui_scripts
-  variables:
-    <<: *master_variables
-    REPORT_NAME: ui_chrome
-    UI_BROWSER: Chrome
-    UI_USE_REMOTE: "true"
-  services:
-    - name: selenium/standalone-chrome
-      alias: selenium
+# UI Chrome:
+#   stage: Test Cloudigrade UI
+#   tags:
+#     - shared
+#   only:
+#     - master
+#     - schedules
+#   when: always
+#   <<: *before_script
+#   <<: *archive_results
+#   <<: *ui_scripts
+#   variables:
+#     <<: *master_variables
+#     REPORT_NAME: ui_chrome
+#     UI_BROWSER: Chrome
+#     UI_USE_REMOTE: "true"
+#   services:
+#     - name: selenium/standalone-chrome
+#       alias: selenium
 
-UI Firefox:
-  stage: Test Cloudigrade UI
-  tags:
-    - shared
-  only:
-    - master
-    - schedule
-  when: always
-  <<: *before_script
-  <<: *archive_results
-  <<: *ui_scripts
-  variables:
-    <<: *master_variables
-    REPORT_NAME: ui_firefox
-    UI_BROWSER: Firefox
-    UI_USE_REMOTE: "true"
-  services:
-    - name: selenium/standalone-firefox
-      alias: selenium
+# UI Firefox:
+#   stage: Test Cloudigrade UI
+#   tags:
+#     - shared
+#   only:
+#     - master
+#     - schedules
+#   when: always
+#   <<: *before_script
+#   <<: *archive_results
+#   <<: *ui_scripts
+#   variables:
+#     <<: *master_variables
+#     REPORT_NAME: ui_firefox
+#     UI_BROWSER: Firefox
+#     UI_USE_REMOTE: "true"
+#   services:
+#     - name: selenium/standalone-firefox
+#       alias: selenium
 
-UI Microsoft Edge:
-  stage: Test Cloudigrade UI
-  tags:
-    - shared
-  only:
-    - master
-    - schedule
-  when: always
-  <<: *before_script
-  <<: *archive_results
-  <<: *ui_scripts
-  variables:
-    <<: *master_variables
-    REPORT_NAME: ui_edge
-    UI_BROWSER: MicrosoftEdge
-    EXTRA_PYTEST_ARGS: "-x --ff"
+# UI Microsoft Edge:
+#   stage: Test Cloudigrade UI
+#   tags:
+#     - shared
+#   only:
+#     - master
+#     - schedules
+#   when: always
+#   <<: *before_script
+#   <<: *archive_results
+#   <<: *ui_scripts
+#   variables:
+#     <<: *master_variables
+#     REPORT_NAME: ui_edge
+#     UI_BROWSER: MicrosoftEdge
+#     EXTRA_PYTEST_ARGS: "-x --ff"
 
 #####################################################################
 # Clean up master review environments.
@@ -316,9 +351,13 @@ UI Microsoft Edge:
   tags:
     - shared
   only:
-    - master
-    - schedule
+    refs:
+      - master
+      - schedules
   when: always
+  except:
+    variables:
+      - $ONLY_DEPLOY_IMAGES == "true"
   script: >
     curl --request POST --header "${AUTH}"
     https://gitlab.com/api/v4/projects/${PROJECT_ID}/environments/$(
@@ -354,6 +393,9 @@ Test Cleanup:
   <<: *before_script
   variables:
     <<: *master_variables
+  except:
+    variables:
+      - $ONLY_DEPLOY_IMAGES == "true"
   script:
     - python scripts/aws_reaper.py --env-cloudtrail-only
   when: always
@@ -363,7 +405,11 @@ Nightly Cleanup:on-schedule:
   tags:
     - shared
   only:
-    - schedules
+    refs:
+      - schedules
+  except:
+    variables:
+      - $ONLY_DEPLOY_IMAGES == "true"
   # will only run on the scheduled pipeline,
   # 'always' in this context means it will run
   # even if prior stages fail
