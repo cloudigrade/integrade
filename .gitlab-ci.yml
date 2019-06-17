@@ -66,24 +66,26 @@ stages:
 
 #####################################################################
 # Deploy images every morning so we have some inspections to look at
+# Commented out until later date at which point this may become relavent again.
+# CloudMeter development is going into deep freeze.
 
-Deploy Images:
-  stage: Deploy Images
-  tags:
-    - shared
-  only:
-    refs:
-      - schedules
-    variables:
-      - $ONLY_DEPLOY_IMAGES == "true"
-  before_script:
-    - python --version
-    - make install-dev
-    - pip install codecov
-    - cp aws_image_config_template.yaml integrade/aws_image_config.yaml
-  script:
-    - python scripts/aws_instigator.py
-  coverage: '/\d+\%\s*$/'
+# Deploy Images:
+#   stage: Deploy Images
+#   tags:
+#     - shared
+#   only:
+#     refs:
+#       - schedules
+#     variables:
+#       - $ONLY_DEPLOY_IMAGES == "true"
+#   before_script:
+#     - python --version
+#     - make install-dev
+#     - pip install codecov
+#     - cp aws_image_config_template.yaml integrade/aws_image_config.yaml
+#   script:
+#     - python scripts/aws_instigator.py
+#   coverage: '/\d+\%\s*$/'
 
 #####################################################################
 # Test integrade's own code.
