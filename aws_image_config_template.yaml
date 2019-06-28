@@ -43,22 +43,23 @@
       image_id: 'ami-05fb04e2687120d6b'
       rhel: False
       openshift: False
-    - name: 'windows' # Microsoft Windows Server 2019 Base
-      image_id: 'ami-0410d3d3bd6d555f4' # windows server image
-      rhel: False
-      openshift: False
-      is_windows: True
+    # - name: 'windows' # Microsoft Windows Server 2019 Base CURRENTLY FAILING
+        # no longer present
+        #   image_id: 'ami-0410d3d3bd6d555f4' # windows server image
+        #   rhel: False
+        #   openshift: False
+        #   is_windows: True
 
 .community: &community
   community:
     - name: 'ubuntu'
       image_id: 'ami-759bc50a'
-    - name: 'windows' # windows server 2016 
-      image_id: 'ami-0aeaed2faa756912c'
+    # - name: 'windows' # windows server 2016 CURRENTLY FAILING
+    #   image_id: 'ami-0aeaed2faa756912c'
     - name: 'opensuse'
       image_id: 'ami-2b170941'
-    - name: 'fedora' # fedora 28
-      image_id: 'ami-0011ab01eb7fb4fbc'
+    # - name: 'fedora' # fedora 28 CURRENTLY FAILING- no longer present
+    #   image_id: 'ami-0011ab01eb7fb4fbc'
 
 profiles:
   DEV07CUSTOMER:

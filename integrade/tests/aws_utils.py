@@ -450,3 +450,68 @@ def aws_session(aws_profile):
         raise AWSCredentialsNotFoundError(
             f'Could not find credentials in the environment for {aws_profile}'
         )
+
+
+def purge_queue_messages():
+    """Purge messages left in ready_volume queue so test runs cleanly."""
+    queue_prefix = os.getenv('AWS_QUEUE_PREFIX')
+    queue_prefix = f'review-{queue_prefix[:-1]}'
+    queue_url = ''
+    client = boto3.client('sqs')
+    queue_urls = client.list_queues(
+        QueueNamePrefix=queue_prefix).get('QueueUrls', [])
+
+    # Find the 'ready_volumes' queue
+    if queue_urls != []:
+        for url in queue_urls:
+            if 'ready_volumes' in url:
+                queue_url = url
+                # and delete it
+                client.purge_queue(
+                    QueueUrl=queue_url
+                )
+        print(f'{queue_prefix} ready_volume queue purged')
+
+
+def describe_auto_scaling_group(name):
+    """
+    Describe the named Auto Scaling group.
+
+    Args:
+        name (str): Auto Scaling group name
+
+    Returns:
+        dict: Details describing the Auto Scaling group
+
+    """
+    autoscaling = boto3.client('autoscaling')
+    groups = autoscaling.describe_auto_scaling_groups(
+        AutoScalingGroupNames=[name],
+        MaxRecords=1
+    )['AutoScalingGroups']
+    return groups[0]
+
+
+def scale_down_houndigrade():
+    """Scale down clusters so inspection runs as expected."""
+    asg_name = f"{os.environ.get('BRANCH_NAME')}-houndigrade-asg"
+    # Find groups, if any
+    asg = describe_auto_scaling_group(asg_name)
+
+    # If groups, check status (up/down)
+    scaled_down = asg['MinSize'] == 0 and \
+        asg['MaxSize'] == 0 and \
+        asg['DesiredCapacity'] == 0 and \
+        len(asg['Instances']) == 0
+
+    # If groups are not scaled down, scale them down
+    if not scaled_down:
+        autoscaling = boto3.client('autoscaling')
+        autoscaling.update_auto_scaling_group(
+            AutoScalingGroupName=asg_name,
+            MinSize=0,
+            MaxSize=0,
+            DesiredCapacity=0,
+        )
+        print(f'{asg_name} scaled down to start this run.')
+    # TODO: Check what else is running

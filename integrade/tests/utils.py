@@ -10,6 +10,7 @@ import requests
 
 from integrade import api, config
 from integrade.tests import aws_utils, urls
+from integrade.tests.constants import QA_URL
 from integrade.utils import gen_password, uuid4
 
 logger = logging.getLogger(__name__)
@@ -129,6 +130,35 @@ def create_user_account(user=None):
     else:
         user = copy.deepcopy(user)
     return user
+
+
+def fetch_api_accounts():
+    """Return account data for available accounts."""
+    client = api.ClientV2(QA_URL)
+    response = client.request('get', 'accounts/')
+    assert response.status_code == 200, \
+        'Could not retrieve any account information' \
+        ' (check credentials?)'
+    accounts = response.json()['data']
+    return accounts
+
+
+def delete_preexisting_accounts(aws_profile):
+    """Delete any pre-existing accounts to start fresh.
+
+    In case something went wrong last time this test ran,
+    check to be sure that the account doesn't exist and delete
+    it if it does.
+    TODO: move this to an 'addfinalizer' to delete accounts
+    """
+    arn = aws_profile['arn']
+    accounts = fetch_api_accounts()
+    client = api.ClientV2(QA_URL)
+    for acct in accounts:
+        if acct['content_object']['account_arn'] == arn:
+            account_id = acct['account_id']
+            endpoint = f'accounts/{account_id}/'
+            client.request('delete', endpoint)
 
 
 def delete_cloudtrails(cloudtrails_to_delete=None):
