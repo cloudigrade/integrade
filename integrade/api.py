@@ -17,6 +17,9 @@ from requests.exceptions import HTTPError
 
 from integrade import config, exceptions
 from integrade.exceptions import MissingConfigurationError
+from integrade.tests.constants import (
+    QA_URL, STAGE_URL
+)
 from integrade.tests.utils import (
     get_credentials
 )
@@ -269,32 +272,48 @@ class ClientV2(object):
     .. _Requests: http://docs.python-requests.org/en/master/
     """
 
-    def __init__(self, url, response_handler=None, env='ci'):
+    def __init__(self, url=None, response_handler=None, auth=None,
+                 env=None, branch=None):
         """Initialize this object, collecting base URL."""
         self.url = url
         cfg = config.get_config()
         self.verify = cfg.get('ssl-verify', False)
-        self.auth = get_credentials()
-        self.qa_branch = os.environ.get('BRANCH_NAME')
-
-        if not self.qa_branch:
+        self.auth = auth if auth is not None else get_credentials()
+        self.env = env
+        if branch is None:
+            self.branch = os.environ.get('BRANCH_NAME')
+        else:
+            self.branch = branch
+        if not self.branch:
             raise MissingConfigurationError(
                 'BRANCH_NAME is missing.'
             )
-
         if response_handler is None:
             self.response_handler = code_handler
         else:
             self.response_handler = response_handler
+        self._guess_v2_environment()
 
+    def _guess_v2_environment(self):
+        if self.branch == 'master':
+            if self.url is None:
+                self.url = STAGE_URL
+            if self.env is None:
+                self.env = 'qa'
+        else:
+            if self.url is None:
+                self.url = QA_URL
+            if self.env is None:
+                self.env = 'ci'
         self.headers = {
-            'X-4Scale-Env': env,
-            'X-4Scale-Branch': self.qa_branch,
+            'X-4Scale-Env': self.env,
+            'X-4Scale-Branch': self.branch,
         }
 
     def request(self, method, endpoint, **kwargs):
         """Send an HTTP request."""
         url = urljoin(self.url, endpoint)
+        logger.debug(f'{method} {url} {self.headers} {self.auth} {kwargs}')
         response = requests.request(
             method=method,
             url=url,

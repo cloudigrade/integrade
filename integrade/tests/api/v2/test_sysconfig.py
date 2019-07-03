@@ -14,9 +14,6 @@ import logging
 import pytest
 
 from integrade import api
-from integrade.tests.constants import (
-    QA_URL, STAGE_URL
-)
 from integrade.tests.utils import (
     is_on_local_network
 )
@@ -36,11 +33,6 @@ def test_sysconfig():
     :expectedresults: The server returns a 200 response with the expected
         configuration information.
     """
-    qa_client = api.ClientV2(QA_URL, env='ci')
-    test_client = api.ClientV2(STAGE_URL, env='qa')
-    qa_response = qa_client.request('get', 'sysconfig/')
-    test_response = test_client.request('get', 'sysconfig/')
-
-    # check that the config is able to access the test env
-    assert qa_response.status_code == 200
-    assert test_response.status_code == 200
+    client = api.ClientV2()
+    response = client.request('get', 'sysconfig/')
+    assert response.status_code == 200, response.text

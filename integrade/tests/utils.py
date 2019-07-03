@@ -10,7 +10,7 @@ import requests
 
 from integrade import api, config
 from integrade.tests import aws_utils, urls
-from integrade.tests.constants import QA_URL
+from integrade.tests.constants import RH_NETWORK_URL
 from integrade.utils import gen_password, uuid4
 
 logger = logging.getLogger(__name__)
@@ -134,7 +134,7 @@ def create_user_account(user=None):
 
 def fetch_api_accounts():
     """Return account data for available accounts."""
-    client = api.ClientV2(QA_URL)
+    client = api.ClientV2()
     response = client.request('get', 'accounts/')
     assert response.status_code == 200, \
         'Could not retrieve any account information' \
@@ -153,7 +153,7 @@ def delete_preexisting_accounts(aws_profile):
     """
     arn = aws_profile['arn']
     accounts = fetch_api_accounts()
-    client = api.ClientV2(QA_URL)
+    client = api.ClientV2()
     for acct in accounts:
         if acct['content_object']['account_arn'] == arn:
             account_id = acct['account_id']
@@ -259,7 +259,7 @@ def is_on_local_network():
     API V2 tests should be skipped if this returns False - ie. if running in
     gitlab CI.
     """
-    url = 'https://stage.cloud.paas.upshift.redhat.com'
+    url = RH_NETWORK_URL
     try:
         requests.get(url, verify=False)
     except requests.exceptions.ConnectionError as e:

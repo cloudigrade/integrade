@@ -22,7 +22,6 @@ from integrade.tests import aws_utils
 from integrade.tests.constants import (
     LONG_TIMEOUT,
     MEDIUM_TIMEOUT,
-    QA_URL,
 )
 from integrade.tests.utils import delete_preexisting_accounts
 
@@ -279,7 +278,7 @@ def test_discovery(test_case, request):
 
     # Add AWS account to cloudigrade
     arn = aws_profile['arn']
-    client = api.ClientV2(QA_URL)
+    client = api.ClientV2()
     acct_data_params = {
         'account_arn': arn,
         'name': uuid4(),
@@ -345,7 +344,7 @@ def test_inspection(test_case, request):
 
     # Add AWS account to cloudigrade
     arn = aws_profile['arn']
-    client = api.ClientV2(QA_URL)
+    client = api.ClientV2()
     acct_data_params = {
         'account_arn': arn,
         'name': uuid4(),
