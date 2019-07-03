@@ -15,6 +15,8 @@ QA_URL = 'https://qa.cloud.paas.psi.redhat.com' \
 STAGE_URL = 'https://stage.cloud.paas.psi.redhat.com' \
     '/api/cloudigrade/v2/'
 
+SOURCES_URL = 'https://qa.cloud.paas.psi.redhat.com/api/sources/v1.0/'
+
 SHORT_TIMEOUT = 1
 MEDIUM_TIMEOUT = 10
 LONG_TIMEOUT = 60
