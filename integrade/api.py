@@ -295,7 +295,7 @@ class ClientV2(object):
         self._guess_v2_environment()
 
     def _guess_v2_environment(self):
-        if self.branch == 'master':
+        if self.branch.startswith('master'):
             if self.url is None:
                 self.url = STAGE_URL
             if self.env is None:
