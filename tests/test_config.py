@@ -54,7 +54,7 @@ def test_get_config(ssl, protocol):
             assert cfg['base_url'] == 'example.com'
             assert cfg['scheme'] == protocol
             assert cfg['ssl-verify'] == ssl
-            assert cfg['api_version'] == 'v2'
+            assert cfg['api_version'] == 'v1'
             assert len(cfg['aws_profiles']) == 1
             assert cfg['aws_profiles'][0]['name'] == 'CUSTOMER1'
             assert cfg['aws_profiles'][0]['cloudtrail_name'] == (

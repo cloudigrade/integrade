@@ -33,7 +33,7 @@ def get_config(need_base_url=True):
     global _CONFIG  # pylint:disable=global-statement
     if _CONFIG is None:
         _CONFIG = {}
-        _CONFIG['api_version'] = os.getenv('CLOUDIGRADE_API_VERSION', 'v2')
+        _CONFIG['api_version'] = os.getenv('CLOUDIGRADE_API_VERSION', 'v1')
         _CONFIG['cloudigrade_s3_bucket'] = os.getenv('AWS_S3_BUCKET_NAME')
 
         ref_slug = os.environ.get('CI_COMMIT_REF_SLUG', '')
