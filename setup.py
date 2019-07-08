@@ -32,6 +32,7 @@ setup(
             # For `make lint`
             'flake8',
             'flake8-docstrings',
+            'pydocstyle==3.0.0',
             'flake8-import-order',
             'flake8-quotes',
             # For `make test-coverage`

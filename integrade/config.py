@@ -139,5 +139,5 @@ def get_aws_image_config():
         path = os.path.join(os.path.dirname(__file__),
                             'aws_image_config.yaml')
         with open(path) as f:
-            _AWS_CONFIG = yaml.load(f)
+            _AWS_CONFIG = yaml.load(f, Loader=yaml.FullLoader)
     return deepcopy(_AWS_CONFIG)
