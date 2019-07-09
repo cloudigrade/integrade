@@ -213,10 +213,11 @@ def _wait_for_inspection_with_timeout(
 
 # Run test against all of the images
 IMAGES_TO_TEST = all_the_images()
+# (maybe not every time? Uncomment to use just first image)
 # IMAGES_TO_TEST = [(
 #     'private-shared', 'ubuntu', 'inspected'
 # )]
-# (maybe not every time? Uncomment to use just first image)
+# or
 # IMAGES_TO_TEST = []
 # IMAGES_TO_TEST.append(all_the_images()[0])
 # Run test against one of the images. Uncomment more as needed
@@ -284,7 +285,6 @@ def test_discovery(test_case, request):
         'name': uuid4(),
         'cloud_type': 'aws',
     }
-
     # Create an account
     add_acct_response = client.request(
         'post', 'accounts/', data=acct_data_params)

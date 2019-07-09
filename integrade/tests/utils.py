@@ -152,10 +152,14 @@ def delete_preexisting_accounts(aws_profile):
     TODO: move this to an 'addfinalizer' to delete accounts
     """
     arn = aws_profile['arn']
+    aws_id = '743187646576'
+    arn_text = 'arn:aws:iam::439727791560:role/cloudigrade-role-for'
+    sources_arn = f'{arn_text}-{aws_id}'
     accounts = fetch_api_accounts()
     client = api.ClientV2()
     for acct in accounts:
-        if acct['content_object']['account_arn'] == arn:
+        acct_arn = acct['content_object']['account_arn']
+        if acct_arn == arn or acct_arn == sources_arn:
             account_id = acct['account_id']
             endpoint = f'accounts/{account_id}/'
             client.request('delete', endpoint)

@@ -15,7 +15,9 @@ import pytest
 
 from integrade import api, config
 from integrade.tests.utils import (
-    aws_utils, is_on_local_network
+    aws_utils,
+    delete_preexisting_accounts,
+    is_on_local_network,
 )
 from integrade.utils import (
     uuid4,
@@ -40,25 +42,6 @@ def fetch_api_accounts():
 def aws_profile(request):
     """Provide the aws profile to use to test."""
     return request.param
-
-
-@pytest.fixture(autouse=True)
-def delete_preexisting_accounts(aws_profile):
-    """Delete any pre-existing accounts to start fresh.
-
-    In case something went wrong last time this test ran,
-    check to be sure that the account doesn't exist and delete
-    it if it does.
-    TODO: move this to an 'addfinalizer' to delete accounts
-    """
-    arn = aws_profile['arn']
-    accounts = fetch_api_accounts()
-    client = api.ClientV2()
-    for acct in accounts:
-        if acct['content_object']['account_arn'] == arn:
-            account_id = acct['account_id']
-            endpoint = f'accounts/{account_id}/'
-            client.request('delete', endpoint)
 
 
 @pytest.mark.skipif(not is_on_local_network(),
@@ -89,7 +72,7 @@ def test_create_cloud_account(cloudtrails_to_delete, aws_profile, request):
         'name': uuid4(),
         'cloud_type': 'aws',
         }
-
+    delete_preexisting_accounts(aws_profile)
     # POST
     # Create an account
     add_acct_response = client.request(

@@ -14,12 +14,14 @@ import logging
 import time
 from datetime import datetime, timedelta
 
-from integrade import api
+from integrade import api, config
 from integrade.tests.constants import (
-    QA_URL,
     SOURCES_URL,
 )
-from integrade.tests.utils import get_credentials
+from integrade.tests.utils import (
+    delete_preexisting_accounts,
+    get_credentials,
+)
 
 _logger = logging.getLogger(__name__)
 
@@ -73,44 +75,6 @@ def create_auth_obj_in_sources():
     print(f'Auth id: {auth_id}')
 
 
-def delete_current_cloud_accounts(arn):
-    """Delete current cloud accounts to start fresh.
-
-    Args:
-        arn (string): the arn of the temporary AWS account used for this test.
-    The AWS account used here needs to be a temporary one because there are
-    real username/password combinations being used and Sources is not
-    encrypted in any way.
-    TODO: Currently, the AWS temporary account is semi-permanent, ie, there is
-    nothing in place to create a new one for each run of the tests and then
-    destroy it after the test runs. This should be done.
-    """
-    client = api.ClientV2(
-        url=QA_URL,
-    )
-    keep_deleting = True
-    while keep_deleting:
-        r_clounts = client.request(
-            'get',
-            'accounts/',
-        )
-        clounts_data = r_clounts.json()
-        keep_deleting = clounts_data['links']['next'] is not None
-        for clount in clounts_data['data']:
-            obj_cont = clount['content_object']
-            acct_arn = obj_cont['account_arn']
-            clount_id = clount['account_id']
-            if acct_arn == arn:
-                # import ipdb; ipdb.set_trace()
-                d_clount = client.request(
-                    'delete',
-                    f'accounts/{clount_id}/',
-                )
-                print(f'deleted clount id {clount_id}: '
-                      f'request: {d_clount}'
-                      f'arn: {arn}')
-
-
 def wait_for_response_with_timeout(client, params, arn, timeout):
     """Poll cloudigrade to see it recognize 'Sources'-triggered event.
 
@@ -161,7 +125,9 @@ def test_cloudi_create_account():
     client = api.ClientV2()
     arn = 'arn:aws:iam::439727791560:role/cloudigrade-role-for-743187646576'
     # Make sure that there isn't already an account using this arn.
-    delete_current_cloud_accounts(arn)
+    aws_profile = config.get_config()['aws_profiles'][0]
+    delete_preexisting_accounts(aws_profile)
+    # delete_current_cloud_accounts(arn)
     # Trigger Sources authentication
     create_auth_obj_in_sources()
     time = 30
