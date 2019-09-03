@@ -55,6 +55,8 @@ def raise_error_for_status(response):
             error_headers[AUTHORIZATION_HEADER] = '*' * 8
         error_msgs += '\n\n'.join(
             [
+                'request url : {}'.format(pformat(
+                    response.request.url)),
                 'request path : {}'.format(pformat(
                     response.request.path_url)),
                 'request body : {}'.format(pformat(
