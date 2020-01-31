@@ -27,6 +27,7 @@ following commands will do that for you::
 
     git clone git@gitlab.com:cloudigrade/integrade.git
     cd integrade
+    source /venv/bin/activate
     make install
 
 .. note::
@@ -51,6 +52,7 @@ the development requirements. Run the following commands to do that::
 
     git clone git@gitlab.com:cloudigrade/integrade.git
     cd integrade
+    source /venv/bin/activate 
     make install-dev
 
 Now you can browse the source code and to help you here is an overview about
@@ -103,8 +105,7 @@ Create a file `.env-pre-setup` in the integrade root directory::
     export AWS_SECRET_ACCESS_KEY_DEV08CUSTOMER=XXX
     export CLOUDIGRADE_ROLE_DEV08CUSTOMER=XXX
 
-If you don't know which credentials to use ask another integrade developer
-for assistance.
+Ask another cloudigrade/integrade developer for assistance with these credentials.
 
 Automatic setup configures your environment to run tests against a remote
 installation of the Cloudigrade service. These include automated review
@@ -113,13 +114,29 @@ frontigrade repositories. When you push an integrade branch of the same name
 for a Merge Request, its tests will be run on the matching environment.
 
 To configure your local setup to use that same branch-based environment, use
-the `setup-env.sh` script::
+the `setup-env.sh` script:
+
+Using this to explicitly select the environment you want to use::
 
     eval $(scripts/setup-env.sh my-branch-name-here)
 
-Your environment is not populated with all the correct information to point
+Alternately, you can use it like this to set your environment to match your current branch::
+
+    eval $(scripts/setup-env.sh)
+
+NOTE: in some cases these need to be run with quotes like so::
+
+    eval "$(scripts/setup-env.sh)"
+
+*Run tests*
+
+Your environment is now populated with all the correct information to point
 running tests at the remote review environment. You can test them out with a
-simple test run.
+simple test run.::
+
+    UITEST_SHOW=yes py.test -s -vvv  integrade/tests/api/v2/test_sysconfig.py
+
+the following hasn't been updated as of Jan 2020. YMMV::
 
     make test-api
 
@@ -238,6 +255,11 @@ can do this by logging in through the web UI and in the menu opened by clicking
 on your user name, there is an option to ``Copy Login Command``. Paste this to
 the terminal to log the ``oc`` client into that OpenShift cluster.
 
+**NOTE:** If you don't have OpenShift access to ``cloudigrade-ci`` and ``cloudigrade-qa``, you'll need that.
+See instructions here:
+
+https://platform-docs.cloud.paas.psi.redhat.com/onboarding/access.html#github-and-openshift
+
 To set all needed environment variables, you can ``source`` script like the following, but filled in with the necessary details:
 
 .. code::
@@ -300,6 +322,9 @@ To get started using the api client for exploratory testing, try opening up an `
 
 Running UI Tests
 ================
+
+**NOTE** *Please disregard the following information about running UI tests. The UI only exists for v1
+of this project. Leaving in for now in case it's useful later.*
 
 UI tests may run via Selenium-driven local browsers or remotely through the
 SauceLabs service.
